@@ -1,0 +1,14 @@
+{
+  "ver": 1,
+  "updated": "2026-10-12",
+  "models": [
+    {
+      "id": "ae4max2",
+      "name": "AE4 MAX2+",
+      "file": "AE4-MAX2plus.glb",
+      "size": 6226468,
+      "ver": 1,
+      "note": "官方 AE4 MAX2+ 原版车模（深灰/铜色喷涂前请先清空配色方）"
+    }
+  ]
+}
