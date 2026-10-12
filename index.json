@@ -11,6 +11,14 @@
       "note": "官方 AE4 MAX2+ 原版车模（深灰/铜色喷涂前请先清空配色方）"
     },
     {
+      "id": "gugugaga",
+      "name": "咕咕嘎嘎（企鹅装）",
+      "file": "gugugaga.glb",
+      "size": 9657100,
+      "ver": 1,
+      "note": "第三方模型 Sketchfab「Gugugaga」(planktonfun, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
+    },
+    {
       "id": "miko-bust",
       "name": "巫女立绘（半身）",
       "file": "miko-bust.glb",
