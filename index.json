@@ -19,6 +19,14 @@
       "note": "第三方模型 Sketchfab「Gugugaga」(planktonfun, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
     },
     {
+      "id": "deepseek-fumo",
+      "name": "DeepSeek 玩偶（女仆装）",
+      "file": "deepseek-fumo.glb",
+      "size": 1227456,
+      "ver": 1,
+      "note": "第三方模型 Sketchfab「Deepseek Fumo」(xunbile, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
+    },
+    {
       "id": "miko-bust",
       "name": "巫女立绘（半身）",
       "file": "miko-bust.glb",
