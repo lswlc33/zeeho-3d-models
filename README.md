@@ -1,15 +1,20 @@
 # zeeho-3d-models
 
-Zeeho Unlocker 的 3D 车模库：存放从极核 App 抓取的官方车模（glb），供模块内
-「编辑 3D 车模 → 高级 → 从车模库选择」下载使用——让没有下发 3D 模型的车型
-（如 AE5i Pro）也能挂上别的车型的 3D 车模。
+Zeeho Unlocker 的 3D 车模库：存放从极核 App 抓取的官方车模（glb），以及自制/改造的
+模型，供模块内「编辑 3D 车模 → 高级 → 从车模库选择」下载使用——让没有下发 3D 模型的
+车型（如 AE5i Pro）也能挂上别的车型的 3D 车模。
 
 ## 结构
 
 ```
-models/<车型名>.glb     车模文件（官方原包，未改写）
+models/<车型名>.glb     车模文件
 index.json              清单：模块按它拉列表
 ```
+
+**两类文件**：官方原包（从设备 `Android/data/com.cfmoto/files/models/<md5(url)>.glb`
+直接拷出，未改写）与改造包（自制或对原包做过处理）。改造包要在 `note` 里注明，
+例如半身像模型是把原始 glb 裁掉下半身、按 App 相机朝向旋转、并把包围盒中心补白
+到原点（App 会按包围盒自动缩放/居中，所以尺寸与偏心都靠改 accessor 的 min/max 控制）。
 
 ## index.json 字段
 
