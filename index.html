@@ -836,9 +836,10 @@ body::before {
 .sheet.full .sheet-head { padding-top: 4px; }
 .sheet.full .sheet-body { padding-bottom: calc(16px + var(--sab)); }
 
-/* ============================ 贡献图（日历热力图） ============================ */
-.hm { --cell: 7px; }
-.hm-grid { display: grid; gap: 2px; }
+/* ============================ 贡献图（紧凑点阵） ============================ */
+/* 固定 53 列 × 7 行，列宽 1fr 自适应容器（写死 px 会让 53 列超出屏幕被裁）。
+   整块高度 = 7 行小格 + 月份标签 + 图例，约 70px。 */
+.hm-grid { display: grid; gap: 1px; }
 .hm .c {
   display: block; border-radius: 2px;
   background: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
@@ -848,39 +849,20 @@ body::before {
 .hm .c.l3 { background: color-mix(in srgb, var(--md-sys-color-primary) 74%, transparent); }
 .hm .c.l4 { background: var(--md-sys-color-primary); }
 
-/* 年视图：顶上月份标签 + 53×7 小格 + 图例。
-   列宽用 1fr + 方块比例自适应容器宽度（写死 px 会让 53 列超出屏幕被裁掉）。 */
-.hm-year .hm-grid { grid-template-columns: repeat(53, minmax(0, 1fr)); gap: 1px; }
-.hm-year .hm-grid .c { aspect-ratio: 1; }
-.hm-year .hm-months {
+.hm-months {
   position: relative; height: 12px;
   margin-bottom: 4px;
   font-size: 9px; color: var(--md-sys-color-on-surface-variant);
 }
-.hm-year .hm-months span { position: absolute; top: 0; white-space: nowrap; }
+.hm-months span { position: absolute; top: 0; white-space: nowrap; }
+.hm-grid .c { aspect-ratio: 1; }
 .hm-legend {
-  display: flex; align-items: center; gap: 4px;
-  margin-top: 8px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 3px;
+  margin-top: 6px;
   font-size: 10px; color: var(--md-sys-color-on-surface-variant);
 }
-.hm-legend .c { width: 10px; height: 10px; border-radius: 3px; }
+.hm-legend .c { width: 9px; height: 9px; border-radius: 2px; }
 .hm-legend span { margin: 0 2px; }
-
-/* 月视图：日历式，格子随宽度自适应、正方形 */
-.hm-month .hm-wd {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
-  margin-bottom: 4px;
-  font-size: 10px; text-align: center; color: var(--md-sys-color-on-surface-variant);
-}
-.hm-month .hm-grid { grid-auto-rows: 1fr; gap: 3px; }
-.hm-month .c { aspect-ratio: 1; border-radius: 6px; position: relative; }
-.hm-month .c.has::after {
-  content: attr(data-d);
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  font-size: 10px; font-weight: 600;
-  color: var(--md-sys-color-on-surface-variant);
-}
 
 .sheet-item {
   display: flex; align-items: center; gap: 12px;
@@ -4453,14 +4435,14 @@ window.UI = (() => {
   }
 
   /**
-   * 骑行贡献图（GitHub 那种日历热力图）。
+   * 骑行贡献图（GitHub 那种日历点阵）。
    *   get: (dateStr 'YYYY.MM.DD') => 当天里程 km（0/undefined = 那天没骑）
-   *   mode='year'  → 最近 365 天，53 列 × 7 行（周一为每周第一行），顶上标月份
-   *   mode='month' → 指定月份的日历（7 列 × 最多 6 行），格子大、看得清
+   *   opts.end: 结束日期（默认今天）
+   * 固定"最近 365 天 / 53 列 × 7 行，周一为每周第一行"，列宽用 1fr 自适应容器宽度。
+   * 早先按月做过日历式（7 列 × 6 行、格子撑满宽度），每格 ~48px、整块占掉小半屏，太占位置，已撤。
    * 分档按**非零值的四分位**，不按最大值——一年里跑一趟长途就会把其余全压成最浅色。
    */
   function heatmap(get, opts = {}) {
-    const mode = opts.mode || 'year';
     const pad2 = (n) => String(n).padStart(2, '0');
     const fmt = (d) => `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
     const parse = (s) => {
@@ -4468,65 +4450,43 @@ window.UI = (() => {
       return new Date(y, m - 1, d);
     };
 
+    const end = opts.end ? parse(opts.end) : new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - 364);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));   // 退到那一周的周一
+    const total = Math.round((end - start) / 86400000);
+    const cols = Math.floor(total / 7) + 1;
+
     const cells = [];
     const months = [];
-    let cols = 0;
-    let rows = 0;
-    if (mode === 'month') {
-      const [y, m] = String(opts.month || '').split('.').map(Number);
-      if (!y || !m) return '';
-      const days = new Date(y, m, 0).getDate();
-      const lead = (new Date(y, m - 1, 1).getDay() + 6) % 7;    // 周一为一周之首
-      for (let i = 0; i < days; i++) {
-        const d = new Date(y, m - 1, i + 1);
-        const idx = lead + i;
-        cells.push({ col: idx % 7, row: Math.floor(idx / 7), date: fmt(d), value: Number(get(fmt(d))) || 0 });
-      }
-      cols = 7;
-      rows = Math.ceil((lead + days) / 7);
-    } else {
-      const end = opts.end ? parse(opts.end) : new Date();
-      const start = new Date(end);
-      start.setDate(start.getDate() - 364);
-      start.setDate(start.getDate() - ((start.getDay() + 6) % 7));   // 退到那一周的周一
-      const total = Math.round((end - start) / 86400000);
-      let lastM = -1;
-      let lastLabelCol = -9;
-      for (let i = 0; i <= total; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const col = Math.floor(i / 7);
-        cells.push({ col, row: (d.getDay() + 6) % 7, date: fmt(d), value: Number(get(fmt(d))) || 0 });
-        if (d.getMonth() !== lastM) {
-          lastM = d.getMonth();
-          // 标签太近就不标，否则 5px 的小格子会糊成一团
-          if (col - lastLabelCol >= 3) {
-            months.push({ col, text: d.getMonth() === 0 ? `${String(d.getFullYear()).slice(2)}年` : `${d.getMonth() + 1}月` });
-            lastLabelCol = col;
-          }
+    let lastM = -1;
+    let lastLabelCol = -9;
+    for (let i = 0; i <= total; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const col = Math.floor(i / 7);
+      cells.push({ col, row: (d.getDay() + 6) % 7, date: fmt(d), value: Number(get(fmt(d))) || 0 });
+      if (d.getMonth() !== lastM) {
+        lastM = d.getMonth();
+        // 标签太近就不标，否则 6px 的小格子会糊成一团
+        if (col - lastLabelCol >= 3) {
+          months.push({ col, text: d.getMonth() === 0 ? `${String(d.getFullYear()).slice(2)}年` : `${d.getMonth() + 1}月` });
+          lastLabelCol = col;
         }
       }
-      cols = Math.floor(total / 7) + 1;
-      rows = 7;
     }
 
     const nz = cells.filter((c) => c.value > 0).map((c) => c.value).sort((a, b) => a - b);
-    const qt = (p) => (nz.length ? nz[Math.min(nz.length - 1, Math.max(0, Math.floor(p * nz.length) - (p > 0 ? 1 : 0)))] : 0);
+    const qt = (p) => (nz.length ? nz[Math.min(nz.length - 1, Math.max(0, Math.floor(p * nz.length) - 1))] : 0);
     const t = [qt(0.25), qt(0.5), qt(0.75)];
     const lvl = (v) => (v <= 0 ? 0 : v <= t[0] ? 1 : v <= t[1] ? 2 : v <= t[2] ? 3 : 4);
     const grid = cells
       .map((c) => `<i class="c l${lvl(c.value)}" style="grid-area:${c.row + 1}/${c.col + 1}" title="${esc(c.date)}${c.value > 0 ? ' · ' + c.value.toFixed(1) + ' km' : ' · 没有骑行'}"></i>`)
       .join('');
 
-    if (mode === 'month') {
-      return `<div class="hm hm-month">
-        <div class="hm-wd">${['一', '二', '三', '四', '五', '六', '日'].map((x) => `<span>${x}</span>`).join('')}</div>
-        <div class="hm-grid" style="grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},minmax(0,1fr))">${grid}</div>
-      </div>`;
-    }
-    return `<div class="hm hm-year">
+    return `<div class="hm">
       <div class="hm-months">${months.map((m) => `<span style="left:${((m.col / cols) * 100).toFixed(2)}%">${m.text}</span>`).join('')}</div>
-      <div class="hm-grid" style="grid-template-rows:repeat(7,minmax(0,1fr))">${grid}</div>
+      <div class="hm-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr));grid-template-rows:repeat(7,minmax(0,1fr))">${grid}</div>
       <div class="hm-legend"><span>少</span>${[0, 1, 2, 3, 4].map((l) => `<i class="c l${l}"></i>`).join('')}<span>多</span></div>
     </div>`;
   }
@@ -5240,7 +5200,8 @@ window.APP = (() => {
     RIDE.day = null;
     RIDE.trip = null;
     renderRideSheet();
-    const p = RIDE.view === 'year' ? ensureYear() : ensureMonth(RIDE.month);
+    // 两个视图都要那条"最近一年"的点阵，所以年数据一起拉（12 个月并发，之后走缓存）
+    const p = RIDE.view === 'year' ? ensureYear() : Promise.all([ensureMonth(RIDE.month), ensureYear()]);
     p.then(() => { if (!RIDE.day && !RIDE.trip) renderRideSheet(); });
   }
 
@@ -5289,16 +5250,14 @@ window.APP = (() => {
       body = `<div class="note bad">${U.icon('alert', 18)}<div>这个月取不到：${esc(hit.model.err)}</div></div>`;
     } else {
       const r = hit.model;
-      const dayMap = {};
-      for (const row of r.rows) dayMap[row.date] = row.mile;
       body = `<div class="mstats">
           ${tile('本月里程', r.mile ?? '—', 'km')}
           ${tile('骑行天数', r.activeCount, '天')}
           ${tile('骑行时长', M.minutesShort(r.minutes))}
           ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
         </div>
-        <div class="section-title"><span>这个月的骑行分布</span><span class="line"></span></div>
-        ${U.heatmap((d) => dayMap[d], { mode: 'month', month: m })}
+        <div class="section-title"><span>最近一年每天骑了多少</span><span class="line"></span></div>
+        ${RIDE.year?.ready ? U.heatmap((d) => RIDE.year.days[d]) : '<div class="sk" style="height:70px;border-radius:12px"></div>'}
         <div class="section-title"><span>逐日</span><span class="line"></span></div>` +
         (r.rows.length
           ? r.rows.map(recRow).join('')
@@ -5331,8 +5290,8 @@ window.APP = (() => {
           ${tile('骑行天数', active, '天')}
           ${tile('日均', active ? (y.total / active).toFixed(1) : '—', 'km')}
         </div>
-        <div class="section-title"><span>每天骑了多少</span><span class="line"></span></div>
-        ${U.heatmap((d) => y.days[d], { mode: 'year' })}
+        <div class="section-title"><span>最近一年每天骑了多少</span><span class="line"></span></div>
+        ${U.heatmap((d) => y.days[d])}
         <div class="section-title"><span>每月</span><span class="line"></span></div>
         <div class="grid3">
           ${y.per.slice().reverse().map((p) => tile(`${Number(p.month.split('.')[1])}月`, p.mile.toFixed(1), 'km')).join('')}
