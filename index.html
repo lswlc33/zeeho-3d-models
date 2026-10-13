@@ -520,6 +520,8 @@ body::before {
   overflow: hidden;
   background: var(--md-sys-color-surface-container-high);
 }
+/* 骑行轨迹用：轨迹是竖着的，扁框装不下会被上下裁掉 */
+.mapbox.tall { height: 240px; }
 .mapbox .tiles { position: absolute; inset: 0; }
 .mapbox .tiles img { position: absolute; width: 256px; height: 256px; user-select: none; }
 .mapbox .pin {
@@ -1038,6 +1040,118 @@ window.ZEEHO_MOCK = {
     }
    ]
   }
+ },
+ "ride_track": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": [
+   {
+    "dayTime": "2026.10.11",
+    "dayRideMileage": 8.3,
+    "historyList": [
+     {
+      "rideId": "20261011008363905",
+      "trajectory": "121.4710999999999927,31.2285000454339041,0.0,1791706005000,0.000000&121.4715418502416782,31.2286791272077515,45.0,1791706015000,125.000000&121.4719665201429564,31.2288440455615941,11.0,1791706025000,30.555556&121.4723591592461247,31.2289990340579564,18.0,1791706035000,50.000000&121.4727092608956696,31.2291491790692000,25.0,1791706045000,69.444444&121.4730120870805479,31.2292999829425995,32.0,1791706055000,88.888889&121.4732693109714887,31.2294568914401225,39.0,1791706065000,108.333333&121.4734887900168019,31.2296248260379130,46.0,1791706075000,127.777778&121.4736835003678124,31.2298077612532481,12.0,1791706085000,33.333333&121.4738697771402940,31.2300083832995270,19.0,1791706095000,52.777778&121.4740650991553821,31.2302278593851348,26.0,1791706105000,72.222222&121.4742857185790399,31.2304657374696539,33.0,1791706115000,91.666667&121.4745444569121418,31.2307199850866084,40.0,1791706125000,111.111111&121.4748489662244992,31.2309871638985932,0.0,1791706135000,0.000000",
+      "startAddr": "{\"address\":\"上海市黄浦区武胜路 100 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区武胜路 100 号\",\"townCode\":\"310101001000\"}",
+      "endAddr": "{\"address\":\"上海市黄浦区人民大道 200 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区人民大道 200 号\",\"townCode\":\"310101001000\"}",
+      "startTime": "2026.10.11 16:23:15",
+      "endTime": "2026.10.11 16:25:32",
+      "totalRideMileage": "8860",
+      "rideMileage": "0.500",
+      "ridingTime": "0.0",
+      "ridingTimeUnitMinute": "3",
+      "maxSpeed": "39",
+      "accelerationTimes": "6",
+      "brakesTimes": "0",
+      "bendingTimes": "0",
+      "powerConsumption": "0.0",
+      "greenContribution": "0.0",
+      "vinNo": null,
+      "userId": null,
+      "trackThumbnails": "",
+      "dayTime": "2026.10.11",
+      "shardingId": "1791706995318",
+      "cyclingEventStatisticFlag": null,
+      "vehicleKinds": null
+     },
+     {
+      "rideId": "20261011008316272",
+      "trajectory": "121.4745999999999952,31.2284851236166574,0.0,1791705750000,0.000000&121.4753207703745232,31.2289154238334810,26.0,1791705760000,72.222222&121.4760243604086725,31.2293275482942327,33.0,1791705770000,91.666667&121.4766959196446834,31.2297207812821576,40.0,1791705780000,111.111111&121.4773249414270708,31.2300960295442351,47.0,1791705790000,130.555556&121.4779066877448201,31.2304557444166591,13.0,1791705800000,36.111111&121.4784428317686036,31.2308037112957990,20.0,1791705810000,55.555556&121.4789412309467593,31.2311447245354969,27.0,1791705820000,75.000000&121.4794148614306266,31.2314841756917367,34.0,1791705830000,94.444444&121.4798800583359650,31.2318275904775149,41.0,1791705840000,113.888889&121.4803543004839099,31.2321801541959019,48.0,1791705850000,133.333333&121.4808538400404103,31.2325462664086011,14.0,1791705860000,38.888889&121.4813914985063690,31.2329291630867054,21.0,1791705870000,58.333333&121.4819749279515833,31.2333306386945182,28.0,1791705880000,77.777778&121.4826055732922896,31.2337508920748839,35.0,1791705890000,97.222222&121.4832784763413827,31.2341885093718616,42.0,1791705900000,116.666667&121.4839829482043996,31.2346405854575089,49.0,1791705910000,136.111111&121.4847040188358847,31.2351029734340884,15.0,1791705920000,41.666667&121.4854244671766423,31.2355706407837204,22.0,1791705930000,61.111111&121.4861271565583252,31.2360381015780497,29.0,1791705940000,80.555556&121.4867973586636509,31.2364998876284155,36.0,1791705950000,100.000000&121.4874247508820986,31.2369510181123857,43.0,1791705960000,119.444444&121.4880048161931683,31.2373874273437124,50.0,1791705970000,138.888889&121.4885394557344398,31.2378063139472069,16.0,1791705980000,44.444444&121.4890367309820505,31.2382063814503823,23.0,1791705990000,63.888889&121.4895097705073255,31.2385879496288723,30.0,1791706000000,83.333333&121.4899749895677985,31.2389529270430337,37.0,1791706010000,102.777778&121.4904498639801034,31.2393046471242926,44.0,1791706020000,122.222222&121.4909505601667519,31.2396475818887893,51.0,1791706030000,141.666667&121.4914897427742062,31.2399869578654332,17.0,1791706040000,47.222222&121.4920748571783804,31.2403283072239120,24.0,1791706050000,66.666667&121.4927071197927120,31.2406769926531744,31.0,1791706060000,86.111111&121.4933813531062299,31.2410377467955520,38.0,1791706070000,105.555556&121.4940866878229571,31.2414142657913843,45.0,1791706080000,125.000000&121.4948080368830006,31.2418088918419485,11.0,1791706090000,30.555556&121.4955281414685402,31.2422224120532732,18.0,1791706100000,50.000000&121.4962299115289994,31.2426539908368142,25.0,1791706110000,69.444444&121.4968987434192940,31.2431012416726297,32.0,1791706120000,88.888889&121.4975245003482769,31.2435604320717992,39.0,1791706130000,108.333333&121.4981028870624442,31.2440268041352134,46.0,1791706140000,127.777778&121.4986360323394621,31.2444949831781109,0.0,1791706150000,0.000000",
+      "startAddr": "{\"address\":\"上海市黄浦区人民大道 200 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区人民大道 200 号\",\"townCode\":\"310101001000\"}",
+      "endAddr": "{\"address\":\"上海市黄浦区西藏中路 268 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区西藏中路 268 号\",\"townCode\":\"310101001000\"}",
+      "startTime": "2026.10.11 16:12:52",
+      "endTime": "2026.10.11 16:22:15",
+      "totalRideMileage": "8859",
+      "rideMileage": "2.9",
+      "ridingTime": "0.1",
+      "ridingTimeUnitMinute": "10",
+      "maxSpeed": "68",
+      "accelerationTimes": "15",
+      "brakesTimes": "0",
+      "bendingTimes": "0",
+      "powerConsumption": "0.0",
+      "greenContribution": "0.1",
+      "vinNo": null,
+      "userId": null,
+      "trackThumbnails": "",
+      "dayTime": "2026.10.11",
+      "shardingId": "1791706372162",
+      "cyclingEventStatisticFlag": null,
+      "vehicleKinds": null
+     },
+     {
+      "rideId": "20261011008179719",
+      "trajectory": "121.4728182540993799,31.2299000000000007,0.0,1791705927000,0.000000&121.4733292588294233,31.2303616005303226,21.0,1791705937000,58.333333&121.4738071801154717,31.2308177236748286,28.0,1791705947000,77.777778&121.4742665805571562,31.2312633624641514,35.0,1791705957000,97.222222&121.4747245344269828,31.2316944103609018,42.0,1791705967000,116.666667&121.4751983121718268,31.2321080139430016,49.0,1791705977000,136.111111&121.4757030383105985,31.2325028179652548,15.0,1791705987000,41.666667&121.4762496403484420,31.2328790817523938,22.0,1791705997000,61.111111&121.4768433668616296,31.2332386569273908,29.0,1791706007000,80.555556&121.4774830757207980,31.2335848283878157,36.0,1791706017000,100.000000&121.4781613889789327,31.2339220321876709,43.0,1791706027000,119.444444&121.4788656934190669,31.2342554745540539,50.0,1791706037000,138.888889&121.4795798510742628,31.2345906847587251,16.0,1791706047000,44.444444&121.4802863877506098,31.2349330402454939,23.0,1791706057000,63.888889&121.4809688627602497,31.2352873047971187,30.0,1791706067000,83.333333&121.4816140984973742,31.2356572194054998,37.0,1791706077000,102.777778&121.4822139674967758,31.2360451809826181,44.0,1791706087000,122.222222&121.4827664946263184,31.2364520365055789,51.0,1791706097000,141.666667&121.4832761249409998,31.2368770102753821,17.0,1791706107000,47.222222&121.4837531208744821,31.2373177705365741,24.0,1791706117000,66.666667&121.4842121705165141,31.2377706297362856,31.0,1791706127000,86.111111&121.4846703957126834,31.2382308612238049,38.0,1791706137000,105.555556&121.4851450301143956,31.2386931051913486,45.0,1791706147000,125.000000&121.4856510820665392,31.2391518289925223,11.0,1791706157000,30.555556&121.4861992992763078,31.2396018023047617,18.0,1791706167000,50.000000&121.4867947112811777,31.2400385463271455,25.0,1791706177000,69.444444&121.4874359473766816,31.2404587184350184,32.0,1791706187000,88.888889&121.4881154225022613,31.2408603992559293,39.0,1791706197000,108.333333&121.4888203658762933,31.2412432575118224,46.0,1791706207000,127.777778&121.4895345528838675,31.2416085784703448,12.0,1791706217000,33.333333&121.4902405053505134,31.2419591535616945,19.0,1791706227000,52.777778&121.4909218618149964,31.2422990406411181,26.0,1791706237000,72.222222&121.4915655963610703,31.2426332154865740,33.0,1791706247000,91.666667&121.4921637851050491,31.2429671444620354,40.0,1791706257000,111.111111&121.4927146807797413,31.2433063150476116,47.0,1791706267000,130.555556&121.4932229496871230,31.2436557645561876,0.0,1791706277000,0.000000",
+      "startAddr": "{\"address\":\"上海市黄浦区西藏中路 268 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区西藏中路 268 号\",\"townCode\":\"310101001000\"}",
+      "endAddr": "{\"address\":\"上海市黄浦区南京西路 2 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区南京西路 2 号\",\"townCode\":\"310101001000\"}",
+      "startTime": "2026.10.11 16:05:42",
+      "endTime": "2026.10.11 16:12:30",
+      "totalRideMileage": "8856",
+      "rideMileage": "2.5",
+      "ridingTime": "0.1",
+      "ridingTimeUnitMinute": "7",
+      "maxSpeed": "61",
+      "accelerationTimes": "9",
+      "brakesTimes": "0",
+      "bendingTimes": "0",
+      "powerConsumption": "0.0",
+      "greenContribution": "0.1",
+      "vinNo": null,
+      "userId": null,
+      "trackThumbnails": "",
+      "dayTime": "2026.10.11",
+      "shardingId": "1791705942161",
+      "cyclingEventStatisticFlag": null,
+      "vehicleKinds": null
+     },
+     {
+      "rideId": "20261011008014463",
+      "trajectory": "121.4725493920028185,31.2308851236166589,0.0,1791705893000,0.000000&121.4730165709173377,31.2313166896355945,26.0,1791705903000,72.222222&121.4734945142107989,31.2317300798984512,33.0,1791705913000,91.666667&121.4739992246816769,31.2321245786884880,40.0,1791705923000,111.111111&121.4745430751431599,31.2325010927526776,47.0,1791705933000,130.555556&121.4751331305051849,31.2328620734272135,13.0,1791705943000,36.111111&121.4757701896786557,31.2332113061084584,20.0,1791705953000,55.555556&121.4764486772324688,31.2335535851502684,27.0,1791705963000,75.000000&121.4771573994961926,31.2338943021086202,34.0,1791705973000,94.444444&121.4778810625705461,31.2342389826965103,41.0,1791705983000,113.888889&121.4786023463836813,31.2345928122170022,48.0,1791705993000,133.333333&121.4793042535231677,31.2349601902318135,14.0,1791706003000,38.888889&121.4799724143112485,31.2353443527120298,21.0,1791706013000,58.333333&121.4805970355242692,31.2357470941219546,28.0,1791706023000,77.777778&121.4811742284839795,31.2361686133044252,35.0,1791706033000,97.222222&121.4817065364140944,31.2366074964035150,42.0,1791706043000,116.666667&121.4822025895453237,31.2370608382912742,49.0,1791706053000,136.111111&121.4826759347412661,31.2375244920699657,15.0,1791706063000,41.666667&121.4831431983635923,31.2379934252217026,22.0,1791706073000,61.111111&121.4836218315161886,31.2384621518181440,29.0,1791706083000,80.555556&121.4841277434434943,31.2389252036706218,36.0,1791706093000,100.000000&121.4846731440252228,31.2393775999567040,43.0,1791706103000,119.444444&121.4852648879544006,31.2398152749901357,50.0,1791706113000,138.888889&121.4859035451497533,31.2402354273957421,16.0,1791706123000,44.444444&121.4865833234671584,31.2406367607010296,23.0,1791706133000,63.888889&121.4872928541914519,31.2410195946816316,30.0,1791706143000,83.333333&121.4880167337853862,31.2413858378978979,37.0,1791706153000,102.777778&121.4887376128141483,31.2417388237812688,44.0,1791706163000,122.222222&121.4894385487594946,31.2420830243478775,51.0,1791706173000,141.666667&121.4901053036504663,31.2424236661266335,17.0,1791706183000,47.222222&121.4907282749217501,31.2427662812872171,24.0,1791706193000,66.666667&121.4913037976491665,31.2431162325185916,31.0,1791706203000,86.111111&121.4918346415621642,31.2434782524630812,38.0,1791706213000,105.555556&121.4923296354315880,31.2438560372610254,0.0,1791706223000,0.000000",
+      "startAddr": "{\"address\":\"上海市黄浦区武胜路 100 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区武胜路 100 号\",\"townCode\":\"310101001000\"}",
+      "endAddr": "{\"address\":\"上海市黄浦区人民大道 200 号\",\"addressFlag\":true,\"name\":\"上海市黄浦区人民大道 200 号\",\"townCode\":\"310101001000\"}",
+      "startTime": "2026.10.11 15:52:03",
+      "endTime": "2026.10.11 16:00:33",
+      "totalRideMileage": "8854",
+      "rideMileage": "2.4",
+      "ridingTime": "0.1",
+      "ridingTimeUnitMinute": "9",
+      "maxSpeed": "62",
+      "accelerationTimes": "18",
+      "brakesTimes": "0",
+      "bendingTimes": "0",
+      "powerConsumption": "0.0",
+      "greenContribution": "0.1",
+      "vinNo": null,
+      "userId": null,
+      "trackThumbnails": "",
+      "dayTime": "2026.10.11",
+      "shardingId": "1791705123161",
+      "cyclingEventStatisticFlag": null,
+      "vehicleKinds": null
+     }
+    ]
+   }
+  ]
  },
  "service_recharge": {
   "code": "10000",
@@ -2713,7 +2827,10 @@ window.ZEEHO_EP = {
     // ---- 骑行 ----
     { id: 'ride_home', tag: 'app', label: '最近骑行', path: '/v1.0/app/cfmotoserverapp/homeRideInfo', query: { vinNo: '{vin}' } },
     { id: 'ride_month', tag: 'app', label: '月度骑行', path: '/v1.0/app/cfmotoserverapp/myRideInfo', query: { month: '{month_dot}', vinNo: '{vin}' } },
-    { id: 'ride_track', tag: 'app', label: '骑行轨迹', path: '/v1.0/app/cfmotoserverapp/ridetrack_v2', query: { page: '1', pageSize: '20', vinNo: '{vin}', date: '{date}' } },
+    // 轨迹按"天"查，返回那天**每一段行程**（historyList）+ 轨迹点串。
+    // 参数是官方 App 实测的那套：startDateTime=YYYY-MM-DD、startTime=YYYY-MM，startDate/endDate 留空（空值会被丢掉）。
+    // 之前写成 date=YYYY.MM.DD → 服务端返回 data:[]，被误判成"这台车没开放轨迹功能"。
+    { id: 'ride_track', tag: 'app', label: '骑行轨迹（按天，含每段行程）', path: '/v1.0/app/cfmotoserverapp/ridetrack_v2', query: { endDate: '', page: '1', pageSize: '20', startDate: '', startDateTime: '{date_dash}', startTime: '{month_dash}', vinNo: '{vin}' } },
     { id: 'analyse', tag: 'app', label: '骑行画像', path: '/v1.0/app/cfmotoserverapp/analyse/analyse', query: { month: '{month_dot}', vinNo: '{vin}' } },
 
     // ---- 其它 ----
@@ -3108,18 +3225,63 @@ window.MODEL = (() => {
     };
   }
 
-  /** 轨迹响应 → [{lng,lat}]。字段名没实测过（这台车接口一直返回空数组），按几种常见形状兜底解析。 */
-  function track(res) {
-    let arr = res?.data;
-    if (arr && !Array.isArray(arr)) arr = arr.list || arr.trackList || arr.points || arr.records || arr.data;
-    if (!Array.isArray(arr)) return [];
+  /** 轨迹串 'lng,lat,车速,时间戳ms,本段距离m' 用 & 连接 → [{lng,lat,speed,ts}] */
+  function parseTrajectory(str) {
     const out = [];
-    for (const it of arr) {
-      if (!it || typeof it !== 'object') continue;
-      const lng = n(it.longitude ?? it.lng ?? it.lon ?? it.longtitude);
-      const lat = n(it.latitude ?? it.lat);
+    for (const seg of s(str).split('&')) {
+      const f = seg.split(',');
+      if (f.length < 2) continue;
+      const lng = n(f[0]);
+      const lat = n(f[1]);
       if (lng === null || lat === null) continue;
-      out.push({ lng, lat });
+      out.push({ lng, lat, speed: n(f[2]), ts: n(f[3]) });
+    }
+    return out;
+  }
+
+  /** 起终点是 JSON 字符串：{"address":"…","name":"…","townCode":"…"}；解析失败就当空 */
+  function addrText(v) {
+    const raw = s(v);
+    if (!raw) return '';
+    try {
+      const o = JSON.parse(raw);
+      return s(o.name || o.address);
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * ridetrack_v2 响应 → 那一天的**每一段行程**（不是一整天一条）。
+   * 形状（2026-10-11 实测）：data:[{ dayTime, dayRideMileage, historyList:[{ rideId, startTime, endTime,
+   * rideMileage, ridingTimeUnitMinute, maxSpeed, accelerationTimes, brakesTimes, bendingTimes,
+   * startAddr, endAddr, trajectory, trackThumbnails, totalRideMileage }] }]
+   * 一天各段行程的里程/急加速之和 = myRideInfo 里那天的那一行（实测 4 段 2.4+2.5+2.9+0.5 = 8.3 km）。
+   */
+  function trips(res) {
+    const days = res?.data;
+    if (!Array.isArray(days)) return [];
+    const out = [];
+    for (const day of days) {
+      for (const it of day?.historyList || []) {
+        out.push({
+          id: s(it.rideId),
+          day: s(it.dayTime),
+          start: s(it.startTime),
+          end: s(it.endTime),
+          mile: n(it.rideMileage, 0),
+          minutes: n(it.ridingTimeUnitMinute, 0),
+          maxSpeed: n(it.maxSpeed, 0),
+          accel: n(it.accelerationTimes, 0),
+          brakes: n(it.brakesTimes, 0),
+          bends: n(it.bendingTimes, 0),
+          from: addrText(it.startAddr),
+          to: addrText(it.endAddr),
+          thumb: s(it.trackThumbnails),
+          odo: n(it.totalRideMileage),          // 该段结束时的累计总里程
+          points: parseTrajectory(it.trajectory),
+        });
+      }
     }
     return out;
   }
@@ -3413,7 +3575,7 @@ window.MODEL = (() => {
     n, s, on, esc, clamp, parseTime, relTime, minutes, minutesShort, durationText, secText,
     socLevel, chargeState, gcj02ToWgs84,
     vehicles, home, tires, battery, rideHome, rideMonth, analyse, user,
-    rideRecords, track, dayInfo, monthLabel, monthShift, recentMonths, writeBody,
+    rideRecords, trips, dayInfo, monthLabel, monthShift, recentMonths, writeBody,
     settings, GROUPS,
   };
 })();
@@ -3614,7 +3776,7 @@ window.API = {
     return window.ZEEHO_EP.list.find((e) => e.id === id) || null;
   },
 
-  /** 把 {vin}/{uid}/{month_dot}/{month_dash}/{date}/{carUid} 换成当前上下文，空值丢弃。 */
+  /** 把 {vin}/{uid}/{month_dot}/{month_dash}/{date}/{date_dash}/{carUid} 换成当前上下文，空值丢弃。 */
   resolve(id, ctx = {}) {
     const ep = this.ep(id);
     if (!ep) return null;
@@ -3626,8 +3788,10 @@ window.API = {
       '{month_dot}': ctx.month || '',
       '{month_dash}': (ctx.month || '').replace('.', '-'),
       '{date}': ctx.date || '',
+      // 轨迹接口要 2026-10-11（横线），记录表里给的是 2026.10.11（点），别混
+      '{date_dash}': (ctx.date || '').replace(/\./g, '-'),
     };
-    const fill = (s) => String(s).replace(/\{(vin|uid|carUid|month_dot|month_dash|date)\}/g, (m) => map[m] ?? m);
+    const fill = (s) => String(s).replace(/\{(vin|uid|carUid|month_dot|month_dash|date|date_dash)\}/g, (m) => map[m] ?? m);
     const query = {};
     for (const [k, v] of Object.entries(ep.query || {})) {
       const val = fill(v);
@@ -3936,9 +4100,19 @@ window.UI = (() => {
     const lats = pts.map((p) => p[1]);
     const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
     const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const span = Math.max(Math.max(...lats) - Math.min(...lats), (Math.max(...lngs) - Math.min(...lngs)) * 0.8);
+    // 选缩放级：整条轨迹要两个方向都装得进地图框。框是扁的（375×134），只看一个方向会把轨迹裁掉。
+    // 每度经度 = 256*2^z/360 像素；纬度按墨卡托再乘 sec(φ)。
+    const boxW = opts.w || 375;
+    const boxH = opts.h || (opts.tall ? 240 : 134);
+    const PAD = 0.84;
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const secLat = 1 / Math.cos((cLat * Math.PI) / 180);
     let zoom = 16;
-    for (const [over, z] of [[0.004, 15], [0.008, 14], [0.02, 13], [0.05, 12], [0.12, 11]]) if (span > over) zoom = z;
+    for (let z = 16; z >= 9; z--) {
+      const perLng = (256 * 2 ** z) / 360;
+      if (lngSpan * perLng <= boxW * PAD && latSpan * perLng * secLat <= boxH * PAD) { zoom = z; break; }
+    }
 
     const n = 2 ** zoom;
     const proj = (lng, lat) => {
@@ -3964,7 +4138,7 @@ window.UI = (() => {
     const [sx, sy] = [Math.round((px[0][0] - xf) * 256), Math.round((px[0][1] - yf) * 256)];
     const [ex, ey] = [Math.round((px[px.length - 1][0] - xf) * 256), Math.round((px[px.length - 1][1] - yf) * 256)];
     const masked = opts.masked !== false;
-    return `<div class="mapbox${masked ? ' masked' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
+    return `<div class="mapbox${masked ? ' masked' : ''}${opts.tall ? ' tall' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
       <div class="tiles">${tiles.join('')}</div>
       <svg class="track" width="2400" height="2400" viewBox="-1200 -1200 2400 2400"
            style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none">
@@ -4502,6 +4676,10 @@ window.APP = (() => {
     }
     const alt = phone().querySelector('[data-loc="alt"]');
     if (alt) alt.classList.toggle('hidden', !S.locShown);
+    // 行程的起终点地址跟着一起打码（否则地图糊了、地址却把位置说出来了）
+    phone().querySelectorAll('[data-loc="addr"]').forEach((el) => {
+      el.textContent = S.locShown ? el.dataset.real || '' : '已打码 · 点轨迹图显示';
+    });
     const eye = phone().querySelector('.card-head [data-act="reveal"]');
     if (eye) {
       eye.innerHTML = U.icon(S.locShown ? 'eyeOff' : 'eye', 20);
@@ -4509,8 +4687,10 @@ window.APP = (() => {
     }
   }
 
-  // ---------------- 骑行记录：按月 → 按日 → 单条 ----------------
-  const RIDE = { month: '', day: null, cache: {}, track: {} };
+  // ---------------- 骑行记录：按月 → 按日 → 单次行程 ----------------
+  // trips 按日期缓存那天的**分段行程**（ridetrack_v2）；pending 防重复请求，failed 让失败能显示出来
+  // 而不是永远停在骨架上。
+  const RIDE = { month: '', day: null, trip: null, cache: {}, trips: {}, pending: {}, failed: {} };
 
   /** 一个月的记录（月度汇总 + 逐日明细）取一次就缓存 */
   async function ensureMonth(m) {
@@ -4526,11 +4706,13 @@ window.APP = (() => {
   function openRide(m) {
     RIDE.month = m || S.month;
     RIDE.day = null;
+    RIDE.trip = null;
     renderRideSheet();
     ensureMonth(RIDE.month).then(() => { if (!RIDE.day) renderRideSheet(); });
   }
 
   function renderRideSheet() {
+    if (RIDE.trip) return renderRideTrip();
     if (RIDE.day) return renderRideDay();
     const m = RIDE.month;
     const hit = RIDE.cache[m];
@@ -4573,31 +4755,43 @@ window.APP = (() => {
     </div>`;
   }
 
+  /** 一天里某一段行程的行：15:52–16:00 · 2.4 km · 9m · 最高 62 */
+  function tripRow(t) {
+    const hm = (v) => (M.s(v).split(' ')[1] || '').slice(0, 5);
+    const a = hm(t.start);
+    const b = hm(t.end);
+    const range = a && b ? `${a}\u2013${b}` : (a || '—');
+    return `<div class="rec-row" data-act="trip" data-id="${esc(t.id)}">
+      <div class="d"><b class="tnum">${esc(range)}</b><span>${esc(M.minutesShort(t.minutes))}</span></div>
+      <div class="m"><b class="tnum">${t.mile.toFixed(1)}</b> <span>km</span> <span>· 最高 ${t.maxSpeed} km/h</span></div>
+      <div class="tail">${U.icon('right', 18)}</div>
+    </div>`;
+  }
+
   function renderRideDay() {
     const m = RIDE.month;
     const model = RIDE.cache[m]?.model;
     const row = model?.rows.find((r) => r.date === RIDE.day);
     if (!row) { RIDE.day = null; return renderRideSheet(); }
-    const t = RIDE.track[RIDE.day];
     const share = model.mile > 0 ? Math.round((row.mile / model.mile) * 100) : 0;
+    const list = RIDE.trips[RIDE.day];
 
-    let trackBlock;
+    let tripBlock;
     if (row.mile <= 0) {
-      trackBlock = `<div class="note info">${U.icon('info', 18)}<div>这天没有骑行（里程 0）。</div></div>`;
-    } else if (!t || !t.ready) {
-      trackBlock = '<div class="sk" style="height:150px;border-radius:16px"></div>';
-    } else if (t.points.length >= 2) {
-      trackBlock = U.mapBoxPath(t.points, { tile: S.tile, masked: !S.locShown });
+      tripBlock = `<div class="note info">${U.icon('info', 18)}<div>这天没有骑行。</div></div>`;
+    } else if (RIDE.failed[RIDE.day]) {
+      tripBlock = `<div class="note bad">${U.icon('alert', 18)}<div>这天的分段行程取不到（轨迹接口没返回）。</div></div>`;
+    } else if (!list) {
+      tripBlock = '<div class="sk" style="height:64px;border-radius:16px"></div>';
+    } else if (!list.length) {
+      tripBlock = `<div class="note info">${U.icon('info', 18)}<div>这天没有分段行程记录。</div></div>`;
     } else {
-      trackBlock = `<div class="note info">${U.icon('info', 18)}<div>
-        <b>这天没有轨迹点。</b>ridetrack_v2 对两台车都返回 0 条（带日期 / 不带日期 / 两种日期格式都试过），
-        应该是这台车没开放轨迹功能。等它哪天有数据，这里会自动画成折线。
-      </div></div>`;
+      tripBlock = list.map(tripRow).join('');
     }
 
     U.sheet(phone(), {
       title: `${row.mmdd} ${row.wd}`,
-      sub: '单条骑行记录',
+      sub: '单日骑行记录',
       body: `
         <button class="rec-back" data-act="rideback">${U.icon('left', 16)}<span>返回 ${esc(M.monthLabel(m))}</span></button>
         <div class="mstats mt12">
@@ -4612,20 +4806,73 @@ window.APP = (() => {
           ${tile('压弯', row.bends, '次')}
         </div>
         <div class="card-sub mt12">本月最高 ${model.maxSpeed ?? '—'} km/h · 本月里程 ${model.mile ?? '—'} km</div>
-        <div class="section-title"><span>轨迹</span><span class="line"></span></div>
-        ${trackBlock}
+        <div class="section-title"><span>行程${list?.length ? ` · ${list.length} 段` : ''}</span><span class="line"></span></div>
+        ${tripBlock}
         <div style="height:8px"></div>`,
     });
     applyLocMask();
 
-    if (row.mile > 0 && !RIDE.track[RIDE.day]) {
-      const date = RIDE.day;
-      RIDE.track[date] = { loading: true };
-      API.call('ride_track', { vin: S.vin, date }).then((res) => {
-        RIDE.track[date] = { ready: true, points: M.track(res) };
-        if (RIDE.day === date) renderRideDay();
-      });
+    // 分段行程按天懒加载（一天一次，缓存住；这天没骑就别请求了）
+    const date = RIDE.day;
+    if (row.mile > 0 && !RIDE.trips[date] && !RIDE.pending[date] && !RIDE.failed[date]) {
+      RIDE.pending[date] = true;
+      API.call('ride_track', { vin: S.vin, date, month: m })
+        // API.call 从不抛异常，失败在返回值里（res.ok=false），所以两边都要判
+        .then((res) => { if (res?.ok) RIDE.trips[date] = M.trips(res); else RIDE.failed[date] = true; })
+        .catch(() => { RIDE.failed[date] = true; })
+        .finally(() => {
+          RIDE.pending[date] = false;
+          if (RIDE.day === date && !RIDE.trip) renderRideDay();
+        });
     }
+  }
+
+  /** 单次行程详情：起止时间/地址 + 里程时长车速 + 急加减速 + 轨迹图 */
+  function renderRideTrip() {
+    const m = RIDE.month;
+    const model = RIDE.cache[m]?.model;
+    const row = model?.rows.find((r) => r.date === RIDE.day);
+    const t = (RIDE.trips[RIDE.day] || []).find((x) => x.id === RIDE.trip);
+    if (!t) { RIDE.trip = null; return renderRideDay(); }
+
+    const hm = (v) => M.s(v).split(' ')[1] || M.s(v);
+    const pts = t.points || [];
+    const avg = t.minutes > 0 ? (t.mile / (t.minutes / 60)) : null;
+    const trackBlock = pts.length >= 2
+      ? U.mapBoxPath(pts, { tile: S.tile, masked: !S.locShown, tall: true })
+      : `<div class="note info">${U.icon('info', 18)}<div>这一段没有轨迹点。</div></div>`;
+    const addrRow = (k, v) => (v
+      ? `<div class="kv"><span class="k">${k}</span><span class="v" data-loc="addr" data-real="${esc(v)}">${esc(v)}</span></div>`
+      : '');
+
+    U.sheet(phone(), {
+      title: `${hm(t.start)} 出发`,
+      sub: '单次行程',
+      body: `
+        <button class="rec-back" data-act="tripback">${U.icon('left', 16)}<span>返回 ${esc(row ? `${row.mmdd} ${row.wd}` : RIDE.day)}</span></button>
+        <div class="mstats mt12">
+          ${tile('里程', t.mile.toFixed(1), 'km')}
+          ${tile('时长', M.minutesShort(t.minutes))}
+          ${tile('最高车速', t.maxSpeed, 'km/h')}
+          ${tile('均速', avg === null ? '—' : avg.toFixed(1), 'km/h')}
+        </div>
+        <div class="mt12">
+          <div class="kv"><span class="k">开始</span><span class="v mono tnum">${esc(t.start)}</span></div>
+          <div class="kv"><span class="k">结束</span><span class="v mono tnum">${esc(t.end)}</span></div>
+          ${addrRow('起点', t.from)}
+          ${addrRow('终点', t.to)}
+          ${t.odo !== null ? `<div class="kv"><span class="k">累计总里程</span><span class="v tnum">${esc(t.odo)} km</span></div>` : ''}
+        </div>
+        <div class="grid3 mt12">
+          ${tile('急加速', t.accel, '次')}
+          ${tile('急刹车', t.brakes, '次')}
+          ${tile('压弯', t.bends, '次')}
+        </div>
+        <div class="section-title"><span>轨迹 · ${pts.length} 点</span><span class="line"></span></div>
+        ${trackBlock}
+        <div style="height:8px"></div>`,
+    });
+    applyLocMask();
   }
 
   // ---------------- 写设置（功能开关） ----------------
@@ -5175,6 +5422,7 @@ window.APP = (() => {
           break;
         case 'rideback':
           RIDE.day = null;
+          RIDE.trip = null;
           renderRideSheet();
           break;
         case 'month': {
@@ -5182,12 +5430,22 @@ window.APP = (() => {
           if (!v || v > S.month) break;
           RIDE.month = v;
           RIDE.day = null;
+          RIDE.trip = null;
           renderRideSheet();
           ensureMonth(v).then(() => { if (!RIDE.day) renderRideSheet(); });
           break;
         }
         case 'day':
           RIDE.day = t.dataset.date || '';
+          RIDE.trip = null;
+          renderRideDay();
+          break;
+        case 'trip':
+          RIDE.trip = t.dataset.id || '';
+          renderRideTrip();
+          break;
+        case 'tripback':
+          RIDE.trip = null;
           renderRideDay();
           break;
         case 'navigate': {
