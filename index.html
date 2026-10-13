@@ -70,7 +70,10 @@
   --el2: 0 1px 2px 0 rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
   --el3: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 
-  /* ---------- 状态层 ---------- */
+  /* 视口没顶到屏幕边（浏览器标签页）→ 安全区清零，避免和浏览器自己的 UI 双份留白 */
+html:not(.edge) { --sat: 0px; --sab: 0px; }
+
+/* ---------- 状态层 ---------- */
   --hover: .08;
   --pressed: .10;
 
@@ -81,6 +84,17 @@
   --dur-short: 150ms;
   --dur-med: 300ms;
   --dur-long: 500ms;
+
+  /* ---------- 视口与安全区 ---------- */
+  /* --app-h：应用高度。JS 用 visualViewport.height 写进来（比 100dvh 靠谱：
+     iOS 独立 PWA 下 100dvh 会少算状态栏那一截，底部就空出一块）。
+     --sat/--sab：安全区。**只有视口真的顶到屏幕边时才吃**（app.js 按
+     visualViewport 高度 vs screen.height 判断后给 <html> 加 .edge）。
+     iOS Safari/PWA 上视口本身就没到边，再叠一次 env() 会双份留白——
+     顶部状态栏下面多一条、底部 tab 栏下面多一条。 */
+  --app-h: 100dvh;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
 
   /* ---------- 版式基准 ---------- */
   /* 页面左右留白：滚动区与顶栏都用它，保证卡片边缘和车名/头像在同一条竖线上。
@@ -190,7 +204,7 @@ body::before {
   flex-direction: column;
   width: 100%;
   max-width: 430px;
-  height: 100dvh;
+  height: var(--app-h);
   overflow: hidden;
   background: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
@@ -215,7 +229,7 @@ body::before {
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-width: none;
-  padding: calc(var(--topbar-h) + 10px) var(--gutter) calc(96px + env(safe-area-inset-bottom));
+  padding: calc(var(--topbar-h) + 10px) var(--gutter) calc(96px + var(--sab));
 }
 .scroll::-webkit-scrollbar { width: 0; height: 0; }
 
@@ -235,7 +249,7 @@ body::before {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: calc(10px + env(safe-area-inset-top)) var(--gutter) 10px;
+  padding: calc(10px + var(--sat)) var(--gutter) 10px;
   background: linear-gradient(to bottom, var(--md-sys-color-surface) 72%, transparent);
 }
 
@@ -322,7 +336,10 @@ body::before {
 }
 .card-title { font-size: 15px; font-weight: 600; letter-spacing: .1px; }
 .card-sub { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
-.card-head .iconbtn { margin: -8px -8px -8px auto; width: 34px; height: 34px; }
+.card-head .iconbtn { margin: -8px -8px -8px 0; width: 34px; height: 34px; }
+/* 卡头右侧动作区：必须是 flex——.iconbtn 是 display:grid（块级），
+   直接塞进普通 div 里两个按钮会竖着堆，卡头就高出一倍（位置卡的眼睛+导航踩过） */
+.card-head .card-actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 
 .section-title {
   display: flex; align-items: center; gap: 8px;
@@ -481,13 +498,42 @@ body::before {
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
 
-/* 左右两栏（位置 | 骑行）：半宽下标题、副标题、图标按钮都要能塞下 */
-.split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.split2 > .col { min-width: 0; display: flex; flex-direction: column; }
-.col-head { display: flex; align-items: flex-start; gap: 2px; margin-bottom: 8px; }
-.col-head .t { flex: 1; min-width: 0; }
-.col-head .card-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.col-head .iconbtn { margin: -6px -6px 0 0; }
+/* 位置卡 + 骑行卡并排（各占一半宽）。共享车没有骑行卡，位置卡整行、内部再排成一行。
+   半宽卡的高度要压住：卡头、地图、小格行高都比整宽卡紧一档，否则两张卡吃掉半屏。 */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+.duo > .card { min-width: 0; padding: 11px 12px 9px; }
+.duo .card-title { font-size: 14px; }
+.duo .card-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.duo .card-head { gap: 4px; margin-bottom: 8px; }
+.duo .card-head .iconbtn { width: 30px; height: 30px; margin: -6px -6px -6px 0; }
+.duo .mapbox.sm { height: 84px; }
+.duo .kv { gap: 6px; padding: 6px 0; }
+.duo .kv .k, .duo .kv .v { font-size: 12px; }
+.duo .grid2 { gap: 6px 8px; }
+.duo .tile { gap: 1px; }
+.duo .tile .k { font-size: 10px; line-height: 1.2; }
+.duo .tile .v { font-size: 14px; line-height: 1.15; }
+.duo .tile .v small { font-size: 9px; }
+.duo .bars { height: 34px; gap: 4px; }
+.duo .card-sub.mt8 { display: none; }   /* 半宽下"最近 7 天里程"那行提示太挤，藏掉 */
+
+/* 位置卡的"更新时间 · 海拔"一行小字 */
+.loc-meta {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-top: 8px;
+  font-size: 11px; color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+}
+.loc-meta-col { display: flex; flex-direction: column; gap: 10px; }
+.loc-meta-col > div { display: flex; flex-direction: column; gap: 2px; }
+.loc-meta-col span { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.loc-meta-col b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 共享车：位置卡整行，地图和信息并排 */
+.loc-row { display: grid; grid-template-columns: 42% 1fr; gap: 12px; align-items: start; }
+.loc-row .mapbox { height: 116px; }
+.loc-row .kv:first-child { padding-top: 0; }
+.loc-row .kv:last-child { padding-bottom: 0; }
 
 .stat { display: flex; flex-direction: column; gap: 4px; }
 .stat .k { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
@@ -569,6 +615,39 @@ body::before {
 .mapbox.sm { height: 96px; }
 .mapbox.sm .unmask { font-size: 10.5px; gap: 4px; }
 .mapbox.sm .unmask .ico svg { width: 16px; height: 16px; }
+
+/* 首页位置卡：默认不显示位置（连瓦片都不请求），点眼睛才出来 */
+.mapbox.hidden-loc {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px; font-weight: 600;
+}
+
+/* 大地图（弹层里）：多点标记 */
+.mapbox.big { height: 420px; cursor: default; }
+.mapbox .mk {
+  position: absolute; left: 50%; top: 50%; z-index: 2;
+  border-radius: 99px; display: grid; place-items: center;
+}
+.mapbox .mk.car {
+  width: 18px; height: 18px;
+  background: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--md-sys-color-primary) 26%, transparent), 0 2px 8px rgba(0, 0, 0, .45);
+}
+.mapbox .mk.me {
+  width: 16px; height: 16px;
+  background: #2f80ed;
+  box-shadow: 0 0 0 5px rgba(47, 128, 237, .24), 0 2px 8px rgba(0, 0, 0, .45);
+}
+.mapbox .mk .mkl {
+  position: absolute; bottom: 150%; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: 6px;
+  background: color-mix(in srgb, var(--md-sys-color-surface) 90%, transparent);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--el1);
+}
 .mapbox .tiles { position: absolute; inset: 0; }
 .mapbox .tiles img { position: absolute; width: 256px; height: 256px; user-select: none; }
 .mapbox .pin {
@@ -579,11 +658,6 @@ body::before {
   transition: opacity var(--dur-med) var(--ease-standard);
 }
 .mapbox .pin::after { content: ""; position: absolute; left: 50%; top: 100%; width: 14px; height: 5px; transform: translate(-50%, -2px); border-radius: 99px; background: rgba(0,0,0,.3); }
-.mapbox .attr {
-  position: absolute; right: 4px; bottom: 2px; z-index: 4;
-  font-size: 9px; color: #fff; background: rgba(0, 0, 0, .35);
-  padding: 1px 5px; border-radius: 4px;
-}
 .mapbox .mapload { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
 
 /* 位置默认打码：瓦片模糊 + 精确坐标用文字盖住，点地图（或卡头那只眼睛）才揭开。
@@ -638,7 +712,7 @@ body::before {
   position: absolute; left: 0; right: 0; bottom: 0;
   z-index: 7;
   display: flex;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 8px calc(8px + var(--sab));
   background: color-mix(in srgb, var(--md-sys-color-surface-container) 92%, transparent);
   backdrop-filter: blur(14px);
   border-top: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent);
@@ -733,7 +807,7 @@ body::before {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 9;
   max-height: 82%;
   display: flex; flex-direction: column;
-  padding: 8px 0 calc(16px + env(safe-area-inset-bottom));
+  padding: 8px 0 calc(16px + var(--sab));
   border-radius: var(--shape-2xl) var(--shape-2xl) 0 0;
   background: var(--md-sys-color-surface-container-low);
   transform: translateY(101%);
@@ -750,6 +824,63 @@ body::before {
 .sheet .sheet-head { display: flex; align-items: center; gap: 10px; padding: 0 20px 10px; }
 .sheet .sheet-title { font-size: 17px; font-weight: 600; }
 .sheet .sheet-body { padding: 0 20px; overflow-y: auto; overflow-x: hidden; }
+
+/* 全屏弹层：骑行记录这种内容多的，半屏装不下 */
+.sheet.full {
+  max-height: 100%;
+  height: var(--app-h);
+  border-radius: 0;
+  padding-top: calc(10px + var(--sat));
+}
+.sheet.full .grab { display: none; }
+.sheet.full .sheet-head { padding-top: 4px; }
+.sheet.full .sheet-body { padding-bottom: calc(16px + var(--sab)); }
+
+/* ============================ 贡献图（日历热力图） ============================ */
+.hm { --cell: 7px; }
+.hm-grid { display: grid; gap: 2px; }
+.hm .c {
+  display: block; border-radius: 2px;
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
+}
+.hm .c.l1 { background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent); }
+.hm .c.l2 { background: color-mix(in srgb, var(--md-sys-color-primary) 52%, transparent); }
+.hm .c.l3 { background: color-mix(in srgb, var(--md-sys-color-primary) 74%, transparent); }
+.hm .c.l4 { background: var(--md-sys-color-primary); }
+
+/* 年视图：顶上月份标签 + 53×7 小格 + 图例。
+   列宽用 1fr + 方块比例自适应容器宽度（写死 px 会让 53 列超出屏幕被裁掉）。 */
+.hm-year .hm-grid { grid-template-columns: repeat(53, minmax(0, 1fr)); gap: 1px; }
+.hm-year .hm-grid .c { aspect-ratio: 1; }
+.hm-year .hm-months {
+  position: relative; height: 12px;
+  margin-bottom: 4px;
+  font-size: 9px; color: var(--md-sys-color-on-surface-variant);
+}
+.hm-year .hm-months span { position: absolute; top: 0; white-space: nowrap; }
+.hm-legend {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 8px;
+  font-size: 10px; color: var(--md-sys-color-on-surface-variant);
+}
+.hm-legend .c { width: 10px; height: 10px; border-radius: 3px; }
+.hm-legend span { margin: 0 2px; }
+
+/* 月视图：日历式，格子随宽度自适应、正方形 */
+.hm-month .hm-wd {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+  margin-bottom: 4px;
+  font-size: 10px; text-align: center; color: var(--md-sys-color-on-surface-variant);
+}
+.hm-month .hm-grid { grid-auto-rows: 1fr; gap: 3px; }
+.hm-month .c { aspect-ratio: 1; border-radius: 6px; position: relative; }
+.hm-month .c.has::after {
+  content: attr(data-d);
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
 
 .sheet-item {
   display: flex; align-items: center; gap: 12px;
@@ -3073,6 +3204,20 @@ window.MODEL = (() => {
     return [wlng, wlat];
   }
 
+  /** WGS-84 → GCJ-02。浏览器 geolocation 给的是 WGS-84，贴高德/国内地图前必须转，
+   *  否则自己的位置会偏 50~500 米。没有正向公式，拿 gcj02ToWgs84 迭代逼近（3 次误差 < 1m）。 */
+  function wgs84ToGcj02(lng, lat) {
+    if (outOfChina(lng, lat)) return [lng, lat];
+    let glng = lng;
+    let glat = lat;
+    for (let i = 0; i < 3; i++) {
+      const [wlng, wlat] = gcj02ToWgs84(glng, glat);
+      glng += lng - wlng;
+      glat += lat - wlat;
+    }
+    return [glng, glat];
+  }
+
   // ---------------- 车辆列表 ----------------
   function vehicles(res) {
     const list = Array.isArray(res?.data) ? res.data : [];
@@ -3662,7 +3807,7 @@ window.MODEL = (() => {
 
   return {
     n, s, on, esc, clamp, parseTime, relTime, minutes, minutesShort, durationText, secText,
-    socLevel, chargeState, gcj02ToWgs84,
+    socLevel, chargeState, gcj02ToWgs84, wgs84ToGcj02,
     vehicles, home, tires, battery, rideHome, rideMonth, analyse, user,
     rideRecords, trips, dayInfo, monthLabel, monthShift, recentMonths, writeBody,
     settings, GROUPS,
@@ -4093,7 +4238,7 @@ window.UI = (() => {
     <div class="card-head">
       ${iconName ? `<span class="muted">${icon(iconName, 18)}</span>` : ''}
       <div><div class="card-title">${esc(title)}</div>${sub ? `<div class="card-sub">${esc(sub)}</div>` : ''}</div>
-      ${right ? `<div style="margin-left:auto">${right}</div>` : ''}
+      ${right ? `<div class="card-actions">${right}</div>` : ''}
     </div>`;
 
   const sectionTitle = (t, right = '') =>
@@ -4171,14 +4316,16 @@ window.UI = (() => {
     }
     // 默认打码（opts.masked 缺省即打码）：瓦片模糊、定位针隐藏，点一下才揭开
     const masked = opts.masked !== false;
-    return `<div class="mapbox${masked ? ' masked' : ''}${opts.sm ? ' sm' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
+    // opts.act === false 时不挂 data-act：首页那张图外面套了 data-act="bigmap"，
+    // 内层再挂 reveal 会先被 closest 命中，点地图就变成"切换显隐"而不是"开大地图"
+    const act = opts.act === false ? '' : ' data-act="reveal"';
+    return `<div class="mapbox${masked ? ' masked' : ''}${opts.sm ? ' sm' : ''}"${act} title="点击显示 / 隐藏精确位置">
       <div class="tiles">${tiles.join('')}</div>
       <div class="pin">${icon('pin', 30)}</div>
       <button class="unmask${masked ? '' : ' hidden'}" tabindex="-1">
         <span class="ico">${icon('eye', 20)}</span>
         <span>位置已打码 · 点击显示</span>
       </button>
-      <div class="attr">${esc(t.attr)}</div>
     </div>`;
   }
 
@@ -4243,7 +4390,144 @@ window.UI = (() => {
         <span class="ico">${icon('eye', 20)}</span>
         <span>轨迹已打码 · 点击显示</span>
       </button>
-      <div class="attr">${esc(t.attr)}</div>
+    </div>`;
+  }
+
+  /**
+   * 多点大图：把给定的点全部装进框里，每个点画一个标记（车辆=主题色圆点，我=蓝点）。
+   * points: [{ lng, lat, kind: 'car'|'me' }]，opts: { tile, w, h }
+   * 和 mapBoxPath 一样按"两个方向都装得下"选缩放级；只有一个点时退到固定级。
+   */
+  function mapPoints(points, opts = {}) {
+    const t = TILES[opts.tile] || TILES.amap;
+    const conv = (p) => (t.crs === 'wgs84' ? window.MODEL.gcj02ToWgs84(p.lng, p.lat) : [p.lng, p.lat]);
+    const pts = points.map(conv);
+    const lngs = pts.map((p) => p[0]);
+    const lats = pts.map((p) => p[1]);
+    const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const boxW = opts.w || 360;
+    const boxH = opts.h || 420;
+    const PAD = 0.62;                     // 两个点之间留点余量，别顶到边
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const secLat = 1 / Math.cos((cLat * Math.PI) / 180);
+    let zoom = 16;
+    for (let z = 16; z >= 9; z--) {
+      const perLng = (256 * 2 ** z) / 360;
+      if (lngSpan * perLng <= boxW * PAD && latSpan * perLng * secLat <= boxH * PAD) { zoom = z; break; }
+    }
+
+    const n = 2 ** zoom;
+    const proj = (lng, lat) => {
+      const rad = (lat * Math.PI) / 180;
+      return [((lng + 180) / 360) * n, ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n];
+    };
+    const [xf, yf] = proj(cLng, cLat);
+    const cx = Math.floor(xf);
+    const cy = Math.floor(yf);
+    const tiles = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const tx = cx + dx;
+        const ty = cy + dy;
+        if (ty < 0 || ty >= n) continue;
+        const wrapped = ((tx % n) + n) % n;
+        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
+          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)">`);
+      }
+    }
+    const marks = pts.map((p, i) => {
+      const [x, y] = proj(p[0], p[1]);
+      const dx = Math.round((x - xf) * 256);
+      const dy = Math.round((y - yf) * 256);
+      const kind = points[i].kind === 'me' ? 'me' : 'car';
+      const label = points[i].label ? `<span class="mkl">${esc(points[i].label)}</span>` : '';
+      return `<span class="mk ${kind}" style="transform:translate(-50%,-50%) translate(${dx}px, ${dy}px)">${label}</span>`;
+    }).join('');
+
+    return `<div class="mapbox big">
+      <div class="tiles">${tiles.join('')}</div>
+      ${marks}
+    </div>`;
+  }
+
+  /**
+   * 骑行贡献图（GitHub 那种日历热力图）。
+   *   get: (dateStr 'YYYY.MM.DD') => 当天里程 km（0/undefined = 那天没骑）
+   *   mode='year'  → 最近 365 天，53 列 × 7 行（周一为每周第一行），顶上标月份
+   *   mode='month' → 指定月份的日历（7 列 × 最多 6 行），格子大、看得清
+   * 分档按**非零值的四分位**，不按最大值——一年里跑一趟长途就会把其余全压成最浅色。
+   */
+  function heatmap(get, opts = {}) {
+    const mode = opts.mode || 'year';
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const fmt = (d) => `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+    const parse = (s) => {
+      const [y, m, d] = String(s).split('.').map(Number);
+      return new Date(y, m - 1, d);
+    };
+
+    const cells = [];
+    const months = [];
+    let cols = 0;
+    let rows = 0;
+    if (mode === 'month') {
+      const [y, m] = String(opts.month || '').split('.').map(Number);
+      if (!y || !m) return '';
+      const days = new Date(y, m, 0).getDate();
+      const lead = (new Date(y, m - 1, 1).getDay() + 6) % 7;    // 周一为一周之首
+      for (let i = 0; i < days; i++) {
+        const d = new Date(y, m - 1, i + 1);
+        const idx = lead + i;
+        cells.push({ col: idx % 7, row: Math.floor(idx / 7), date: fmt(d), value: Number(get(fmt(d))) || 0 });
+      }
+      cols = 7;
+      rows = Math.ceil((lead + days) / 7);
+    } else {
+      const end = opts.end ? parse(opts.end) : new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 364);
+      start.setDate(start.getDate() - ((start.getDay() + 6) % 7));   // 退到那一周的周一
+      const total = Math.round((end - start) / 86400000);
+      let lastM = -1;
+      let lastLabelCol = -9;
+      for (let i = 0; i <= total; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const col = Math.floor(i / 7);
+        cells.push({ col, row: (d.getDay() + 6) % 7, date: fmt(d), value: Number(get(fmt(d))) || 0 });
+        if (d.getMonth() !== lastM) {
+          lastM = d.getMonth();
+          // 标签太近就不标，否则 5px 的小格子会糊成一团
+          if (col - lastLabelCol >= 3) {
+            months.push({ col, text: d.getMonth() === 0 ? `${String(d.getFullYear()).slice(2)}年` : `${d.getMonth() + 1}月` });
+            lastLabelCol = col;
+          }
+        }
+      }
+      cols = Math.floor(total / 7) + 1;
+      rows = 7;
+    }
+
+    const nz = cells.filter((c) => c.value > 0).map((c) => c.value).sort((a, b) => a - b);
+    const qt = (p) => (nz.length ? nz[Math.min(nz.length - 1, Math.max(0, Math.floor(p * nz.length) - (p > 0 ? 1 : 0)))] : 0);
+    const t = [qt(0.25), qt(0.5), qt(0.75)];
+    const lvl = (v) => (v <= 0 ? 0 : v <= t[0] ? 1 : v <= t[1] ? 2 : v <= t[2] ? 3 : 4);
+    const grid = cells
+      .map((c) => `<i class="c l${lvl(c.value)}" style="grid-area:${c.row + 1}/${c.col + 1}" title="${esc(c.date)}${c.value > 0 ? ' · ' + c.value.toFixed(1) + ' km' : ' · 没有骑行'}"></i>`)
+      .join('');
+
+    if (mode === 'month') {
+      return `<div class="hm hm-month">
+        <div class="hm-wd">${['一', '二', '三', '四', '五', '六', '日'].map((x) => `<span>${x}</span>`).join('')}</div>
+        <div class="hm-grid" style="grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(${rows},minmax(0,1fr))">${grid}</div>
+      </div>`;
+    }
+    return `<div class="hm hm-year">
+      <div class="hm-months">${months.map((m) => `<span style="left:${((m.col / cols) * 100).toFixed(2)}%">${m.text}</span>`).join('')}</div>
+      <div class="hm-grid" style="grid-template-rows:repeat(7,minmax(0,1fr))">${grid}</div>
+      <div class="hm-legend"><span>少</span>${[0, 1, 2, 3, 4].map((l) => `<i class="c l${l}"></i>`).join('')}<span>多</span></div>
     </div>`;
   }
 
@@ -4263,8 +4547,15 @@ window.UI = (() => {
     host.appendChild(sheetEl);
   }
 
-  function sheet(host, { title, sub, body, onMount }) {
+  // 弹层的"代"计数：closeSheet 会延迟 260ms 清空内容，而重开一个新弹层只要 220~240ms，
+  // 那个清空定时器会把刚填好的内容擦掉——表现就是弹层滑上来却卡在底下、一片空白。
+  // 每次开/关都换一代，过期的清理直接作废。
+  let sheetGen = 0;
+
+  function sheet(host, { title, sub, body, onMount, full = false }) {
     ensureSheet(host);
+    const gen = ++sheetGen;
+    sheetEl.classList.toggle('full', !!full);
     sheetEl.innerHTML = `
       <div class="grab"></div>
       <div class="sheet-head">
@@ -4274,6 +4565,7 @@ window.UI = (() => {
       <div class="sheet-body">${body}</div>`;
     sheetEl.querySelector('[data-close]').addEventListener('click', closeSheet);
     requestAnimationFrame(() => {
+      if (gen !== sheetGen) return;          // 这一帧之前已经被关掉/换掉了
       scrimEl.classList.add('show');
       sheetEl.classList.add('show');
     });
@@ -4282,10 +4574,11 @@ window.UI = (() => {
 
   function closeSheet() {
     if (!sheetEl) return;
+    const gen = ++sheetGen;
     sheetEl.classList.remove('show');
     scrimEl.classList.remove('show');
     setTimeout(() => {
-      if (sheetEl) sheetEl.innerHTML = '';
+      if (sheetEl && gen === sheetGen) sheetEl.innerHTML = '';
     }, 260);
   }
 
@@ -4320,7 +4613,7 @@ window.UI = (() => {
 
   return {
     icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars, tireRing,
-    mapBox, mapBoxPath, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
+    mapBox, mapBoxPath, mapPoints, heatmap, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
   };
 })();
 
@@ -4361,6 +4654,29 @@ window.APP = (() => {
   const $ = (id) => document.getElementById(id);
   const phone = () => $('phone');
   const scroll = () => $('scroll');
+
+  // ---------------- 视口 / 安全区（沉浸） ----------------
+  /**
+   * 为什么不用纯 CSS：
+   *  · iOS 独立 PWA 下 `100dvh` 会少算状态栏那一截，底部就空出一块；
+   *  · iOS 上视口其实**没顶到屏幕边**（上下都被系统 UI 占掉了），却仍然报非零的
+   *    `env(safe-area-inset-*)`。再按安全区加一次 padding 就是**双份留白**：
+   *    顶部状态栏下面多一条、底部 tab 栏下面多一条（实测 iOS 上多出约「状态栏 + 小白条」那么多）。
+   * 所以：高度用 `visualViewport.height` 实测；安全区只在"视口≈整屏"（真·全屏）时才吃。
+   */
+  function fitViewport() {
+    const vv = window.visualViewport;
+    const h = Math.round(vv ? vv.height : window.innerHeight);
+    const root = document.documentElement;
+    root.style.setProperty('--app-h', `${h}px`);
+    // screen.height 拿不到就按"不是全屏"处理（宁可少留白，也别双份留白）
+    const full = Math.round((window.screen && window.screen.height) || 0);
+    root.classList.toggle('edge', full > 0 && h >= full - 2);
+  }
+  fitViewport();
+  window.addEventListener('resize', fitViewport);
+  window.addEventListener('orientationchange', fitViewport);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);
 
   // ---------------- 偏好持久化 ----------------
   function loadPrefs() {
@@ -4566,10 +4882,18 @@ window.APP = (() => {
   }
 
   // ---------------- 底部 tab ----------------
+  /** 当前选中的那台车（vehicle_list 里按 VIN 找） */
+  function curVehicle() {
+    return (S.vehicles || []).find((v) => v.vin === S.vin) || null;
+  }
+  /** 共享车 = 别人分享给我的（vehicle/list 的 sharedFlag=1）：只能看位置，不给改设置、也不显示我的骑行数据 */
+  const isSharedCar = () => !!curVehicle()?.shared;
+
   function renderTabs() {
     const tabs = [
       { id: 'home', t: '爱车', icon: 'bike' },
-      { id: 'settings', t: '车辆设置', icon: 'gear' },
+      // 共享车不给「车辆设置」入口：能力表和写入都只对车主有意义
+      ...(isSharedCar() ? [] : [{ id: 'settings', t: '车辆设置', icon: 'gear' }]),
       { id: 'me', t: '我的', icon: 'user' },
     ];
     $('tabbar').innerHTML = tabs.map((x) => `
@@ -4643,48 +4967,50 @@ window.APP = (() => {
       </div>`,
     ) : '';
 
-    // ---- 位置 + 最近骑行：一张卡左右两栏 ----
-    // 左栏只留"能看懂的三样"：地图、最后更新时间、海拔。经纬度不写——那是给开发者看的，
-    // 用户看到 119.96,31.75 也没用；要看精确坐标去调试面板的原始响应。
+    // ---- 车辆位置（独立一张卡）----
+    // 默认**不显示位置**（连高德瓦片都不请求），点卡头那只眼睛才出来——看一眼手机不该把住址暴露给别人。
+    // 显示之后点地图开大地图（单点看不全），经纬度一律不写：用户看不懂，要看精确坐标去调试面板。
     const loc = h.loc;
-    const mapBlock = loc.has
-      ? U.mapBox(loc.lng, loc.lat, { tile: S.tile, masked: !S.locShown, sm: true })
-      : `<div class="mapbox sm"><div class="mapload">车况里没有定位</div></div>`;
-    const eyeBtn = loc.has ? `<button class="iconbtn sm" data-act="reveal" title="${S.locShown ? '隐藏位置' : '显示位置'}">${U.icon(S.locShown ? 'eyeOff' : 'eye', 18)}</button>` : '';
-    const navBtn = loc.has ? `<button class="iconbtn sm" data-act="navigate" title="导航到车辆">${U.icon('nav', 18)}</button>` : '';
+    const shared = isSharedCar();
+    const sz = shared ? '' : ' sm';                      // 并排时用半格高的小图
+    const btnCls = shared ? 'iconbtn' : 'iconbtn sm';
+    const eyeBtn = loc.has ? `<button class="${btnCls}" data-act="reveal" title="${S.locShown ? '隐藏位置' : '显示位置'}">${U.icon(S.locShown ? 'eyeOff' : 'eye', shared ? 20 : 18)}</button>` : '';
+    const navBtn = loc.has ? `<button class="${btnCls}" data-act="navigate" title="用高德 App 打开">${U.icon('nav', shared ? 20 : 18)}</button>` : '';
+    const locBody = !loc.has
+      ? `<div class="mapbox${sz}"><div class="mapload">车况里没有定位</div></div>`
+      : S.locShown
+        // act:false —— 点击交给外层 data-act="bigmap"（内层再挂 reveal 会先被 closest 命中）
+        ? `<div data-act="bigmap" title="点开大地图" style="cursor:zoom-in">${U.mapBox(loc.lng, loc.lat, { tile: S.tile, masked: false, act: false, sm: !shared })}</div>`
+        : `<div class="mapbox hidden-loc${sz}" data-act="reveal" title="点这里显示位置">${U.icon('eyeOff', 22)}<span>位置已隐藏 · 点眼睛显示</span></div>`;
+    const alt = loc.altitude !== null ? `${Math.round(loc.altitude)} m` : '—';
+    // 副标题砍掉（卡高主要被它和下面两行 kv 撑的）：更新时间和海拔压成一行小字
+    const locHead = U.cardHead('车辆位置', '', eyeBtn + navBtn, 'pin');
+    const locMeta = `<div class="loc-meta"><span>${esc(loc.time || '—')} 更新</span><span>海拔 ${alt}</span></div>`;
 
-    const locRideCard = U.card(
-      `<div class="split2">
-        <div class="col">
-          <div class="col-head">
-            <div class="t">
-              <div class="card-title">车辆位置</div>
-              <div class="card-sub">${loc.relTime ? '更新于 ' + esc(loc.relTime) : '等车机上报'}</div>
-            </div>${eyeBtn}${navBtn}
-          </div>
-          ${mapBlock}
-          ${U.kv('海拔', loc.altitude !== null ? `${Math.round(loc.altitude)} m` : '—')}
-          ${U.kv('定位时间', loc.time || '—')}
-        </div>
-        <div class="col">
-          <div class="col-head">
-            <div class="t">
-              <div class="card-title">最近骑行</div>
-              <div class="card-sub">${esc(M.monthLabel(S.month))}</div>
-            </div>
-            <button class="iconbtn sm" data-act="ride" title="全部记录">${U.icon('right', 18)}</button>
-          </div>
-          <div class="grid2">
-            ${tile('今日', rh?.todayMile ?? '—', 'km')}
-            ${tile('本月', h.monthMile ?? '—', 'km')}
-            ${tile('时长', M.minutesShort(h.monthMinutes))}
-            ${tile('均速', h.avgSpeed ?? '—', 'km/h')}
-          </div>
-          ${rm?.days?.length
-            ? `<div class="mt8" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>`
-            : ''}
-        </div>
-      </div>`,
+    // 共享车（别人分享给我的）：只看位置，没有骑行数据也不给改设置，位置卡整行、内部再排成一行
+    const locCard = shared
+      ? U.card(
+        locHead +
+        `<div class="loc-row">
+          <div>${locBody}</div>
+          <div class="loc-meta-col"><div><span>更新</span><b>${esc(loc.time || '—')}</b></div><div><span>海拔</span><b>${alt}</b></div></div>
+        </div>`,
+      )
+      : U.card(locHead + locBody + locMeta);
+
+    // ---- 最近骑行（独立一张卡）：4 个小格 + 7 天柱状图，点卡头或柱子看全部记录 ----
+    const rideCard = U.card(
+      U.cardHead('最近骑行', '',
+        `<button class="iconbtn${shared ? '' : ' sm'}" data-act="ride" title="全部记录">${U.icon('right', shared ? 20 : 18)}</button>`, 'route') +
+      `<div class="grid2">
+        ${tile('今日', rh?.todayMile ?? '—', 'km')}
+        ${tile('本月', h.monthMile ?? '—', 'km')}
+        ${tile('时长', M.minutesShort(h.monthMinutes))}
+        ${tile('均速', h.avgSpeed ?? '—', 'km/h')}
+      </div>` +
+      (rm?.days?.length
+        ? `<div class="mt8" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>`
+        : ''),
     );
 
     // ---- 原来那张「车况」卡撤了：胎压挪到车图的前后轮上（tireBubble），
@@ -4712,7 +5038,7 @@ window.APP = (() => {
       ${heroCard}
       <div class="actions">${actions}</div>
       ${chargeCard}
-      ${locRideCard}
+      ${shared ? locCard : `<div class="duo">${locCard}${rideCard}</div>`}
       ${moreCard}
       <div class="card-sub center">
         ${API.source === 'demo' ? '演示样例' : '真车数据'} · VIN ${h.vin.slice(-6)} · ${new Date(S.lastLoad).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 更新
@@ -4785,10 +5111,118 @@ window.APP = (() => {
     }
   }
 
+  // ---------------- 大地图（弹层）与唤起高德 ----------------
+  // 首页那张小图只有一张卡片大，什么都看不出来，所以点开这里看大的。
+  // 三种模式：只看车 / 只看我 / 两个一起（后者会按两点算缩放，并给出直线距离）。
+  const MAPS = { mode: 'car', me: null, err: '', loading: false };
+
+  function openBigMap(mode) {
+    if (mode) MAPS.mode = mode;
+    renderBigMap();
+    if ((MAPS.mode === 'me' || MAPS.mode === 'both') && !MAPS.me && !MAPS.loading && !MAPS.err) askMyLocation();
+  }
+
+  /** 取我的位置。geolocation 给的是 WGS-84，贴高德（GCJ-02）之前必须转，否则会偏 50~500 米。 */
+  function askMyLocation() {
+    if (!navigator.geolocation) { MAPS.err = '这个浏览器不支持定位'; renderBigMap(); return; }
+    MAPS.loading = true;
+    MAPS.err = '';
+    renderBigMap();
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        const [lng, lat] = M.wgs84ToGcj02(p.coords.longitude, p.coords.latitude);
+        MAPS.me = { lng, lat, acc: p.coords.accuracy };
+        MAPS.loading = false;
+        renderBigMap();
+      },
+      (e) => {
+        MAPS.loading = false;
+        MAPS.err = e.code === 1
+          ? '没给定位权限：点地址栏左边那个锁 → 网站设置 → 位置 → 允许，再回来点一次。'
+          : `定位失败：${e.message || '错误码 ' + e.code}`;
+        renderBigMap();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+  }
+
+  /** 两点直线距离（米）——不是路径距离，只是让人有个量级概念 */
+  function straightLine(a, b) {
+    const R = 6371000;
+    const p = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * p;
+    const dLng = (b.lng - a.lng) * p;
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * p) * Math.cos(b.lat * p) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  function renderBigMap() {
+    const loc = S.data.home?.loc;
+    const car = loc?.has ? { lng: loc.lng, lat: loc.lat, kind: 'car', label: '车辆' } : null;
+    const me = MAPS.me ? { lng: MAPS.me.lng, lat: MAPS.me.lat, kind: 'me', label: '我' } : null;
+    const mode = MAPS.mode;
+    const pts = [];
+    if (mode !== 'me' && car) pts.push(car);
+    if (mode !== 'car' && me) pts.push(me);
+
+    const chip = (v, t) => `<span class="chip${mode === v ? ' ok' : ''}" data-act="mapmode" data-v="${v}" style="cursor:pointer">${t}</span>`;
+
+    let sub = '';
+    let body;
+    if (mode !== 'car' && MAPS.loading) {
+      sub = '正在取我的位置…';
+      body = '<div class="sk" style="height:420px;border-radius:16px"></div>';
+    } else if (mode !== 'car' && MAPS.err) {
+      sub = '取不到我的位置';
+      body = `<div class="note bad">${U.icon('alert', 18)}<div>${esc(MAPS.err)}</div></div>`;
+    } else if (!pts.length) {
+      body = `<div class="note info">${U.icon('info', 18)}<div>没有可显示的位置（车况里没上报定位）。</div></div>`;
+    } else {
+      // 只有"两个都看"时才报直线距离——只显示一个点时报距离会让人以为图上还有另一个点
+      if (pts.length === 2) {
+        const d = straightLine(car, me);
+        sub = `直线距离 ${d < 1000 ? Math.round(d) + ' 米' : (d / 1000).toFixed(1) + ' 公里'}`;
+      } else {
+        sub = car ? '车辆当前位置' : '我的位置';
+      }
+      body = U.mapPoints(pts, { tile: S.tile, w: 330, h: 420 });
+    }
+
+    U.sheet(phone(), {
+      title: '地图',
+      sub,
+      body: `
+        <div class="field" style="flex-wrap:wrap;gap:8px">
+          ${chip('car', '车辆位置')}${chip('me', '我的位置')}${chip('both', '两个都看')}
+        </div>
+        ${body}
+        ${car && me ? `<div class="card-sub mt12">${U.icon('info', 14)} 直线距离是两点之间的，不是骑行路线距离。</div>` : ''}
+        <div style="height:8px"></div>`,
+    });
+  }
+
+  /**
+   * 用高德 App 打开车辆位置（不是跳网页）。
+   * Android 走 `intent://`：Chrome 认这个，App 没装会自动按 S.browser_fallback_url 回退到网页版；
+   * iOS 走 `iosamap://`，1.4 秒后还停在本页说明没唤起，再退回网页版。
+   */
+  function openInAmap(lng, lat, name) {
+    const nm = encodeURIComponent(name || '车辆位置');
+    const web = `https://uri.amap.com/marker?position=${lng},${lat}&name=${nm}&src=zeeho-dashboard&coordinate=gaode&callnative=1`;
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      const t = setTimeout(() => { if (!document.hidden) window.location.href = web; }, 1400);
+      document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(t); }, { once: true });
+      window.location.href = `iosamap://viewMap?sourceApplication=zeeho&poiname=${nm}&lat=${lat}&lon=${lng}&dev=0`;
+      return;
+    }
+    const q = `viewMap?sourceApplication=zeeho&poiname=${nm}&lat=${lat}&lon=${lng}&dev=0`;
+    window.location.href = `intent://${q}#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${encodeURIComponent(web)};end`;
+  }
+
   // ---------------- 骑行记录：按月 → 按日 → 单次行程 ----------------
   // trips 按日期缓存那天的**分段行程**（ridetrack_v2）；pending 防重复请求，failed 让失败能显示出来
   // 而不是永远停在骨架上。
-  const RIDE = { month: '', day: null, trip: null, cache: {}, trips: {}, pending: {}, failed: {} };
+  const RIDE = { month: '', day: null, trip: null, view: 'month', cache: {}, trips: {}, pending: {}, failed: {}, year: null };
 
   /** 一个月的记录（月度汇总 + 逐日明细）取一次就缓存 */
   async function ensureMonth(m) {
@@ -4806,12 +5240,46 @@ window.APP = (() => {
     RIDE.day = null;
     RIDE.trip = null;
     renderRideSheet();
-    ensureMonth(RIDE.month).then(() => { if (!RIDE.day) renderRideSheet(); });
+    const p = RIDE.view === 'year' ? ensureYear() : ensureMonth(RIDE.month);
+    p.then(() => { if (!RIDE.day && !RIDE.trip) renderRideSheet(); });
+  }
+
+  /** 近 12 个月的逐日里程（年视图用）。12 个请求并发打出去，结果缓存在 RIDE.year。 */
+  async function ensureYear() {
+    if (RIDE.year && (RIDE.year.loading || RIDE.year.ready)) return RIDE.year;
+    RIDE.year = { loading: true };
+    const months = M.recentMonths(12, S.month);        // 由近到远
+    try {
+      const res = await Promise.all(months.map((mm) => API.call('ride_month', { vin: S.vin, month: mm })));
+      const days = {};
+      const per = [];
+      let total = 0;
+      res.forEach((r, i) => {
+        let sum = 0;
+        for (const row of r?.data?.rideRecordList || []) {
+          const v = Number(row.rideMileage) || 0;
+          sum += v;
+          if (v > 0) days[row.date] = v;
+        }
+        total += sum;
+        per.push({ month: months[i], mile: sum });
+      });
+      RIDE.year = { ready: true, days, per, total, ok: true };
+    } catch {
+      RIDE.year = { ready: true, days: {}, per: [], total: 0, ok: false };
+    }
+    return RIDE.year;
+  }
+
+  function viewSwitch() {
+    const seg = (v, t) => `<span class="chip${RIDE.view === v ? ' ok' : ''}" data-act="rideview" data-v="${v}" style="cursor:pointer">${t}</span>`;
+    return `<div class="field" style="flex-wrap:wrap;gap:8px">${seg('month', '按月')}${seg('year', '近一年')}</div>`;
   }
 
   function renderRideSheet() {
     if (RIDE.trip) return renderRideTrip();
     if (RIDE.day) return renderRideDay();
+    if (RIDE.view === 'year') return renderRideYear();
     const m = RIDE.month;
     const hit = RIDE.cache[m];
     let body;
@@ -4821,26 +5289,62 @@ window.APP = (() => {
       body = `<div class="note bad">${U.icon('alert', 18)}<div>这个月取不到：${esc(hit.model.err)}</div></div>`;
     } else {
       const r = hit.model;
+      const dayMap = {};
+      for (const row of r.rows) dayMap[row.date] = row.mile;
       body = `<div class="mstats">
           ${tile('本月里程', r.mile ?? '—', 'km')}
           ${tile('骑行天数', r.activeCount, '天')}
           ${tile('骑行时长', M.minutesShort(r.minutes))}
           ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
-        </div>` +
+        </div>
+        <div class="section-title"><span>这个月的骑行分布</span><span class="line"></span></div>
+        ${U.heatmap((d) => dayMap[d], { mode: 'month', month: m })}
+        <div class="section-title"><span>逐日</span><span class="line"></span></div>` +
         (r.rows.length
           ? r.rows.map(recRow).join('')
           : '<div class="muted center" style="padding:24px 0">这个月没有骑行记录</div>');
     }
     U.sheet(phone(), {
       title: '骑行记录',
-      sub: '按月浏览，点某一天看单条记录',
-      body: `<div class="monthbar">
+      sub: '点某一天看单条记录',
+      full: true,
+      body: `${viewSwitch()}<div class="monthbar mt12">
           <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, -1)}" title="上个月">${U.icon('left', 20)}</button>
           <div class="monthlabel">${esc(M.monthLabel(m))}</div>
           <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, 1)}" title="下个月"${m >= S.month ? ' disabled' : ''}>${U.icon('right', 20)}</button>
         </div>${body}<div style="height:6px"></div>`,
     });
     applyLocMask();
+  }
+
+  function renderRideYear() {
+    const y = RIDE.year;
+    let body;
+    if (!y || !y.ready) {
+      body = '<div class="sk" style="height:200px;border-radius:16px"></div>';
+    } else if (!y.ok) {
+      body = `<div class="note bad">${U.icon('alert', 18)}<div>近一年的记录取不到。</div></div>`;
+    } else {
+      const active = Object.keys(y.days).length;
+      body = `<div class="mstats">
+          ${tile('近一年', y.total.toFixed(1), 'km')}
+          ${tile('骑行天数', active, '天')}
+          ${tile('日均', active ? (y.total / active).toFixed(1) : '—', 'km')}
+        </div>
+        <div class="section-title"><span>每天骑了多少</span><span class="line"></span></div>
+        ${U.heatmap((d) => y.days[d], { mode: 'year' })}
+        <div class="section-title"><span>每月</span><span class="line"></span></div>
+        <div class="grid3">
+          ${y.per.slice().reverse().map((p) => tile(`${Number(p.month.split('.')[1])}月`, p.mile.toFixed(1), 'km')).join('')}
+        </div>
+        <div style="height:8px"></div>`;
+    }
+    U.sheet(phone(), {
+      title: '骑行记录',
+      sub: '近一年的骑行分布',
+      full: true,
+      body: `${viewSwitch()}<div class="mt12">${body}</div>`,
+    });
   }
 
   function recRow(r) {
@@ -4890,6 +5394,7 @@ window.APP = (() => {
     U.sheet(phone(), {
       title: `${row.mmdd} ${row.wd}`,
       sub: '单日骑行记录',
+      full: true,
       body: `
         <button class="rec-back" data-act="rideback">${U.icon('left', 16)}<span>返回 ${esc(M.monthLabel(m))}</span></button>
         <div class="mstats mt12">
@@ -4946,6 +5451,7 @@ window.APP = (() => {
     U.sheet(phone(), {
       title: `${hm(t.start)} 出发`,
       sub: '单次行程',
+      full: true,
       body: `
         <button class="rec-back" data-act="tripback">${U.icon('left', 16)}<span>返回 ${esc(row ? `${row.mmdd} ${row.wd}` : RIDE.day)}</span></button>
         <div class="mstats mt12">
@@ -5269,6 +5775,8 @@ window.APP = (() => {
   // ---------------- 渲染 ----------------
   function render({ keepScroll } = {}) {
     applyTheme();
+    // 共享车没有「车辆设置」页：切到共享车时如果正停在那页，会落到一个不存在的 tab 上，直接回首页
+    if (S.tab === 'settings' && isSharedCar()) S.tab = 'home';
     renderTop();
     renderTabs();
     const y = keepScroll ? scroll().scrollTop : 0;
@@ -5462,6 +5970,20 @@ window.APP = (() => {
     const sub = saved
       ? `已保存 token：${saved.slice(0, 8)}…${saved.slice(-4)}`
       : (API.server?.hasToken ? `本机服务里有 token（${API.server.token || ''}），正在看真车数据` : '还没填 token，填了就能看真车');
+    // 屏幕诊断：手机上"顶栏/底栏位置不对"这类问题（尤其 iOS）光看截图猜不准，直接把实测值列出来
+    const vv = window.visualViewport;
+    const root = document.documentElement;
+    const cs = getComputedStyle(root);
+    const diag = [
+      ['innerHeight', `${window.innerHeight}`],
+      ['visualViewport', vv ? `${Math.round(vv.height)}（offset ${Math.round(vv.offsetTop)}）` : '不支持'],
+      ['screen.height', `${window.screen?.height ?? '?'}`],
+      ['DPR', `${window.devicePixelRatio}`],
+      ['--app-h', cs.getPropertyValue('--app-h').trim()],
+      ['安全区 top/bottom', `${cs.getPropertyValue('--sat').trim()} / ${cs.getPropertyValue('--sab').trim()}`],
+      ['真全屏(.edge)', root.classList.contains('edge') ? '是（吃安全区）' : '否（安全区按 0）'],
+      ['.phone 实测高', `${Math.round(phone().getBoundingClientRect().height)}`],
+    ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}</span></div>`).join('');
     U.sheet(phone(), {
       title: '数据与调试',
       sub,
@@ -5478,6 +6000,8 @@ window.APP = (() => {
         <div class="field mt12">
           <button class="btn text block" data-act="rawlist">看原始响应</button>
         </div>
+        <div class="section-title mt16"><span>屏幕诊断</span><span class="line"></span></div>
+        ${diag}
         <div style="height:8px"></div>`,
     });
   }
@@ -5534,7 +6058,14 @@ window.APP = (() => {
           break;
         case 'reveal':
           S.locShown = !S.locShown;
-          applyLocMask();
+          applyLocMask();                                        // 弹层里的地图/地址就地更新
+          if (S.tab === 'home') render({ keepScroll: true });    // 首页的位置卡要整块重画（显示/隐藏地图）
+          break;
+        case 'bigmap':
+          openBigMap();
+          break;
+        case 'mapmode':
+          openBigMap(t.dataset.v || 'car');
           break;
         case 'group': {
           const id = t.dataset.id;
@@ -5555,9 +6086,20 @@ window.APP = (() => {
           break;
         }
         case 'ride':
-          U.closeSheet();
-          setTimeout(() => openRide(S.month), 220);
+          // 直接开：U.sheet 会就地换内容。以前是"先 closeSheet、等 220ms 再开"，
+          // 而 closeSheet 的延迟清空是 260ms——两者抢起来会把刚开的弹层内容清掉（卡在底下出不来）。
+          openRide(S.month);
           break;
+        case 'rideview': {
+          const v = t.dataset.v || 'month';
+          if (v === RIDE.view) break;
+          RIDE.view = v;
+          RIDE.day = null;
+          RIDE.trip = null;
+          renderRideSheet();
+          if (v === 'year') ensureYear().then(() => { if (RIDE.view === 'year' && !RIDE.day && !RIDE.trip) renderRideSheet(); });
+          break;
+        }
         case 'rideback':
           RIDE.day = null;
           RIDE.trip = null;
@@ -5589,13 +6131,12 @@ window.APP = (() => {
         case 'navigate': {
           const loc = S.data.home?.loc;
           if (!loc?.has) break;
-          // 高德 URI：坐标本来就是 GCJ-02，直接传；网页版用 h5 域名
-          window.open(`https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(S.data.home.name)}&src=zeeho-dashboard&coordinate=gaode&callnative=1`, '_blank');
+          // 唤起高德 App（不是跳网页），坐标本来就是 GCJ-02，直接给
+          openInAmap(loc.lng, loc.lat, S.data.home?.name || '车辆位置');
           break;
         }
         case 'rawlist':
-          U.closeSheet();
-          setTimeout(rawSheet, 240);
+          rawSheet();
           break;
         case 'raw':
           rawDetail(t.dataset.id);
