@@ -273,6 +273,7 @@ body::before {
 }
 .iconbtn:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) calc(var(--hover) * 100%), transparent); }
 .iconbtn:active { transform: scale(.94); }
+.iconbtn.sm { width: 30px; height: 30px; }
 .iconbtn.on { color: var(--md-sys-color-primary); }
 .iconbtn.spin svg { animation: spin 900ms linear infinite; }
 /* 图标按钮有 40px 的状态层，图标本身要跟内容边缘对齐就得往右借 8px */
@@ -478,7 +479,15 @@ body::before {
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid2 > .card + .card { margin-top: 0; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
+
+/* 左右两栏（位置 | 骑行）：半宽下标题、副标题、图标按钮都要能塞下 */
+.split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.split2 > .col { min-width: 0; display: flex; flex-direction: column; }
+.col-head { display: flex; align-items: flex-start; gap: 2px; margin-bottom: 8px; }
+.col-head .t { flex: 1; min-width: 0; }
+.col-head .card-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-head .iconbtn { margin: -6px -6px 0 0; }
 
 .stat { display: flex; flex-direction: column; gap: 4px; }
 .stat .k { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
@@ -499,6 +508,39 @@ body::before {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .kv.kv-act { cursor: pointer; }
+
+/* ============================ 设置页：可折叠分组 ============================ */
+/* 分组卡整张不留内边距，头部自己撑满——这样点哪儿都能展开，热区够大 */
+.card.group-card { padding: 0; overflow: hidden; }
+.group-head {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 13px 14px;
+  border: 0; background: transparent; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+  transition: background var(--dur-short) var(--ease-standard);
+}
+.group-head:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) calc(var(--hover) * 100%), transparent); }
+.group-head .gi {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 9px;
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.group-head .gt { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; letter-spacing: .1px; }
+.group-head .gc {
+  flex: none; font-size: 11px; font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  padding: 2px 7px; border-radius: 99px;
+}
+.group-head .gv {
+  flex: none; display: grid; place-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--dur-med) var(--ease-standard);
+}
+.group-head.open .gv { transform: rotate(180deg); }
+.group-head.open { border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent); }
+.group-body { padding: 2px 14px 10px; }
 
 /* 柱状图 */
 .bars { display: flex; align-items: flex-end; gap: 5px; height: 56px; margin-top: 2px; }
@@ -523,6 +565,10 @@ body::before {
 }
 /* 骑行轨迹用：轨迹是竖着的，扁框装不下会被上下裁掉 */
 .mapbox.tall { height: 240px; }
+/* 两栏里的位置图：只有半格宽，高度也收一半，不然整张卡被地图撑高 */
+.mapbox.sm { height: 96px; }
+.mapbox.sm .unmask { font-size: 10.5px; gap: 4px; }
+.mapbox.sm .unmask .ico svg { width: 16px; height: 16px; }
 .mapbox .tiles { position: absolute; inset: 0; }
 .mapbox .tiles img { position: absolute; width: 256px; height: 256px; user-select: none; }
 .mapbox .pin {
@@ -643,6 +689,26 @@ body::before {
 .rec-row .m b { font-size: 15px; font-weight: 600; }
 .rec-row .m span { color: var(--md-sys-color-on-surface-variant); font-size: 11px; }
 .rec-row .tail { color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; }
+
+/* 行程行：左列是"16:12–16:22"这种时间区间，比日期长，套 .rec-row 的 62px 会折成三行 */
+.trip-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 42%, transparent);
+  cursor: pointer;
+}
+.trip-row:last-child { border-bottom: 0; }
+.trip-row .tt {
+  flex: none; font-size: 13.5px; font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.trip-row .tm {
+  flex: 1; min-width: 0; text-align: right;
+  font-size: 12px; color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.trip-row .tm b { font-size: 13.5px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+.trip-row .tail { flex: none; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; }
 
 .rec-back {
   display: inline-flex; align-items: center; gap: 4px;
@@ -3344,15 +3410,29 @@ window.MODEL = (() => {
   // （`aapt2 dump resources` → string/<code>；脚本见 _work/official_names.js）。
   // 资源表里查不到的项就保留英文 code，别自己造词。
   // kind：switch 开关 / select 枚举 / value 数值 / version 版本号 / action 入口 / none 无当前值
+  // 设置页分组：**按官方 App 的功能模块分**。
+  // 依据是 APK 里的页面布局名与对应标题字符串（官方每个模块是独立 Activity）：
+  //   activity_drive_and_ride_setting / activity_car_setting_assisted_drive(driver_assistance=辅助驾驶)
+  //   activity_car_setting_safety / activity_meter_setting(meter_setting=仪表设置)
+  //   activity_car_setting_light(moto_light_setting=灯效设置) / activity_car_setting_sound(自定义/报警音效)
+  //   activity_car_setting_fence(fence=电子围栏) / activity_car_setting_key_share / inductive_unlocking
+  //   activity_set_charge_power + battery_info_title(电池信息与设置) / recorder_settings(记录仪设置)
+  //   custom_key_title(自定义按键设置) + shortcuss_title(快捷方式设置)
+  // 注意：接口的 vehicleSet/items **没有分组字段**（sortNum 全是 1），所以"哪项归哪组"是按官方项名/说明推的，
+  // 只有组名是有据可查的。要调组别就改各 SET_ROWS 的 g 字段。
   const GROUPS = [
     { id: 'ride', t: '骑行与动力', icon: 'speed' },
+    { id: 'assist', t: '辅助驾驶', icon: 'radar' },
     { id: 'key', t: '解锁与钥匙', icon: 'key' },
     { id: 'safety', t: '安全与安防', icon: 'shield' },
     { id: 'sensor', t: '座垫与感应', icon: 'seat' },
-    { id: 'sound', t: '声光与仪表', icon: 'volume' },
-    { id: 'radar', t: '雷达与辅助', icon: 'radar' },
+    { id: 'meter', t: '仪表设置', icon: 'gauge' },
+    { id: 'sound', t: '音效', icon: 'volume' },
+    { id: 'light', t: '灯效设置', icon: 'bulb' },
+    { id: 'shortcut', t: '快捷方式设置', icon: 'flash' },
     { id: 'battery', t: '电池与充电', icon: 'battery' },
     { id: 'smart', t: '投屏与智能', icon: 'bt' },
+    { id: 'recorder', t: '记录仪设置', icon: 'camera' },
     { id: 'device', t: '固件与设备', icon: 'chip' },
   ];
 
@@ -3386,8 +3466,8 @@ window.MODEL = (() => {
     BRAKE_POWER: { g: 'ride', t: '电子制动', kind: 'switch', key: 'barkePower' },
     STEEP_SLOPE_DESCENT: { g: 'ride', t: '陡坡缓降', kind: 'switch', key: 'steepSlopeDescent' },
     QUICK_RIDE: { g: 'ride', t: '简易骑行', kind: 'switch', key: 'easyReadyGo' },
-    CUSTOM_KEY_SET: { g: 'ride', t: '自定义按键', kind: 'value', key: 'customButtonSingle', subs: [{ key: 'customButtonLongPress', t: '长按' }, { key: 'customButtonLeft', t: '左键' }, { key: 'customButtonRight', t: '右键' }, { key: 'customButtonCombination', t: '组合键' }] },
-    CUSTOM_BUTTON_LOW: { g: 'ride', t: '自定义按键 · 可选功能', kind: 'none', note: '能力表下发项：Hello 音效 / 陡坡缓降 / 解锁座垫 / 无操作' },
+    CUSTOM_KEY_SET: { g: 'shortcut', t: '自定义按键', kind: 'value', key: 'customButtonSingle', subs: [{ key: 'customButtonLongPress', t: '长按' }, { key: 'customButtonLeft', t: '左键' }, { key: 'customButtonRight', t: '右键' }, { key: 'customButtonCombination', t: '组合键' }] },
+    CUSTOM_BUTTON_LOW: { g: 'shortcut', t: '自定义按键 · 可选功能', kind: 'none', note: '能力表下发项：Hello 音效 / 陡坡缓降 / 解锁座垫 / 无操作' },
 
     // ---- 解锁与钥匙 ----
     INDUCTIVE_UNLOCKING_2: { g: 'key', t: '感应解锁2.0', kind: 'switch', key: 'inductiveUnlocking2', subs: [{ key: 'inductiveDistance', t: '感应距离档' }, { key: 'customInductiveDistance', t: '自定义距离' }, { key: 'bluetoothStrengthMin', t: '蓝牙强度下限' }, { key: 'bluetoothStrengthMax', t: '蓝牙强度上限' }] },
@@ -3402,7 +3482,7 @@ window.MODEL = (() => {
     AUTOMATIC_PARKING_GO: { g: 'safety', t: '自动驻车', kind: 'switch', key: 'automaticParking' },
     AUTOMATIC_SHUTDOWN_TIMEOUT: { g: 'safety', t: '超时保护关机', kind: 'value', key: 'automaticShutdownTimeout', unit: '分钟', subs: [{ key: 'automaticShutdownSwitch', t: '开关' }, { key: 'leaveOffTime', t: '关机时长', unit: '分钟' }] },
     AUTO_SHUTDOWN_TIME_GO: { g: 'safety', t: '安防设置', kind: 'none', note: '能力表下发 1.0 / 2.0 两档（首页固定入口里就叫「安防设置」）' },
-    EMERGENCY_BRAKE_FLASH: { g: 'safety', t: '紧急制动警示', kind: 'switch', key: 'emergencyBrakeFlash' },
+    EMERGENCY_BRAKE_FLASH: { g: 'light', t: '紧急制动警示', kind: 'switch', key: 'emergencyBrakeFlash' },
     AVOID_THEFT_SECURITY: { g: 'safety', t: '防盗功能', kind: 'switch', key: 'automaticLock' },
     ELECTRONIC_FENCE: { g: 'safety', t: '电子围栏', kind: 'none', note: '接口没返回当前值' },
 
@@ -3414,13 +3494,13 @@ window.MODEL = (() => {
     SOUND_EFFECT: { g: 'sound', t: '音效设置', kind: 'switch', key: 'soundEffectStatus', subs: [{ key: 'soundEffectSetting.switchAll', t: '总开关' }, { key: 'soundEffectSetting.soundSize', t: '音量' }] },
     CUSTOM_AUDIO: { g: 'sound', t: '自定义音效', kind: 'action' },
     AUDIO_SET: { g: 'sound', t: '蓝牙音乐声音通道', kind: 'value', key: 'mediaBluetoothMusicChannel' },
-    INSTRUMENT_SETTING: { g: 'sound', t: '仪表设置', kind: 'value', key: 'instrumentNavigation' },
-    INSTRUMENT_SET: { g: 'sound', t: '仪表设置项', kind: 'switch', key: 'instrumentGame' },
-    INSTRUMENT_SET_CUSTOM_WALLPAPER: { g: 'sound', t: '自定义壁纸', kind: 'switch', key: 'supportCustomWallpaper', from: 'home' },
+    INSTRUMENT_SETTING: { g: 'meter', t: '仪表设置', kind: 'value', key: 'instrumentNavigation' },
+    INSTRUMENT_SET: { g: 'meter', t: '仪表设置项', kind: 'switch', key: 'instrumentGame' },
+    INSTRUMENT_SET_CUSTOM_WALLPAPER: { g: 'meter', t: '自定义壁纸', kind: 'switch', key: 'supportCustomWallpaper', from: 'home' },
 
     // ---- 雷达与辅助 ----
-    RADAR_BLIND_MONITOR: { g: 'radar', t: 'BSD盲区监测', kind: 'select', key: 'radarBsd', options: { 0: '关闭', 1: '仅提示', 2: '提示 + 预警' }, subs: [{ key: 'radarRcw', t: 'RCW后碰撞预警' }, { key: 'radarFcw', t: 'FCW前碰撞预警' }, { key: 'radarPosition', t: '雷达安装位置' }] },
-    ASSIST_DRIVING: { g: 'radar', t: '辅助驾驶', kind: 'switch', key: 'driverAssistSetting.bsdSetting', subs: [{ key: 'driverAssistSetting.fcwSetting', t: '前碰撞' }, { key: 'driverAssistSetting.rcwSetting', t: '后碰撞' }, { key: 'driverAssistSetting.rearviewMirrorWarningLight', t: '后视镜警示灯' }, { key: 'driverAssistSetting.env3dModel', t: '3D 环境模型' }, { key: 'driverAssistSetting.laneAssist', t: '车道辅助' }] },
+    RADAR_BLIND_MONITOR: { g: 'assist', t: 'BSD盲区监测', kind: 'select', key: 'radarBsd', options: { 0: '关闭', 1: '仅提示', 2: '提示 + 预警' }, subs: [{ key: 'radarRcw', t: 'RCW后碰撞预警' }, { key: 'radarFcw', t: 'FCW前碰撞预警' }, { key: 'radarPosition', t: '雷达安装位置' }] },
+    ASSIST_DRIVING: { g: 'assist', t: '辅助驾驶', kind: 'switch', key: 'driverAssistSetting.bsdSetting', subs: [{ key: 'driverAssistSetting.fcwSetting', t: '前碰撞' }, { key: 'driverAssistSetting.rcwSetting', t: '后碰撞' }, { key: 'driverAssistSetting.rearviewMirrorWarningLight', t: '后视镜警示灯' }, { key: 'driverAssistSetting.env3dModel', t: '3D 环境模型' }, { key: 'driverAssistSetting.laneAssist', t: '车道辅助' }] },
 
     // ---- 电池与充电 ----
     BATTERY_INFO_AND_SETTINGS: { g: 'battery', t: '电池信息与设置', kind: 'value', key: 'chargingPower', unit: 'W', subs: [{ key: 'batteryType', t: '电池类型' }] },
@@ -3432,7 +3512,7 @@ window.MODEL = (() => {
     // ---- 投屏与智能 ----
     MOTOPLAY: { g: 'smart', t: '投屏（Motoplay）', kind: 'switch', key: 'motoPlay', subs: [{ key: 'motoPlayLinkType', t: '连接方式' }, { key: 'motoPlayAutoNetwork', t: '自动联网' }] },
     SMART_PART: { g: 'smart', t: '智能部件', kind: 'none', from: 'home', note: '看车况里的能力字段 isSupportSmartPart' },
-    COME_HOME_WITH_YOU: { g: 'smart', t: '伴我回家', kind: 'switch', key: 'comeHomeWithYou', subs: [{ key: 'comeHomeWithYouTime', t: '延时', unit: '秒' }] },
+    COME_HOME_WITH_YOU: { g: 'light', t: '伴我回家', kind: 'switch', key: 'comeHomeWithYou', subs: [{ key: 'comeHomeWithYouTime', t: '延时', unit: '秒' }] },
 
     // ---- 固件与设备 ----
     FIRMWARE_VERSION: { g: 'device', t: '固件版本', kind: 'version', key: 'otaVersion', from: 'home' },
@@ -3446,12 +3526,12 @@ window.MODEL = (() => {
 
   /** 不在能力表里、但车况/设置里有的行，作为补充项展示（标题同样取官方叫法） */
   const EXTRA_ROWS = [
-    { g: 'sound', t: '灯效设置', kind: 'switch', key: 'lightEffectSetting.parkingDynamicEffect', subs: [{ key: 'lightEffectSetting.cyclingDynamicEffect', t: '骑行动效' }, { key: 'lightEffectSetting.projectionLight', t: '投影灯' }, { key: 'lightEffectSetting.pixelLight', t: '像素灯语' }, { key: 'lightEffectSetting.positionLight', t: '位置灯' }, { key: 'lightEffectSetting.lowBeamLight', t: '自动近光灯' }] },
-    { g: 'sound', t: '仪表主题', kind: 'version', key: 'themeName' },
-    { g: 'smart', t: '节日音效', kind: 'switch', key: 'easterEggSwitch' },
-    { g: 'smart', t: '氮气加速', kind: 'switch', key: 'nitro' },
-    { g: 'radar', t: '行车记录仪', kind: 'switch', key: 'drivingRecorderSetting.privacyMode', subs: [{ key: 'drivingRecorderSetting.resolution', t: '分辨率档' }, { key: 'drivingRecorderSetting.sentryMode', t: '哨兵模式' }, { key: 'drivingRecorderSetting.impactSnapshot', t: '碰撞抓拍' }] },
-    { g: 'key', t: '撤防时段', kind: 'version', key: 'withdrawalStartTime', suffixKey: 'withdrawalEndTime' },
+    { g: 'light', t: '灯效设置', kind: 'switch', key: 'lightEffectSetting.parkingDynamicEffect', subs: [{ key: 'lightEffectSetting.cyclingDynamicEffect', t: '骑行动效' }, { key: 'lightEffectSetting.projectionLight', t: '投影灯' }, { key: 'lightEffectSetting.pixelLight', t: '像素灯语' }, { key: 'lightEffectSetting.positionLight', t: '位置灯' }, { key: 'lightEffectSetting.lowBeamLight', t: '自动近光灯' }] },
+    { g: 'meter', t: '仪表主题', kind: 'version', key: 'themeName' },
+    { g: 'sound', t: '节日音效', kind: 'switch', key: 'easterEggSwitch' },
+    { g: 'ride', t: '氮气加速', kind: 'switch', key: 'nitro' },
+    { g: 'recorder', t: '行车记录仪', kind: 'switch', key: 'drivingRecorderSetting.privacyMode', subs: [{ key: 'drivingRecorderSetting.resolution', t: '分辨率档' }, { key: 'drivingRecorderSetting.sentryMode', t: '哨兵模式' }, { key: 'drivingRecorderSetting.impactSnapshot', t: '碰撞抓拍' }] },
+    { g: 'safety', t: '撤防时段', kind: 'version', key: 'withdrawalStartTime', suffixKey: 'withdrawalEndTime' },
     { g: 'device', t: '里程单位', kind: 'value', key: 'mileageUnit', subs: [{ key: 'temperatureUnit', t: '温度单位' }, { key: 'timeFormat', t: '时间格式' }, { key: 'language', t: '语言' }] },
   ];
 
@@ -3952,6 +4032,9 @@ window.UI = (() => {
     battery: '<rect x="3" y="7.5" width="15.5" height="9" rx="2.6"/><path d="M21 11v2"/><path d="M6.5 10v4"/>',
     tire: '<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.1"/><path d="M12 3.8v5.1M12 15.1v5.1M3.8 12h5.1M15.1 12h5.1"/>',
     speed: '<path d="M3.6 17.4a9 9 0 1 1 16.8 0"/><path d="m12 17.4 4.2-6.6"/>',
+    gauge: '<rect x="3.4" y="5" width="17.2" height="14" rx="3"/><path d="M7.4 15.2a5.2 5.2 0 0 1 9.2 0"/><path d="m12 15.2 2.6-3.4"/>',
+    bulb: '<path d="M9.4 17.2h5.2"/><path d="M10.2 20h3.6"/><path d="M12 3.4a5.6 5.6 0 0 0-3.2 10.2v3.6h6.4v-3.6A5.6 5.6 0 0 0 12 3.4z"/>',
+    camera: '<path d="M3.4 8.4h3.1l1.5-2.4h8l1.5 2.4h3.1v10.2H3.4z"/><circle cx="12" cy="13.2" r="3.4"/>',
     route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18h5.3a3 3 0 0 0 0-6H10a3 3 0 0 1 0-6h5.8"/>',
     shield: '<path d="M12 3 19 5.8v6.1c0 4.4-2.9 7.9-7 9.1-4.1-1.2-7-4.7-7-9.1V5.8L12 3z"/><path d="m9.2 12 2 2 3.6-3.8"/>',
     radar: '<path d="M12 12v-8"/><path d="M12 4a8 8 0 1 1-5.7 2.4"/><circle cx="12" cy="12" r="2"/><path d="M12 12 7.5 16.5"/>',
@@ -4088,7 +4171,7 @@ window.UI = (() => {
     }
     // 默认打码（opts.masked 缺省即打码）：瓦片模糊、定位针隐藏，点一下才揭开
     const masked = opts.masked !== false;
-    return `<div class="mapbox${masked ? ' masked' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
+    return `<div class="mapbox${masked ? ' masked' : ''}${opts.sm ? ' sm' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
       <div class="tiles">${tiles.join('')}</div>
       <div class="pin">${icon('pin', 30)}</div>
       <button class="unmask${masked ? '' : ' hidden'}" tabindex="-1">
@@ -4256,8 +4339,9 @@ window.APP = (() => {
   const S = {
     theme: 'dark',
     accent: 'green',
-    tile: 'osm',
+    tile: 'amap',
     pollMs: 30000,
+    openGroups: {},        // 设置页哪些分组是展开的（默认全收起）
     tab: 'home',
     vin: '',
     uid: '',
@@ -4284,21 +4368,24 @@ window.APP = (() => {
       const p = JSON.parse(localStorage.getItem('zeeho.dash') || '{}');
       Object.assign(S, {
         theme: p.theme, accent: p.accent, tile: p.tile, pollMs: p.pollMs, tab: p.tab, vin: p.vin,
-        profileUid: p.profileUid,
+        profileUid: p.profileUid, openGroups: p.openGroups,
       });
     } catch { /* 第一次打开 */ }
     if (!S.theme) S.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     if (!S.accent) S.accent = 'green';
-    if (!S.tile) S.tile = 'osm';
+    // 地图固定用高德：车机给的就是 GCJ-02，高德瓦片也是 GCJ-02，不用转换也不会偏。
+    // （老版本默认是 OSM，那条要先把 GCJ-02 转 WGS-84，且 OSM 政策不允许离线打包）
+    if (!S.tile || S.tile === 'osm') S.tile = 'amap';
     if (S.pollMs === undefined || S.pollMs === null) S.pollMs = 30000;
     if (!S.tab) S.tab = 'home';
     if (!S.profileUid) S.profileUid = '';   // 账号 id：空 = 不显示昵称/头像
+    if (!S.openGroups || typeof S.openGroups !== 'object') S.openGroups = {};
   }
   const savePrefs = () => {
     try {
       localStorage.setItem('zeeho.dash', JSON.stringify({
         theme: S.theme, accent: S.accent, tile: S.tile, pollMs: S.pollMs, tab: S.tab, vin: S.vin,
-        profileUid: S.profileUid,
+        profileUid: S.profileUid, openGroups: S.openGroups,
       }));
     } catch { /* 忽略 */ }
   };
@@ -4556,38 +4643,48 @@ window.APP = (() => {
       </div>`,
     ) : '';
 
-    // ---- 位置卡：地图默认打码，点地图或卡头那只眼睛才揭开 ----
+    // ---- 位置 + 最近骑行：一张卡左右两栏 ----
+    // 左栏只留"能看懂的三样"：地图、最后更新时间、海拔。经纬度不写——那是给开发者看的，
+    // 用户看到 119.96,31.75 也没用；要看精确坐标去调试面板的原始响应。
     const loc = h.loc;
-    // 坐标可能缺失（车机没上报）：所有 toFixed 都先过 hasLoc，别让渲染抛异常把整页卡住
-    const hasLoc = loc.lat !== null && loc.lng !== null;
-    const coordReal = hasLoc ? `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}` : '';
-    const coordText = !hasLoc ? '车机未上报定位' : (S.locShown ? coordReal : '已打码 · 点击显示');
-    const eyeBtn = loc.has ? `<button class="iconbtn" data-act="reveal" title="${S.locShown ? '隐藏位置' : '显示位置'}">${U.icon(S.locShown ? 'eyeOff' : 'eye', 20)}</button>` : '';
-    const navBtn = loc.has ? `<button class="iconbtn" data-act="navigate" title="导航到车辆">${U.icon('nav', 20)}</button>` : '';
-    const locCard = U.card(
-      U.cardHead('车辆位置', loc.relTime ? `更新于 ${loc.relTime}` : '', eyeBtn + navBtn, 'pin') +
-      (loc.has ? U.mapBox(loc.lng, loc.lat, { tile: S.tile, masked: !S.locShown }) : `<div class="mapbox"><div class="mapload">车况里没有定位</div></div>`) +
-      (loc.address ? U.kv('地址', loc.address) : '') +
-      U.kv('坐标', coordText,
-        { mono: S.locShown && hasLoc, attrs: `data-loc="coord" data-act="reveal" data-real="${coordReal}"`, pointer: true }) +
-      U.kv('定位', `${esc(loc.time || '—')}${loc.altitude !== null ? `<span data-loc="alt"> · 海拔 ${Math.round(loc.altitude)} m</span>` : ''} · ${esc(loc.crs === '2' ? 'GCJ-02' : 'WGS-84')}`,
-        { unsafe: true }),
-    );
+    const mapBlock = loc.has
+      ? U.mapBox(loc.lng, loc.lat, { tile: S.tile, masked: !S.locShown, sm: true })
+      : `<div class="mapbox sm"><div class="mapload">车况里没有定位</div></div>`;
+    const eyeBtn = loc.has ? `<button class="iconbtn sm" data-act="reveal" title="${S.locShown ? '隐藏位置' : '显示位置'}">${U.icon(S.locShown ? 'eyeOff' : 'eye', 18)}</button>` : '';
+    const navBtn = loc.has ? `<button class="iconbtn sm" data-act="navigate" title="导航到车辆">${U.icon('nav', 18)}</button>` : '';
 
-    // ---- 骑行数据：4 个小格 + 7 天柱状图，点卡头或柱子看全部记录 ----
-    const rideCard = U.card(
-      U.cardHead('骑行数据', M.monthLabel(S.month),
-        `<button class="iconbtn" data-act="ride" title="全部记录">${U.icon('right', 20)}</button>`, 'route') +
-      `<div class="grid4">
-        ${tile('今日', rh?.todayMile ?? '—', 'km')}
-        ${tile('本月', h.monthMile ?? '—', 'km')}
-        ${tile('骑行时长', M.minutesShort(h.monthMinutes))}
-        ${tile('平均车速', h.avgSpeed ?? '—', 'km/h')}
-      </div>` +
-      (rm?.days?.length
-        ? `<div class="mt12" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>
-           <div class="card-sub">最近 7 天里程（km）· 点这里按月看全部记录</div>`
-        : ''),
+    const locRideCard = U.card(
+      `<div class="split2">
+        <div class="col">
+          <div class="col-head">
+            <div class="t">
+              <div class="card-title">车辆位置</div>
+              <div class="card-sub">${loc.relTime ? '更新于 ' + esc(loc.relTime) : '等车机上报'}</div>
+            </div>${eyeBtn}${navBtn}
+          </div>
+          ${mapBlock}
+          ${U.kv('海拔', loc.altitude !== null ? `${Math.round(loc.altitude)} m` : '—')}
+          ${U.kv('定位时间', loc.time || '—')}
+        </div>
+        <div class="col">
+          <div class="col-head">
+            <div class="t">
+              <div class="card-title">最近骑行</div>
+              <div class="card-sub">${esc(M.monthLabel(S.month))}</div>
+            </div>
+            <button class="iconbtn sm" data-act="ride" title="全部记录">${U.icon('right', 18)}</button>
+          </div>
+          <div class="grid2">
+            ${tile('今日', rh?.todayMile ?? '—', 'km')}
+            ${tile('本月', h.monthMile ?? '—', 'km')}
+            ${tile('时长', M.minutesShort(h.monthMinutes))}
+            ${tile('均速', h.avgSpeed ?? '—', 'km/h')}
+          </div>
+          ${rm?.days?.length
+            ? `<div class="mt8" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>`
+            : ''}
+        </div>
+      </div>`,
     );
 
     // ---- 原来那张「车况」卡撤了：胎压挪到车图的前后轮上（tireBubble），
@@ -4615,8 +4712,7 @@ window.APP = (() => {
       ${heroCard}
       <div class="actions">${actions}</div>
       ${chargeCard}
-      ${locCard}
-      ${rideCard}
+      ${locRideCard}
       ${moreCard}
       <div class="card-sub center">
         ${API.source === 'demo' ? '演示样例' : '真车数据'} · VIN ${h.vin.slice(-6)} · ${new Date(S.lastLoad).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 更新
@@ -4671,19 +4767,13 @@ window.APP = (() => {
   }
 
   /** 位置打码的就地切换：只动这几处 DOM，不整页重渲染（重渲染会重新拉瓦片，会闪）。
-   *  所有带 data-act="reveal" 的地图（首页那张 + 骑行记录里的轨迹图）一起跟着状态走。 */
+   *  所有带 data-act="reveal" 的地图（首页那张 + 骑行记录里的轨迹图）一起跟着状态走。
+   *  首页位置卡现在只显示地图/时间/海拔，没有经纬度文字了，所以这里只管地图和行程地址。 */
   function applyLocMask() {
     phone().querySelectorAll('.mapbox[data-act="reveal"]').forEach((box) => {
       box.classList.toggle('masked', !S.locShown);
       box.querySelector('.unmask')?.classList.toggle('hidden', S.locShown);
     });
-    const coord = phone().querySelector('[data-loc="coord"]');
-    if (coord) {
-      coord.textContent = S.locShown ? coord.dataset.real : '已打码 · 点击地图显示';
-      coord.classList.toggle('mono', S.locShown);
-    }
-    const alt = phone().querySelector('[data-loc="alt"]');
-    if (alt) alt.classList.toggle('hidden', !S.locShown);
     // 行程的起终点地址跟着一起打码（否则地图糊了、地址却把位置说出来了）
     phone().querySelectorAll('[data-loc="addr"]').forEach((el) => {
       el.textContent = S.locShown ? el.dataset.real || '' : '已打码 · 点轨迹图显示';
@@ -4763,16 +4853,16 @@ window.APP = (() => {
     </div>`;
   }
 
-  /** 一天里某一段行程的行：15:52–16:00 · 2.4 km · 9m · 最高 62 */
+  /** 一天里某一段行程的行：16:12–16:22 · 2.9 km · 10m · 最高 68 */
   function tripRow(t) {
     const hm = (v) => (M.s(v).split(' ')[1] || '').slice(0, 5);
     const a = hm(t.start);
     const b = hm(t.end);
     const range = a && b ? `${a}\u2013${b}` : (a || '—');
-    return `<div class="rec-row" data-act="trip" data-id="${esc(t.id)}">
-      <div class="d"><b class="tnum">${esc(range)}</b><span>${esc(M.minutesShort(t.minutes))}</span></div>
-      <div class="m"><b class="tnum">${t.mile.toFixed(1)}</b> <span>km</span> <span>· 最高 ${t.maxSpeed} km/h</span></div>
-      <div class="tail">${U.icon('right', 18)}</div>
+    return `<div class="trip-row" data-act="trip" data-id="${esc(t.id)}">
+      <span class="tt">${esc(range)}</span>
+      <span class="tm"><b>${t.mile.toFixed(1)}</b> km · ${esc(M.minutesShort(t.minutes))} · 最高 ${t.maxSpeed}</span>
+      <span class="tail">${U.icon('right', 18)}</span>
     </div>`;
   }
 
@@ -4991,10 +5081,22 @@ window.APP = (() => {
   function viewSettings() {
     const st = S.data.settings;
     if (!st) return skeleton();
-    const rows = (list) => list.map((r) => setRow(r)).join('');
-    const groups = st.groups.map((g) => U.card(
-      U.cardHead(g.t, `${g.rows.length} 项`, '', g.icon) + rows(g.rows),
-    )).join('');
+    // 分组默认全部收起：12 个组全展开要滚很久，先看目录、点开再看项。
+    // 展开状态放 S.openGroups（跟着 prefs 持久化），否则每轮轮询重渲染都会把它折回去。
+    const anyOpen = st.groups.some((g) => S.openGroups[g.id]);
+    const groups = st.groups.map((g) => {
+      const open = !!S.openGroups[g.id];
+      return U.card(
+        `<button class="group-head${open ? ' open' : ''}" data-act="group" data-id="${esc(g.id)}" aria-expanded="${open}">
+          <span class="gi">${U.icon(g.icon, 18)}</span>
+          <span class="gt">${esc(g.t)}</span>
+          <span class="gc">${g.rows.length}</span>
+          <span class="gv">${U.icon('down', 18)}</span>
+        </button>` +
+        (open ? `<div class="group-body">${g.rows.map((r) => setRow(r)).join('')}</div>` : ''),
+        'group-card',
+      );
+    }).join('');
 
     return `
       <div class="note info">${U.icon('info', 18)}<div>
@@ -5002,7 +5104,7 @@ window.APP = (() => {
         <code>vehicleSetInfo</code>（当前值）。<b>开关可以点</b>：点下去先弹确认，再真正下发到车辆。
         实测能写通的是<b>精准续航</b>（通用属性写，commond 55）和<b>投屏</b>（专属接口）；其余项的指令码还没拿到。
       </div></div>
-      ${U.sectionTitle('设置项', `<span class="card-sub">${st.known}/${st.total} 已映射中文</span>`)}
+      ${U.sectionTitle('设置项', `<button class="btn text sm" data-act="groupsall">${anyOpen ? '全部收起' : '全部展开'}</button>`)}
       ${groups}`;
   }
 
@@ -5353,10 +5455,16 @@ window.APP = (() => {
   function debugSheet() {
     // 纯静态网页只需要一件事：粘 token。数据源自动判断（有 token 直连、没有就演示），
     // 地图瓦片/轮询这些不往这儿放。
+    // 副标题要分三种情况：浏览器里存了 token / 只有本机服务里有 token / 都没有。
+    // （live 模式下 token 在服务端文件里，浏览器 localStorage 是空的——只看 localStorage 会说"还没填"，
+    //   而页面明明正在显示真车数据，前后矛盾）
     const saved = API.token || API.loadToken();
+    const sub = saved
+      ? `已保存 token：${saved.slice(0, 8)}…${saved.slice(-4)}`
+      : (API.server?.hasToken ? `本机服务里有 token（${API.server.token || ''}），正在看真车数据` : '还没填 token，填了就能看真车');
     U.sheet(phone(), {
       title: '数据与调试',
-      sub: saved ? `已保存 token：${saved.slice(0, 8)}…${saved.slice(-4)}` : '还没填 token，填了就能看真车',
+      sub,
       body: `
         <div class="field">
           <input id="tokenInput" type="text" placeholder="粘贴 token" autocomplete="off" spellcheck="false">
@@ -5428,6 +5536,24 @@ window.APP = (() => {
           S.locShown = !S.locShown;
           applyLocMask();
           break;
+        case 'group': {
+          const id = t.dataset.id;
+          if (!id) break;
+          if (S.openGroups[id]) delete S.openGroups[id];
+          else S.openGroups[id] = true;
+          savePrefs();
+          render({ keepScroll: true });
+          break;
+        }
+        case 'groupsall': {
+          const gs = S.data.settings?.groups || [];
+          const anyOpen = gs.some((g) => S.openGroups[g.id]);
+          S.openGroups = {};
+          if (!anyOpen) for (const g of gs) S.openGroups[g.id] = true;
+          savePrefs();
+          render({ keepScroll: true });
+          break;
+        }
         case 'ride':
           U.closeSheet();
           setTimeout(() => openRide(S.month), 220);
