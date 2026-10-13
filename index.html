@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#141218">
+<meta name="description" content="脱离极核 App 的车辆仪表盘：车况、骑行记录与设置">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <style>
@@ -767,6 +768,14 @@ body::before {
 }
 
 </style>
+
+<!-- PWA：装到桌面 / 断网也能打开。图标由 make-icons.mjs 生成（图形与上面那个 favicon 一致）。 -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="极核仪表盘">
 </head>
 <body>
   <div class="stage">
@@ -5535,10 +5544,30 @@ window.APP = (() => {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load({ silent: true }); });
 
+  // ---------------- PWA ----------------
+  /** 注册 service worker：为了"装到桌面"和"断网也能打开"。装不上不影响页面使用，所以失败静默。 */
+  function registerSw() {
+    if (!('serviceWorker' in navigator)) return;
+    if (!/^https?:$/.test(location.protocol)) return;   // file:// 下没有 SW，别去注册（会报错）
+    navigator.serviceWorker
+      .register('sw.js', { scope: './' })
+      .then(() => navigator.serviceWorker.ready)
+      .then((reg) => {
+        // 预热：把页面自己的同源子资源交给 SW 补进缓存。
+        // 单文件产物（发到 GitHub Pages 的那份）没有子资源，这里就是空数组；
+        // 开发版是分开的 js/css，不补的话"第一次断网"会白屏——SW 接管发生在这些请求之后。
+        const urls = [...new Set(performance.getEntriesByType('resource').map((r) => r.name))]
+          .filter((u) => u.startsWith(location.origin) && !u.includes('/api/'));
+        reg.active?.postMessage({ type: 'warm', urls });
+      })
+      .catch(() => { /* 忽略 */ });
+  }
+
   // ---------------- 启动 ----------------
   async function init() {
     loadPrefs();
     applyTheme();
+    registerSw();
     const d = new Date();
     S.month = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
     await refreshServer();
