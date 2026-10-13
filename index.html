@@ -228,7 +228,9 @@ body::before {
 .topbar {
   position: absolute;
   left: 0; right: 0; top: 0;
-  z-index: 3;
+  /* 层级：内容里的浮层最高到 4（地图版权），顶栏/底栏取 6/7 稳压它们；
+     再往上依次是遮罩 8、弹层 9、提示 20。改这里前先看那一串。 */
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -339,6 +341,9 @@ body::before {
 
 .hero-stage {
   position: relative;
+  /* 自成层叠上下文：车图、大数字、胎压气泡的 z-index 只在本区内部比较，
+     不会漏到根层叠上下文去跟顶栏/底栏抢层级（气泡曾因此盖住顶栏文字） */
+  isolation: isolate;
   height: 148px;
   display: grid;
   place-items: center;
@@ -582,7 +587,7 @@ body::before {
 /* ============================ 底部 tab ============================ */
 .tabbar {
   position: absolute; left: 0; right: 0; bottom: 0;
-  z-index: 4;
+  z-index: 7;
   display: flex;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--md-sys-color-surface-container) 92%, transparent);
