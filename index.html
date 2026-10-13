@@ -4292,6 +4292,7 @@ window.APP = (() => {
     if (!S.tile) S.tile = 'osm';
     if (S.pollMs === undefined || S.pollMs === null) S.pollMs = 30000;
     if (!S.tab) S.tab = 'home';
+    if (!S.profileUid) S.profileUid = '';   // 账号 id：空 = 不显示昵称/头像
   }
   const savePrefs = () => {
     try {
@@ -4354,27 +4355,25 @@ window.APP = (() => {
   // ---------------- 数据加载 ----------------
   const HOME_IDS = ['vehicle_home', 'battery_info', 'tire_monitor', 'ride_home', 'ride_month', 'analyse', 'service_recharge'];
   const SET_IDS = ['vehicle_set_items', 'vehicle_set_info'];
-  const ME_IDS = ['vehicle_list', 'user_info', 'integral_total', 'signin_info', 'battery_info', 'analyse', 'ota_records', 'service_recharge'];
+  // 账号档案（user_info）**不在这里**：它只认内部用户 id，而这个 id 只能由用户手填，
+  // 所以统一由 loadAccount() 负责。放进 ME_IDS 的话会拿 uid=0 去查，返回的是**别人**的昵称头像，
+  // 每轮轮询都会把正确结果冲掉（踩过）。
+  const ME_IDS = ['vehicle_list', 'integral_total', 'signin_info', 'battery_info', 'analyse', 'ota_records', 'service_recharge'];
   // 每页都补上 vehicle_home：我的页的「车辆属性」、设置页里几个来自车况的字段（寻车鸣笛/自定义壁纸/固件版本/蓝牙地址）
   // 都读它，只按页面拉会得到一堆「—」。
   const needFor = (tab) => [...new Set([...({ home: HOME_IDS, settings: SET_IDS, me: ME_IDS }[tab] || HOME_IDS), 'vehicle_home'])];
 
   /**
    * 账号信息（昵称/头像/极核号/积分/签到）。
-   * 档案接口只认内部用户 id：候选顺序 = [用户在调试面板填过的 id, 车况里的 bindingUserId]，
-   * 谁返回带昵称的档案就用谁并记住；都不行就**不显示昵称**（绝不用 0 兜底——那是别人的档案）。
+   * 档案接口只认**内部用户 id**，而这个 id 从接口里猜不出来：车况的 bindingUserId 未必是当前登录账号
+   * （这台车实测 …350，真实账号是 …353），传 "0" 更是直接返回**另一个账号**的档案。
+   * 所以只在用户自己填了账号 id 时才去查——**没填就不显示昵称和头像**，绝不用别的 id 兜底。
    */
   async function loadAccount() {
-    const cands = [...new Set([S.profileUid, S.uid].filter(Boolean))];
     let prof = null;
-    for (const id of cands) {
-      const r = await API.call('user_info', { uid: id });
-      if (r.ok && r.data && (r.data.nickName || r.data.memoName)) {
-        prof = r;
-        S.profileUid = id;
-        savePrefs();
-        break;
-      }
+    if (S.profileUid) {
+      const r = await API.call('user_info', { uid: S.profileUid });
+      if (r.ok && r.data && (r.data.nickName || r.data.memoName)) prof = r;
     }
     const extra = await API.all(['integral_total', 'signin_info'], { vin: S.vin, month: S.month });
     S.data.user = M.user(prof, extra.integral_total);
@@ -4410,12 +4409,13 @@ window.APP = (() => {
       }
     }
     if (!silent) S.loading = true;
-    const ctx = { vin: S.vin, uid: '0', carUid: S.uid, month: S.month };
+    // 账号 id 只能手填，这里传的是它（没填就是空，参数会被丢掉）；车控的 {carUid} 另走 bindingUserId
+    const ctx = { vin: S.vin, uid: S.profileUid || '', carUid: S.uid, month: S.month };
     const need = needFor(S.tab);
     const got = await API.all(need, ctx);
     Object.assign(S.data, got);
 
-    // 车况里有 bindingUserId，作为 uid 上下文（user_info 传 0 表示自己，bindingUserId 拿来做展示）
+    // 车况里有 bindingUserId：它给车控接口当 carUid，**不用来查账号档案**（未必是当前登录账号）
     if (got.vehicle_home?.data) {
       S.uid = got.vehicle_home.data.bindingUserId || S.uid;
       S.data.home = M.home(got.vehicle_home);
@@ -4430,7 +4430,6 @@ window.APP = (() => {
       S.vehicles = M.vehicles(got.vehicle_list);
       if (!S.vehicles.some((v) => v.vin === S.vin)) S.vin = S.vehicles[0]?.vin || '';
     }
-    if (got.user_info) S.data.user = M.user(got.user_info, got.integral_total);
     if (got.vehicle_set_items) S.data.caps = got.vehicle_set_items;
     if (got.vehicle_set_info) S.data.info = got.vehicle_set_info;
     if (S.data.caps) buildSettings();
@@ -5039,12 +5038,16 @@ window.APP = (() => {
     const an = S.data.analyse;
 
     const u = S.data.user;
+    // 昵称/头像/极核号只在"用户自己填了账号 id 且查到了档案"时才渲染（u.ok 由 loadAccount 决定）。
+    // 没填 id 就不显示身份信息，但积分/签到/碳贡献来自 token，跟 id 无关，照常显示。
+    const idFilled = !!S.profileUid;
     const userCard = U.card(
-      U.cardHead('账号', u?.ok ? (API.source === 'demo' ? '演示样例里的账号' : '当前登录账号') : '未取到账号档案', '', 'user') +
+      U.cardHead('账号', u?.ok ? (API.source === 'demo' ? '演示样例里的账号' : '当前登录账号') : (idFilled ? '未取到账号档案' : '未填账号 id'), '', 'user') +
       (u?.ok
         ? `<div style="display:flex;align-items:center;gap:14px">
-        <span style="width:56px;height:56px;border-radius:999px;overflow:hidden;background:var(--md-sys-color-primary-container);display:grid;place-items:center;flex:none">
-          ${u.avatar ? `<img src="${esc(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : U.icon('user', 26)}
+        <span style="width:56px;height:56px;border-radius:999px;overflow:hidden;background:var(--md-sys-color-primary-container);display:grid;place-items:center;flex:none;position:relative">
+          ${U.icon('user', 26)}
+          ${u.avatar ? `<img src="${esc(u.avatar)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}
         </span>
         <div>
           <div style="font-size:17px;font-weight:600">${esc(u.nick)}</div>
@@ -5067,7 +5070,7 @@ window.APP = (() => {
         ${U.stat('碳贡献', h?.green ?? '—', 'kg')}
       </div>
       <div class="field mt16">
-        <button class="btn tonal block" data-act="debug">${U.icon('gear', 18)}<span>填账号 id 显示昵称</span></button>
+        <button class="btn tonal block" data-act="debug">${U.icon('gear', 18)}<span>${idFilled ? '换个账号 id' : '填账号 id 显示昵称'}</span></button>
       </div>`),
     );
 
@@ -5502,17 +5505,20 @@ window.APP = (() => {
           const input = $('tokenInput');
           const v = (input?.value || '').trim();
           const uidVal = ($('uidInput')?.value || '').trim();
-          if (!v && uidVal) {
+          // "把账号 id 清空"也是一种有效的修改（= 不显示昵称头像），所以不能只看 uidVal 非空
+          const uidChanged = uidVal !== (S.profileUid || '');
+          if (!v && (uidVal || uidChanged)) {
             // 只改账号 id：token 已经存过，重拉一次档案即可
             S.profileUid = uidVal; savePrefs();
             U.closeSheet();
             await loadAccount();
             render({ keepScroll: true });
-            U.toast(phone(), S.data.user?.ok ? '昵称已更新' : '这个 id 没查到档案');
+            U.toast(phone(), S.data.user?.ok ? '昵称已更新' : (uidVal ? '这个 id 没查到档案' : '已隐藏昵称和头像'));
             break;
           }
           if (!v) { U.toast(phone(), '先把 token 粘进来'); break; }
-          if (uidVal) S.profileUid = uidVal;
+          // 无条件赋值：把输入框清空就是"不显示昵称头像"，不能因为"填过就取消不掉"
+          S.profileUid = uidVal;
           API.saveToken(v);
           // 换 token 等于换账号：车辆列表 / VIN / 缓存全部作废重来。
           // （不清的话会拿上一次（可能是演示数据里那份打码 VIN）去查真车，一路返回空、页面看着就是错的）
@@ -5577,9 +5583,9 @@ window.APP = (() => {
     const list = await API.call('vehicle_list');
     S.vehicles = M.vehicles(list);
     if (!S.vehicles.some((v) => v.vin === S.vin)) S.vin = S.vehicles[0]?.vin || '';
-    // user_info 用 uid=0（自己）；signin / 积分一起拿，「我的」页要用
+    // 账号档案 + 积分/签到：账号档案要用户手填的 id，所以单独走一次
     await loadAccount();
-    const s = await API.all(SET_IDS, { vin: S.vin, uid: S.uid || '0', month: S.month });
+    const s = await API.all(SET_IDS, { vin: S.vin, uid: S.profileUid || '', month: S.month });
     if (s.vehicle_set_items) S.data.caps = s.vehicle_set_items;
     if (s.vehicle_set_info) S.data.info = s.vehicle_set_info;
     await load();
