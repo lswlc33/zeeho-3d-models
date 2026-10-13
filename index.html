@@ -3140,15 +3140,24 @@ window.MODEL = (() => {
   }
 
   // ---------------- 用户 ----------------
+  /**
+   * 账号档案。注意：档案接口 `setting/other/{id}` 只认**内部用户 id**（17 位数字），
+   * 传 0 会返回**另一个账号**的档案（实测 userShowId 是 1867598573，不是本人），
+   * 所以拿不到 id 时宁可留空，也不要用 0 兜底。res 为 null 表示没取到档案。
+   */
   function user(res, integral) {
     const d = res?.data || {};
     const i = integral?.data || {};
     return {
-      nick: s(d.nickName || d.memoName, '未登录'),
+      ok: !!s(d.nickName),
+      nick: s(d.nickName || d.memoName),
       avatar: s(d.avatar),
+      showId: s(d.userShowId),          // 极核号（App 上显示的那个 10 位号）
+      posts: n(d.postsNum),
+      follows: n(d.followersNum),
+      fans: n(d.fansNum),
       sign: s(d.signature),
-      id: s(d.id),
-      score: n(i.integralTotal ?? d.score, null),
+      score: n(i.integralTotal, null),
       uuid: s(i.uuid),
     };
   }
@@ -4070,6 +4079,7 @@ window.APP = (() => {
     token: '',
     hasToken: false,
     locShown: false,       // 精确位置是否已揭开（只在内存里，刷新页面重新打码）
+    profileUid: '',        // 账号档案用的用户 id（setting/other/{id} 只认它，0 会拿到别人的档案）
     data: {},
     loading: false,
     lastErr: '',
@@ -4086,6 +4096,7 @@ window.APP = (() => {
       const p = JSON.parse(localStorage.getItem('zeeho.dash') || '{}');
       Object.assign(S, {
         theme: p.theme, accent: p.accent, tile: p.tile, pollMs: p.pollMs, tab: p.tab, vin: p.vin,
+        profileUid: p.profileUid,
       });
     } catch { /* 第一次打开 */ }
     if (!S.theme) S.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -4098,6 +4109,7 @@ window.APP = (() => {
     try {
       localStorage.setItem('zeeho.dash', JSON.stringify({
         theme: S.theme, accent: S.accent, tile: S.tile, pollMs: S.pollMs, tab: S.tab, vin: S.vin,
+        profileUid: S.profileUid,
       }));
     } catch { /* 忽略 */ }
   };
@@ -4159,10 +4171,25 @@ window.APP = (() => {
   // 都读它，只按页面拉会得到一堆「—」。
   const needFor = (tab) => [...new Set([...({ home: HOME_IDS, settings: SET_IDS, me: ME_IDS }[tab] || HOME_IDS), 'vehicle_home'])];
 
-  /** 账号信息（昵称/头像/积分/签到）—— 初始化、换 token、进「我的」页都要拉一次 */
+  /**
+   * 账号信息（昵称/头像/极核号/积分/签到）。
+   * 档案接口只认内部用户 id：候选顺序 = [用户在调试面板填过的 id, 车况里的 bindingUserId]，
+   * 谁返回带昵称的档案就用谁并记住；都不行就**不显示昵称**（绝不用 0 兜底——那是别人的档案）。
+   */
   async function loadAccount() {
-    const extra = await API.all(['user_info', 'integral_total', 'signin_info'], { vin: S.vin, uid: '0', month: S.month });
-    S.data.user = M.user(extra.user_info, extra.integral_total);
+    const cands = [...new Set([S.profileUid, S.uid].filter(Boolean))];
+    let prof = null;
+    for (const id of cands) {
+      const r = await API.call('user_info', { uid: id });
+      if (r.ok && r.data && (r.data.nickName || r.data.memoName)) {
+        prof = r;
+        S.profileUid = id;
+        savePrefs();
+        break;
+      }
+    }
+    const extra = await API.all(['integral_total', 'signin_info'], { vin: S.vin, month: S.month });
+    S.data.user = M.user(prof, extra.integral_total);
     S.data.signin = extra.signin_info;
   }
 
@@ -4747,26 +4774,40 @@ window.APP = (() => {
   // ---------------- 第三页：我的 ----------------
   function viewMe() {
     const h = S.data.home;
-    const u = S.data.user;
     const b = S.data.battery || {};
     const an = S.data.analyse;
 
+    const u = S.data.user;
     const userCard = U.card(
-      U.cardHead('账号', API.source === 'demo' ? '演示样例里的账号' : '当前登录账号', '', 'user') +
-      `<div style="display:flex;align-items:center;gap:14px">
-        <span class="avatar" style="width:56px;height:56px;border-radius:999px;overflow:hidden;background:var(--md-sys-color-primary-container);display:grid;place-items:center">
-          ${u?.avatar ? `<img src="${esc(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : U.icon('user', 26)}
+      U.cardHead('账号', u?.ok ? (API.source === 'demo' ? '演示样例里的账号' : '当前登录账号') : '未取到账号档案', '', 'user') +
+      (u?.ok
+        ? `<div style="display:flex;align-items:center;gap:14px">
+        <span style="width:56px;height:56px;border-radius:999px;overflow:hidden;background:var(--md-sys-color-primary-container);display:grid;place-items:center;flex:none">
+          ${u.avatar ? `<img src="${esc(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : U.icon('user', 26)}
         </span>
         <div>
-          <div style="font-size:17px;font-weight:600">${esc(u?.nick || '—')}</div>
-          <div class="card-sub">${esc(u?.sign || '极核账号')}</div>
+          <div style="font-size:17px;font-weight:600">${esc(u.nick)}</div>
+          <div class="card-sub">${u.showId ? '极核号 ' + esc(u.showId) : '极核账号'}</div>
         </div>
       </div>
       <div class="grid3 mt16">
+        ${U.stat('积分', u.score ?? '—')}
+        ${U.stat('签到', S.data.signin?.data?.signCount ?? '—', '天')}
+        ${U.stat('碳贡献', h?.green ?? '—', 'kg')}
+      </div>
+      ${u.posts !== null || u.fans !== null ? `<div class="grid3 mt12">
+        ${U.stat('发帖', u.posts ?? '—')}
+        ${U.stat('关注', u.follows ?? '—')}
+        ${U.stat('粉丝', u.fans ?? '—')}
+      </div>` : ''}`
+        : `<div class="grid3 mt4">
         ${U.stat('积分', u?.score ?? '—')}
         ${U.stat('签到', S.data.signin?.data?.signCount ?? '—', '天')}
         ${U.stat('碳贡献', h?.green ?? '—', 'kg')}
-      </div>`,
+      </div>
+      <div class="field mt16">
+        <button class="btn tonal block" data-act="debug">${U.icon('gear', 18)}<span>填账号 id 显示昵称</span></button>
+      </div>`),
     );
 
     const carCard = U.card(
@@ -5055,9 +5096,14 @@ window.APP = (() => {
       body: `
         <div class="field">
           <input id="tokenInput" type="text" placeholder="粘贴 token" autocomplete="off" spellcheck="false">
-          <button class="btn sm" data-act="savetoken">保存</button>
         </div>
-        <div class="field mt16">
+        <div class="field mt12">
+          <input id="uidInput" type="text" placeholder="账号 id（可选，用来显示昵称）" autocomplete="off" spellcheck="false" value="${esc(S.profileUid || '')}">
+        </div>
+        <div class="field mt12">
+          <button class="btn block" data-act="savetoken">保存</button>
+        </div>
+        <div class="field mt12">
           <button class="btn text block" data-act="rawlist">看原始响应</button>
         </div>
         <div style="height:8px"></div>`,
@@ -5183,7 +5229,18 @@ window.APP = (() => {
         case 'savetoken': {
           const input = $('tokenInput');
           const v = (input?.value || '').trim();
+          const uidVal = ($('uidInput')?.value || '').trim();
+          if (!v && uidVal) {
+            // 只改账号 id：token 已经存过，重拉一次档案即可
+            S.profileUid = uidVal; savePrefs();
+            U.closeSheet();
+            await loadAccount();
+            render({ keepScroll: true });
+            U.toast(phone(), S.data.user?.ok ? '昵称已更新' : '这个 id 没查到档案');
+            break;
+          }
           if (!v) { U.toast(phone(), '先把 token 粘进来'); break; }
+          if (uidVal) S.profileUid = uidVal;
           API.saveToken(v);
           // 换 token 等于换账号：车辆列表 / VIN / 缓存全部作废重来。
           // （不清的话会拿上一次（可能是演示数据里那份打码 VIN）去查真车，一路返回空、页面看着就是错的）
