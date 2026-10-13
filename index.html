@@ -1,0 +1,5228 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-accent="green">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141218">
+<title>极核仪表盘 · 网页版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
+<style>
+/* ============================================================================
+   极核仪表盘 · 样式
+   ----------------------------------------------------------------------------
+   设计令牌按 Material 3 语义槽位命名（--md-sys-*），数值取自 Material Web 的
+   token 源（v34.0.21，M3 Expressive 同期），与模块 App 的 M3 主题同一套语义，
+   将来界面挪进 App 时好对齐。改配色只动这一节，组件样式一律引用变量。
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- 浅色 ---------- */
+  --md-sys-color-surface: #fef7ff;
+  --md-sys-color-surface-dim: #ded8e1;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f7f2fa;
+  --md-sys-color-surface-container: #f3edf7;
+  --md-sys-color-surface-container-high: #ece6f0;
+  --md-sys-color-surface-container-highest: #e6e0e9;
+  --md-sys-color-on-surface: #1d1b20;
+  --md-sys-color-on-surface-variant: #49454f;
+  --md-sys-color-outline: #79747e;
+  --md-sys-color-outline-variant: #cac4d0;
+  --md-sys-color-inverse-surface: #322f35;
+  --md-sys-color-inverse-on-surface: #f5eff7;
+  --md-sys-color-scrim: #000;
+
+  /* 品牌强调色：默认「极核绿」，由 data-accent 切换（见文件末三个主题块） */
+  --md-sys-color-primary: #426b00;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #c3f18c;
+  --md-sys-color-on-primary-container: #2a4300;
+
+  /* 状态色：M3 没有 success/warning 槽位，按行业惯例取值（见 MUI palette） */
+  --c-success: #2e7d32;
+  --c-success-container: #c8e6c9;
+  --c-warning: #b26a00;
+  --c-warning-container: #ffe0b2;
+  --c-danger: #b3261e;
+  --c-danger-container: #f9dedc;
+  --c-info: #00629e;
+  --c-info-container: #cde5ff;
+  --c-charge: #0b7bc1;
+
+  --glow: color-mix(in srgb, var(--md-sys-color-primary) 26%, transparent);
+  --glow-soft: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --tint: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+
+  /* ---------- 形状 ---------- */
+  --shape-xs: 4px;
+  --shape-s: 8px;
+  --shape-m: 12px;
+  --shape-l: 16px;
+  --shape-xl: 20px;
+  --shape-2xl: 28px;
+  --shape-full: 9999px;
+
+  /* ---------- 阴影（M3 key + ambient 双层） ---------- */
+  --el1: 0 1px 2px 0 rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
+  --el2: 0 1px 2px 0 rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+  --el3: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
+
+  /* ---------- 状态层 ---------- */
+  --hover: .08;
+  --pressed: .10;
+
+  /* ---------- 动效 ---------- */
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --ease-decel: cubic-bezier(.05, .7, .1, 1);
+  --ease-accel: cubic-bezier(.3, 0, .8, .15);
+  --dur-short: 150ms;
+  --dur-med: 300ms;
+  --dur-long: 500ms;
+
+  /* ---------- 版式基准 ---------- */
+  /* 页面左右留白：滚动区与顶栏都用它，保证卡片边缘和车名/头像在同一条竖线上。
+     改这一个值就能整体调宽窄，不要再去给单个模块加 padding。 */
+  --gutter: 16px;
+  /* 区块之间的竖向间距：由 .page 的 gap 统一给（不要再用 .card + .card 那种相邻兄弟选择器，
+     中间夹一个 div 就断链，卡片会直接贴在一起）。 */
+  --gap: 12px;
+  /* 顶栏高度：这里是兜底值，实际高度由 renderTop() 量完写回（车名换行、安全区都会改变它，
+     写死会让内容被顶栏压住）。滚动区的上内边距 = 它 + 10px 间隙。 */
+  --topbar-h: 72px;
+
+  --font: system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --md-sys-color-surface: #141218;
+  --md-sys-color-surface-dim: #141218;
+  --md-sys-color-surface-container-lowest: #0f0d13;
+  --md-sys-color-surface-container-low: #1d1b20;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-surface-container-highest: #36343b;
+  --md-sys-color-on-surface: #e6e0e9;
+  --md-sys-color-on-surface-variant: #cac4d0;
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454f;
+  --md-sys-color-inverse-surface: #e6e0e9;
+  --md-sys-color-inverse-on-surface: #322f35;
+
+  --c-success: #81c784;
+  --c-success-container: #1f3d21;
+  --c-warning: #ffb74d;
+  --c-warning-container: #4a3200;
+  --c-danger: #f2b8b5;
+  --c-danger-container: #5c1813;
+  --c-info: #7fc7ff;
+  --c-info-container: #10405f;
+  --c-charge: #7fc7ff;
+}
+
+/* 强调色预设 —— data-accent="green"(默认) / blue / purple */
+:root[data-accent="blue"] {
+  --md-sys-color-primary: #00629e;
+  --md-sys-color-on-primary: #fff;
+  --md-sys-color-primary-container: #cde5ff;
+  --md-sys-color-on-primary-container: #00344f;
+}
+[data-theme="dark"][data-accent="blue"] {
+  --md-sys-color-primary: #93ccff;
+  --md-sys-color-on-primary: #003353;
+  --md-sys-color-primary-container: #004a72;
+  --md-sys-color-on-primary-container: #cde5ff;
+}
+:root[data-accent="purple"] {
+  --md-sys-color-primary: #6750a4;
+  --md-sys-color-on-primary: #fff;
+  --md-sys-color-primary-container: #eaddff;
+  --md-sys-color-on-primary-container: #4f378b;
+}
+[data-theme="dark"][data-accent="purple"] {
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+}
+
+/* ============================ 基础 ============================ */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--md-sys-color-on-surface);
+  background: #0b0a0e;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 桌面预览：把页面放进一台"手机"里居中显示 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent), transparent 70%),
+    radial-gradient(40% 40% at 85% 90%, color-mix(in srgb, var(--c-info) 8%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.stage {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.phone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+@media (min-width: 720px) {
+  .stage { padding: 24px; }
+  .phone {
+    height: min(920px, calc(100dvh - 48px));
+    border-radius: 44px;
+    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, .65), 0 0 0 10px #17161b, 0 0 0 11px #34323a;
+  }
+}
+
+/* 滚动区：顶栏是绝对定位浮在上面的，所以这里要留出顶栏的高度 */
+/* 滚动区：顶栏是绝对定位浮在上面的，所以上边留出顶栏的高度；
+   左右留白（--gutter）就加在这一层，卡片的左右边缘随之与顶栏对齐。
+   滚动条一律不占位：它一占位右侧就比左侧多出十几像素，看着就是"没居中"。 */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: calc(var(--topbar-h) + 10px) var(--gutter) calc(96px + env(safe-area-inset-bottom));
+}
+.scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* 页面容器：所有区块（卡片、快捷操作、提示条）都是它的直接子元素，
+   间距统一由 gap 给，任何模块都不需要自己写 margin-top。 */
+.page { display: flex; flex-direction: column; gap: var(--gap); }
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ============================ 顶栏 ============================ */
+.topbar {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: calc(10px + env(safe-area-inset-top)) var(--gutter) 10px;
+  background: linear-gradient(to bottom, var(--md-sys-color-surface) 72%, transparent);
+}
+
+.vswitch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 6px 8px 6px 0;
+  border: 0;
+  border-radius: var(--shape-full);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur-short) var(--ease-standard);
+}
+.vswitch .vtext { min-width: 0; text-align: left; display: block; }
+.vswitch .vname { display: block; font-size: 15px; font-weight: 600; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vswitch .vsub { display: block; font-size: 11px; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vswitch:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) calc(var(--hover) * 100%), transparent); }
+.vswitch:active { transform: scale(.98); }
+
+.spacer { flex: 1; }
+
+.iconbtn {
+  position: relative;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--shape-full);
+  background: transparent; color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: background var(--dur-short) var(--ease-standard), color var(--dur-short) var(--ease-standard);
+}
+.iconbtn:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) calc(var(--hover) * 100%), transparent); }
+.iconbtn:active { transform: scale(.94); }
+.iconbtn.on { color: var(--md-sys-color-primary); }
+.iconbtn.spin svg { animation: spin 900ms linear infinite; }
+/* 图标按钮有 40px 的状态层，图标本身要跟内容边缘对齐就得往右借 8px */
+.topbar > .iconbtn:last-child { margin-right: -8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================ 胶囊 ============================ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+.chip .dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor; flex: none; }
+.chip.ok { background: color-mix(in srgb, var(--c-success) 16%, transparent); color: var(--c-success); }
+.chip.warn { background: color-mix(in srgb, var(--c-warning) 18%, transparent); color: var(--c-warning); }
+.chip.bad { background: color-mix(in srgb, var(--c-danger) 18%, transparent); color: var(--c-danger); }
+.chip.info { background: color-mix(in srgb, var(--c-info) 18%, transparent); color: var(--c-info); }
+.chip.charge { background: color-mix(in srgb, var(--c-charge) 18%, transparent); color: var(--c-charge); }
+.chip.pulse .dot { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+
+/* ============================ 卡片 ============================ */
+.card {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+}
+.card.plain { background: var(--md-sys-color-surface-container); }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.card-title { font-size: 15px; font-weight: 600; letter-spacing: .1px; }
+.card-sub { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.card-head .iconbtn { margin: -8px -8px -8px auto; width: 34px; height: 34px; }
+
+.section-title {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0 0;                /* 加上 .page 的 gap，视觉上距上一块 16px */
+  font-size: 12.5px; font-weight: 600; letter-spacing: .4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.section-title .line { flex: 1; height: 1px; background: color-mix(in srgb, var(--md-sys-color-outline-variant) 70%, transparent); }
+
+/* ============================ 首屏车辆区 ============================ */
+/* 车图、电量、续航、进度条收在一张卡里，两个大数字压在车图左右两侧：
+   比"车图一行 + 数字一行 + 进度条一行 + meta 一行"省掉三行，
+   而且所有文字都落在卡片的 16px 内边距上，不再往页面边上飘。 */
+.hero-card { padding: 12px 16px 14px; }
+
+.hero-top { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.hero-top .spacer { flex: 1 1 0; min-width: 0; }
+
+.hero-stage {
+  position: relative;
+  height: 148px;
+  display: grid;
+  place-items: center;
+  margin: 2px 0;
+}
+.hero-stage::before {             /* 展台光晕：把透明底车图从背景里托出来 */
+  content: "";
+  position: absolute;
+  left: 50%; top: 48%;
+  width: 108%; aspect-ratio: 1.9;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, var(--glow), transparent 72%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+.hero-stage img, .hero-stage svg.fallback {
+  position: relative;
+  z-index: 1;
+  max-width: 70%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .38));
+  animation: heroIn var(--dur-long) var(--ease-decel) both;
+}
+[data-theme="dark"] .hero-stage img { filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .55)) drop-shadow(0 0 1px rgba(255, 255, 255, .22)); }
+@keyframes heroIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+
+.bignum {
+  position: absolute; top: 44%; transform: translateY(-50%);
+  z-index: 2;
+  display: flex; align-items: baseline; gap: 2px;
+}
+.bignum.left { left: 0; }
+.bignum.right { right: 0; }
+.bignum b { font-size: 34px; line-height: 36px; font-weight: 600; letter-spacing: -1.2px; }
+.bignum i { font-style: normal; font-size: 13px; font-weight: 600; opacity: .6; margin-left: 2px; letter-spacing: 0; }
+
+/* 胎压气球：挂在车图前/后轮外侧，单行「2.3 bar 24°」；位置即轮位，所以不写「前轮/后轮」 */
+.tirebub {
+  position: absolute;
+  z-index: 3;
+  display: flex; align-items: baseline; gap: 3px;
+  padding: 4px 9px 5px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 60%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--el1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tirebub.left { left: 0; bottom: 4%; }
+.tirebub.right { right: 0; bottom: 4%; }
+.tirebub .pv { font-size: 15px; font-weight: 600; letter-spacing: -.3px; }
+.tirebub .pu { font-size: 9px; font-weight: 500; opacity: .6; }
+.tirebub .pt { font-size: 10px; color: var(--md-sys-color-on-surface-variant); margin-left: 1px; }
+.tirebub.ok .pv { color: var(--c-success); }
+.tirebub.warn .pv { color: var(--c-warning); }
+.tirebub.bad .pv { color: var(--c-danger); }
+
+.hero-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 9px;
+  font-size: 11.5px; color: var(--md-sys-color-on-surface-variant);
+}
+.hero-meta .sep { width: 3px; height: 3px; border-radius: 99px; background: currentColor; opacity: .5; }
+
+/* 高密度小格：一格 = 标签 + 数值 + 小字说明 */
+.tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile .k { font-size: 10.5px; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v { font-size: 17px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; }
+.tile .v small { font-size: 10px; font-weight: 500; opacity: .65; margin-left: 2px; letter-spacing: 0; }
+.tile .s { font-size: 10.5px; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bar {
+  position: relative;
+  height: 6px;
+  margin: 10px 0 0;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+  overflow: hidden;
+}
+.bar > i {
+  position: absolute; inset: 0 auto 0 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bar-c, var(--c-success)) 70%, #fff 0%), var(--bar-c, var(--c-success)));
+  transition: width var(--dur-long) var(--ease-decel);
+}
+.bar.charging > i { background-image: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.55) 50%, transparent 100%), linear-gradient(90deg, var(--bar-c), var(--bar-c)); background-size: 40% 100%, 100% 100%; background-repeat: no-repeat; animation: flow 1.8s linear infinite; }
+@keyframes flow { from { background-position: -60% 0, 0 0; } to { background-position: 160% 0, 0 0; } }
+
+.hero-meta {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 4px 0;
+  font-size: 12px; color: var(--md-sys-color-on-surface-variant);
+}
+.hero-meta .sep { width: 3px; height: 3px; border-radius: 99px; background: currentColor; opacity: .5; }
+
+/* ============================ 快捷操作 ============================ */
+/* 这一排是按钮（比卡片亮一级的 surface-container），和下面的卡片有明确的层级差，
+   加上 .page 的 gap，不会再和「车辆位置」糊成一块。 */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.action {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  min-height: 64px;
+  padding: 7px 4px;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  border-radius: 14px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit; font-size: 11.5px;
+  cursor: pointer;
+  transition: transform var(--dur-short) var(--ease-standard), background var(--dur-short) var(--ease-standard);
+}
+.action:hover { background: var(--md-sys-color-surface-container-high); }
+.action:active { transform: scale(.955); }
+.action .ico { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--shape-full); background: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent); color: var(--md-sys-color-primary); }
+.action.on .ico { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.action .lbl { font-weight: 500; }
+.action .st { font-size: 10px; color: var(--md-sys-color-on-surface-variant); }
+.action[disabled] { opacity: .45; pointer-events: none; }
+.action.busy .ico svg { animation: spin 900ms linear infinite; }
+
+/* ============================ 数据小格 ============================ */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid2 > .card + .card { margin-top: 0; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+.stat { display: flex; flex-direction: column; gap: 4px; }
+.stat .k { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.stat .v { font-size: 19px; font-weight: 600; letter-spacing: -.2px; }
+.stat .v small { font-size: 11px; font-weight: 500; opacity: .7; margin-left: 2px; }
+
+.kv { display: flex; align-items: center; gap: 12px; padding: 8.5px 0; border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent); }
+.kv:last-child { border-bottom: 0; padding-bottom: 0; }
+.kv:first-child { padding-top: 0; }
+/* 开关也要靠右：.kv 里只有 .v 写了 margin-left:auto，开关没有，会紧跟在文字后面 */
+.kv > .switch { margin-left: auto; }
+.kv .k { font-size: 13px; color: var(--md-sys-color-on-surface-variant); min-width: 0; }
+.kv .v { margin-left: auto; font-size: 13px; font-weight: 500; text-align: right; white-space: nowrap; }
+.kv .v.mono { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 12px; }
+.kv .raw {
+  font-size: 10px; color: var(--md-sys-color-on-surface-variant); opacity: .7;
+  display: block; font-family: ui-monospace, Consolas, monospace;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kv.kv-act { cursor: pointer; }
+
+/* 柱状图 */
+.bars { display: flex; align-items: flex-end; gap: 5px; height: 56px; margin-top: 2px; }
+.bars .b { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bars .b > i { width: 100%; border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, var(--md-sys-color-primary) 75%, transparent); min-height: 3px; transition: height var(--dur-med) var(--ease-decel); }
+.bars .b.today > i { background: var(--md-sys-color-primary); }
+.bars .b span { font-size: 9px; color: var(--md-sys-color-on-surface-variant); }
+
+/* 胎压 */
+.tire { display: flex; align-items: center; gap: 10px; }
+.tire .ring { width: 34px; height: 34px; flex: none; }
+.tire .txt b { font-size: 15px; }
+.tire .txt span { display: block; font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+
+/* 地图 */
+.mapbox {
+  position: relative;
+  height: 134px;
+  border-radius: var(--shape-l);
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container-high);
+}
+.mapbox .tiles { position: absolute; inset: 0; }
+.mapbox .tiles img { position: absolute; width: 256px; height: 256px; user-select: none; }
+.mapbox .pin {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -100%);
+  color: var(--md-sys-color-primary);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .45));
+  transition: opacity var(--dur-med) var(--ease-standard);
+}
+.mapbox .pin::after { content: ""; position: absolute; left: 50%; top: 100%; width: 14px; height: 5px; transform: translate(-50%, -2px); border-radius: 99px; background: rgba(0,0,0,.3); }
+.mapbox .attr {
+  position: absolute; right: 4px; bottom: 2px; z-index: 4;
+  font-size: 9px; color: #fff; background: rgba(0, 0, 0, .35);
+  padding: 1px 5px; border-radius: 4px;
+}
+.mapbox .mapload { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+
+/* 位置默认打码：瓦片模糊 + 精确坐标用文字盖住，点地图（或卡头那只眼睛）才揭开。
+   模糊只作用在瓦片层，署名和遮罩文字保持清晰。 */
+.mapbox { cursor: pointer; }
+.mapbox.masked .tiles { filter: blur(16px) saturate(.75); transform: scale(1.08); }
+.mapbox.masked .pin { opacity: 0; }
+.mapbox.masked .track { filter: blur(9px); opacity: .5; }
+.mapbox .track { transition: filter var(--dur-med) var(--ease-standard), opacity var(--dur-med) var(--ease-standard); }
+.mapbox .tiles { transition: filter var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-standard); }
+.mapbox .unmask {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  border: 0; padding: 0;
+  background: color-mix(in srgb, var(--md-sys-color-surface) 42%, transparent);
+  color: var(--md-sys-color-on-surface);
+  font: inherit; font-size: 12px; font-weight: 600; letter-spacing: .2px;
+  cursor: pointer;
+}
+.mapbox .unmask .ico {
+  display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: var(--shape-full);
+  background: var(--md-sys-color-surface-container-highest);
+  box-shadow: var(--el1);
+}
+.mapbox .unmask span { text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+
+/* 骨架屏 */
+.sk { position: relative; overflow: hidden; background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); border-radius: var(--shape-s); }
+.sk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent), transparent); animation: shimmer 1.4s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* ============================ 按钮 ============================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 20px;
+  border: 0; border-radius: var(--shape-full);
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  font: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--dur-short) var(--ease-standard), box-shadow var(--dur-short) var(--ease-standard);
+}
+.btn:active { transform: scale(.97); }
+.btn.tonal { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.btn.outline { background: transparent; color: var(--md-sys-color-primary); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); }
+.btn.text { background: transparent; color: var(--md-sys-color-primary); padding: 0 12px; }
+.btn.block { width: 100%; }
+.btn.sm { height: 34px; padding: 0 14px; font-size: 13px; }
+
+/* ============================ 底部 tab ============================ */
+.tabbar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  display: flex;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent);
+}
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 4px 0;
+  border: 0; background: transparent; color: var(--md-sys-color-on-surface-variant);
+  font: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer;
+}
+.tab .pill { display: grid; place-items: center; width: 62px; height: 30px; border-radius: var(--shape-full); transition: background var(--dur-med) var(--ease-standard), color var(--dur-med) var(--ease-standard); }
+.tab.sel { color: var(--md-sys-color-on-surface); }
+.tab.sel .pill { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+
+/* ============================ 骑行记录（弹层里） ============================ */
+.monthbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 0 10px;
+}
+.monthbar .monthlabel {
+  flex: 1; text-align: center;
+  font-size: 15px; font-weight: 600; letter-spacing: .2px;
+}
+.monthbar .iconbtn[disabled] { opacity: .3; pointer-events: none; }
+
+.mstats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  padding: 12px;
+  border-radius: var(--shape-l);
+  background: var(--md-sys-color-surface-container);
+  margin-bottom: 10px;
+}
+
+.rec-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 42%, transparent);
+  cursor: pointer;
+}
+.rec-row:last-child { border-bottom: 0; }
+.rec-row.zero { opacity: .5; }
+.rec-row .d { display: flex; flex-direction: column; width: 62px; flex: none; }
+.rec-row .d b { font-size: 14px; font-weight: 600; }
+.rec-row .d span { font-size: 10.5px; color: var(--md-sys-color-on-surface-variant); }
+.rec-row .m { flex: 1; min-width: 0; font-size: 13px; }
+.rec-row .m b { font-size: 15px; font-weight: 600; }
+.rec-row .m span { color: var(--md-sys-color-on-surface-variant); font-size: 11px; }
+.rec-row .tail { color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; }
+
+.rec-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 0; background: transparent; color: var(--md-sys-color-primary);
+  font: inherit; font-size: 13px; font-weight: 600; padding: 0; cursor: pointer;
+}
+
+/* ============================ 底部弹层 ============================ */
+/* 关闭后必须交出指针事件：遮罩留在 DOM 里（只去 show 类），否则它会静默吃掉全屏点击 */
+.scrim {
+  position: absolute; inset: 0; z-index: 8;
+  background: rgba(0, 0, 0, .45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-med) var(--ease-standard);
+}
+.scrim.show { opacity: 1; pointer-events: auto; }
+
+/* 收起时必须 visibility:hidden：它 translateY 到框外会撑出滚动溢出，
+   而 .phone 虽然是 overflow:hidden 但仍可被 scrollIntoView/焦点带着滚，那样顶栏会被顶出视口 */
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 9;
+  max-height: 82%;
+  display: flex; flex-direction: column;
+  padding: 8px 0 calc(16px + env(safe-area-inset-bottom));
+  border-radius: var(--shape-2xl) var(--shape-2xl) 0 0;
+  background: var(--md-sys-color-surface-container-low);
+  transform: translateY(101%);
+  visibility: hidden;
+  transition: transform var(--dur-med) var(--ease-decel), visibility 0s linear var(--dur-med);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, .35);
+}
+.sheet.show {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--dur-med) var(--ease-decel);
+}
+.sheet .grab { width: 32px; height: 4px; margin: 0 auto 12px; border-radius: 99px; background: var(--md-sys-color-outline-variant); }
+.sheet .sheet-head { display: flex; align-items: center; gap: 10px; padding: 0 20px 10px; }
+.sheet .sheet-title { font-size: 17px; font-weight: 600; }
+.sheet .sheet-body { padding: 0 20px; overflow-y: auto; overflow-x: hidden; }
+
+.sheet-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent);
+  cursor: pointer;
+}
+.sheet-item:last-child { border-bottom: 0; }
+.sheet-item .ico { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: var(--shape-full); background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface-variant); }
+.sheet-item .t { font-size: 14px; font-weight: 500; }
+.sheet-item .s { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.sheet-item .tail { margin-left: auto; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.sheet-item.sel { color: var(--md-sys-color-primary); }
+.sheet-item.sel .t { font-weight: 600; }
+
+/* 开关 */
+.switch { position: relative; width: 48px; height: 30px; flex: none; border-radius: 99px; background: var(--md-sys-color-surface-container-highest); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); transition: background var(--dur-short) var(--ease-standard); }
+.switch::after { content: ""; position: absolute; left: 4px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); border-radius: 99px; background: var(--md-sys-color-outline); transition: all var(--dur-med) var(--ease-decel); }
+.switch.on { background: var(--md-sys-color-primary); box-shadow: none; }
+.switch.on::after { left: 24px; width: 24px; height: 24px; background: var(--md-sys-color-on-primary); }
+.switch.disabled { opacity: .4; }
+/* 点得动的开关给个手型；不可写的（.ro）保持默认光标 */
+.switch[data-act="toggle"] { cursor: pointer; }
+.switch.ro { cursor: default; }
+.switch.busy { opacity: .5; pointer-events: none; }
+
+/* 代码块 / 提示 */
+.code {
+  margin: 8px 0 0;
+  padding: 12px;
+  border-radius: var(--shape-m);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 240px;
+  overflow: auto;
+}
+.note { display: flex; gap: 8px; padding: 12px; border-radius: var(--shape-m); background: color-mix(in srgb, var(--c-warning) 12%, transparent); color: var(--md-sys-color-on-surface); font-size: 12px; line-height: 1.6; }
+.note.info { background: color-mix(in srgb, var(--c-info) 12%, transparent); }
+.note.bad { background: color-mix(in srgb, var(--c-danger) 14%, transparent); }
+.note svg { flex: none; margin-top: 1px; color: currentColor; }
+
+/* 输入 */
+.field { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.field input, .field select {
+  flex: 1; min-width: 0;
+  height: 42px; padding: 0 14px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-m);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  font: inherit; font-size: 13px;
+}
+.field input:focus, .field select:focus { outline: 2px solid var(--md-sys-color-primary); outline-offset: -1px; }
+
+/* 轻提示 */
+.toast {
+  position: absolute; left: 50%; bottom: 108px; z-index: 20;
+  transform: translate(-50%, 12px);
+  max-width: 84%;
+  padding: 12px 16px;
+  border-radius: var(--shape-m);
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  font-size: 13px; text-align: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-decel);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.hidden { display: none !important; }
+.muted { color: var(--md-sys-color-on-surface-variant); }
+.center { text-align: center; }
+.mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="phone" id="phone">
+      <header class="topbar" id="topbar"></header>
+      <div class="scroll" id="scroll"></div>
+      <nav class="tabbar" id="tabbar"></nav>
+    </div>
+  </div>
+
+
+
+
+
+
+<script>
+/* ===== js/mock.js ===== */
+window.ZEEHO_MOCK = {
+ "analyse": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "rideMileage": "422.7",
+   "ridingTime": "16",
+   "ridingTimeUnitMinute": "972",
+   "extremeSpeedNumber": "0",
+   "longDrive": "0",
+   "accelerationTimes": "990",
+   "brakesTimes": "0",
+   "bendingTimes": "0",
+   "offLight": "0",
+   "offTurnLight": "0",
+   "nightRide": "0",
+   "rideMileagePercent": "0.42",
+   "ridingTimePercent": "0.64",
+   "extremeSpeedNumberPercent": "0.01",
+   "bendingTimesPercent": "0.01",
+   "brakesTimesPercent": "0.01",
+   "accelerationTimesPercent": "1.0",
+   "maxSpeed": "91.40",
+   "maxSpeedPercent": "1.0",
+   "vinNo": "358122*****5900",
+   "rideMonth": "202610"
+  }
+ },
+ "battery_info": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "chargeState": "0",
+   "bmssoc": "93",
+   "hmiRidableMile": "46",
+   "powerUseToday": "0",
+   "powerChargeMonth": "0",
+   "powerUseMonth": "0",
+   "chargeCount": "0",
+   "score": "优",
+   "hmiRidableMileAbnormalShow": "46",
+   "bmsVoltage": "83",
+   "batteryTemp": null,
+   "soh": null,
+   "batteryLevel": "100",
+   "batteryVoltage": null,
+   "whetherChargeState": false,
+   "chargeStateStr": "未充电",
+   "maxMileage": null,
+   "refreshTime": "2026-10-13 12:10:16",
+   "batteryInfoList": [
+    {
+     "bmssoc": "93",
+     "bmsVoltage": "83",
+     "batteryTemp": null,
+     "soh": null
+    }
+   ],
+   "batteryType": 0,
+   "fullChargeTime": "0.0",
+   "fullChargeTimeSecond": "0",
+   "chargeDuration": null,
+   "floatDuration": null,
+   "power": null,
+   "voltage": "82.8",
+   "current": "0.0",
+   "isRefresh": true,
+   "refreshRate": 5
+  }
+ },
+ "integral_total": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "uuid": "00000000000000000",
+   "integralTotal": 2371
+  }
+ },
+ "nav_addresses": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": [
+   {
+    "name": "常用停车点",
+    "type": 3,
+    "address": "示例路",
+    "longitude": "121.4737",
+    "latitude": "31.2304"
+   }
+  ]
+ },
+ "ota_records": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": []
+ },
+ "ride_home": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "rideMileageDay": "0",
+   "lastRideMileage": "0.500",
+   "lastRidingTime": "0.0",
+   "lastRidingTimeUnitMinute": "3",
+   "mileages": [
+    "28.0",
+    "39.3",
+    "0.4",
+    "0.3",
+    "0.1",
+    "1.8",
+    "2.4",
+    "2.5",
+    "2.9",
+    "0.5"
+   ],
+   "ridingTimes": [
+    "2621",
+    "3849",
+    "68",
+    "333",
+    "39",
+    "818",
+    "510",
+    "408",
+    "562",
+    "136"
+   ]
+  }
+ },
+ "ride_month": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "rideMileageTotal": "8860.30",
+   "bendingTimesTotal": "0",
+   "rideRecordList": [
+    {
+     "date": "2026.10.01",
+     "rideMileage": "44.2",
+     "ridingTimeDayUnitMinute": "146",
+     "bendingTimesDay": "0",
+     "maxSpeed": "71",
+     "accelerationTimesDay": "61",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.02",
+     "rideMileage": "0.7",
+     "ridingTimeDayUnitMinute": "6",
+     "bendingTimesDay": "0",
+     "maxSpeed": "37",
+     "accelerationTimesDay": "11",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.03",
+     "rideMileage": "0.0",
+     "ridingTimeDayUnitMinute": "0",
+     "bendingTimesDay": "0",
+     "maxSpeed": "0",
+     "accelerationTimesDay": "0",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.04",
+     "rideMileage": "0.2",
+     "ridingTimeDayUnitMinute": "2",
+     "bendingTimesDay": "0",
+     "maxSpeed": "39",
+     "accelerationTimesDay": "4",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.05",
+     "rideMileage": "7.3",
+     "ridingTimeDayUnitMinute": "54",
+     "bendingTimesDay": "0",
+     "maxSpeed": "40",
+     "accelerationTimesDay": "33",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.06",
+     "rideMileage": "89.4",
+     "ridingTimeDayUnitMinute": "223",
+     "bendingTimesDay": "0",
+     "maxSpeed": "86",
+     "accelerationTimesDay": "229",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.07",
+     "rideMileage": "142.3",
+     "ridingTimeDayUnitMinute": "264",
+     "bendingTimesDay": "0",
+     "maxSpeed": "87",
+     "accelerationTimesDay": "280",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.08",
+     "rideMileage": "10.9",
+     "ridingTimeDayUnitMinute": "29",
+     "bendingTimesDay": "0",
+     "maxSpeed": "74",
+     "accelerationTimesDay": "45",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.09",
+     "rideMileage": "117.2",
+     "ridingTimeDayUnitMinute": "205",
+     "bendingTimesDay": "0",
+     "maxSpeed": "92",
+     "accelerationTimesDay": "269",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.10",
+     "rideMileage": "2.2",
+     "ridingTimeDayUnitMinute": "20",
+     "bendingTimesDay": "0",
+     "maxSpeed": "51",
+     "accelerationTimesDay": "10",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.11",
+     "rideMileage": "8.3",
+     "ridingTimeDayUnitMinute": "27",
+     "bendingTimesDay": "0",
+     "maxSpeed": "68",
+     "accelerationTimesDay": "48",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.12",
+     "rideMileage": "0.0",
+     "ridingTimeDayUnitMinute": "0",
+     "bendingTimesDay": "0",
+     "maxSpeed": "0",
+     "accelerationTimesDay": "0",
+     "brakesTimesDay": "0"
+    },
+    {
+     "date": "2026.10.13",
+     "rideMileage": "0.0",
+     "ridingTimeDayUnitMinute": "0",
+     "bendingTimesDay": "0",
+     "maxSpeed": "0",
+     "accelerationTimesDay": "0",
+     "brakesTimesDay": "0"
+    }
+   ]
+  }
+ },
+ "service_recharge": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "redPoint": "0",
+   "serviceRechargeVehicleList": [
+    {
+     "vinNo": "358122*****5900",
+     "vehicleName": "华为智选：极核电自",
+     "vehiclePicUrl": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758172641684.png",
+     "serviceRechargeStatus": "0",
+     "lastUseDate": 662,
+     "rechargeEndDate": "2028-08-04",
+     "activationDate": "2025-08-03",
+     "rechargeEndTime": "2028-08-04 23:59"
+    }
+   ]
+  }
+ },
+ "signin_info": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "beforeSignDetailVos": [
+    {
+     "createDate": "2026-09-28",
+     "integralScore": "5",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-09-29",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-09-30",
+     "integralScore": "7",
+     "signStatue": 3
+    }
+   ],
+   "nowSignDetailVos": [
+    {
+     "createDate": "2026-10-01",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-02",
+     "integralScore": "1",
+     "signStatue": 0
+    },
+    {
+     "createDate": "2026-10-03",
+     "integralScore": "3",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-04",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-05",
+     "integralScore": "5",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-06",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-07",
+     "integralScore": "7",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-08",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-09",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-10",
+     "integralScore": "3",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-11",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-12",
+     "integralScore": "5",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-13",
+     "integralScore": "1",
+     "signStatue": 3
+    },
+    {
+     "createDate": "2026-10-14",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-15",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-16",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-17",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-18",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-19",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-20",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-21",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-22",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-23",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-24",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-25",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-26",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-27",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-28",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-29",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-30",
+     "integralScore": null,
+     "signStatue": 2
+    },
+    {
+     "createDate": "2026-10-31",
+     "integralScore": null,
+     "signStatue": 2
+    }
+   ],
+   "afterSignDetailVos": [
+    {
+     "createDate": "2026-11-01",
+     "integralScore": null,
+     "signStatue": 2
+    }
+   ],
+   "prizes": 2,
+   "signPrizeDate": null,
+   "signCount": 11,
+   "integral": 1
+  }
+ },
+ "tire_monitor": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "vinNo": "358122*****5900",
+   "updateTime": "2026-10-13 12:10:16",
+   "realTimeData": [
+    {
+     "sensorPosition": 2,
+     "tirePressure": "2.0",
+     "originalTirePressure": "2.00960006",
+     "tireTemp": "25",
+     "reportTime": "2026-10-13 12:10:16",
+     "warningType": 0,
+     "pressureUnit": null,
+     "unitTirePressure": null
+    },
+    {
+     "sensorPosition": 1,
+     "tirePressure": "2.2",
+     "originalTirePressure": "2.22940002",
+     "tireTemp": "24",
+     "reportTime": "2026-10-13 12:10:16",
+     "warningType": 0,
+     "pressureUnit": null,
+     "unitTirePressure": null
+    }
+   ]
+  }
+ },
+ "user_info": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "backgroundPic": null,
+   "avatar": "",
+   "nickName": "极核车主",
+   "signature": null,
+   "userType": "0",
+   "postsNum": 0,
+   "followersNum": 0,
+   "fansNum": 0,
+   "score": 0,
+   "followerFlag": "0",
+   "memoName": "极核车主",
+   "avatarMark": "1",
+   "functionDescription": null,
+   "tagInfoList": null,
+   "whetherShowGrowth": null,
+   "likeTimes": null,
+   "relationshipFans": null,
+   "delFlag": null,
+   "circleList": null,
+   "relationshipBlock": 0,
+   "muteStatus": 0,
+   "violationId": null,
+   "newFlag": "0",
+   "userShowId": ""
+  }
+ },
+ "vehicle_home": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "vinNo": "358122*****5900",
+   "bindStartTime": "2025.08.03 11:02:19",
+   "fate": "437",
+   "vehicleName": "华为智选：极核电自",
+   "vehiclePicUrl": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758172641684.png",
+   "vehicleBackPicUrl": "https://cfmoto.oss-cn-hangzhou.aliyuncs.com/IMD/app/vehicle-buy.png",
+   "vehiclePic3dUrl": null,
+   "vehicleBackgroundPicUrl": null,
+   "chargeCartoonUrl": "https://cfmoto.oss-cn-hangzhou.aliyuncs.com/uploads/zeeho-client-pc/1784191209001.zip",
+   "appThemeImage": null,
+   "appChargeImage": null,
+   "shareName": null,
+   "shareNickName": null,
+   "isShared": "1",
+   "rideMileageMonth": "422.7",
+   "ridingTimeMonth": "16.1",
+   "ridingTimeMonthUnitMinute": "972",
+   "avgVelocityMonth": "26",
+   "bmssoc": "93",
+   "batteryTemp": "0",
+   "batteryTempState": "0",
+   "batteryPowerState": "0",
+   "hmiRidableMile": "46",
+   "gsmRxLev": "-91.0",
+   "gsmRxLevValue": "中",
+   "gsmRxLevel": 3,
+   "bluetoothAddress": "00:00:**:**:00:00",
+   "hmiBluetoothAddress": "00:00:**:**:00:00",
+   "chargeState": "0",
+   "fullChargeTime": "0.0",
+   "fullChargeTimeSecond": "0",
+   "pressure": "0.0",
+   "pressureValue": "偏低",
+   "headLockState": "1",
+   "rideState": "在线",
+   "greenContribution": "598.0",
+   "otaVersion": "V1.3.0",
+   "bindingUserId": 10000000000000000,
+   "carMaster": "1",
+   "vehicleType": "AE5i Pro",
+   "vehicleTypeName": "TDQ0201Z",
+   "redPoint": 0,
+   "hmiRidableMileAbnormalShow": "46",
+   "expectFullTimeDescribe": null,
+   "location": {
+    "longitude": 121.4737,
+    "latitude": 31.2304,
+    "altitude": 12,
+    "coordinateSystem": "2",
+    "locationTime": "10/13  11:23",
+    "gpsrxNum": 0,
+    "gpsrxLev": 0
+   },
+   "navigationType": 1,
+   "navigation": "0",
+   "projection": "1",
+   "motoPlay": 1,
+   "motoPlayLinkType": 1,
+   "motoPlayAutoNetwork": 2,
+   "instrumentNavigation": 0,
+   "bluetoothSearch": false,
+   "vehicleTypeDetailId": 268,
+   "shareEndTime": null,
+   "residualSeconds": null,
+   "supportNetworkUnlock": 1,
+   "intelligentType": null,
+   "totalRideMile": "8860.4",
+   "maxMileage": "70",
+   "deviceType": 1,
+   "broadcastType": "1",
+   "supportUnlock": 0,
+   "bindDate": null,
+   "cyclingEventStatisticFlag": false,
+   "whetherChargeState": false,
+   "firstBindDate": "2025.08.03 11:02:19",
+   "maxRangeMileage": null,
+   "onlineStatus": "ONLINE",
+   "activationDate": "2025-08-03",
+   "lastUseDate": 662,
+   "rechargeEndDate": "2028-08-04",
+   "openCushionFlag": true,
+   "seatLockState": "1",
+   "openStorageBoxFlag": false,
+   "loudlySearchCar": 1,
+   "iotProperties": [
+    {
+     "name": "BMS版本号",
+     "identify": "BMS_Firmware",
+     "value": "07",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "ECU版本号",
+     "identify": "ECU_Firmware",
+     "value": "08",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "剩余电量",
+     "identify": "BMSSOC",
+     "value": "93",
+     "time": "1791861823919",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "GSM信号强度",
+     "identify": "GSMRxLev",
+     "value": "-91",
+     "time": "1791861823919",
+     "dbUpdateTime": null,
+     "describe": "中"
+    },
+    {
+     "name": "龙头锁状态",
+     "identify": "HeadLockState",
+     "value": "1",
+     "time": "1791861823919",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "HMI版本号",
+     "identify": "HMI_Firmware",
+     "value": "15",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "剩余续航里程",
+     "identify": "HMIRidableMile",
+     "value": "46",
+     "time": "1791848717473",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "TBOX软件版本号_GO",
+     "identify": "TBOX_Firmware",
+     "value": "V3211-24.01.0F.0B",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "整车锁定状态_GO",
+     "identify": "VehicleLock_S",
+     "value": "0",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "MCU解除限速模式_GO",
+     "identify": "MCUUnlockSpdLitMode",
+     "value": "1",
+     "time": "1791828585266",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "后雷达模块基础信息",
+     "identify": "BRS_Info",
+     "value": "{\"softwareVersion\":\"SW.1.00.02\",\"hardwareVersion\":\"HW.1.00.00\",\"partNumber\":\"F05X-460100-10XX-M1 \",\"supplier\":\"MINDCRUISE\"}",
+     "time": "1791861655059",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "车型配置相关信息",
+     "identify": "vehicleTypeInfo",
+     "value": "{\"regulationType\":0,\"vehCod\":0,\"battType\":0,\"absConfig\":0,\"vehType\":0,\"brsConfig\":0,\"vehicleStyle\":0}",
+     "time": "1791861823919",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "计量器基础信息",
+     "identify": "LABMS_Info",
+     "value": "{\"softwareVersion\":\"\",\"hardwareVersion\":\"\",\"partNumber\":\"\",\"supplier\":\"\"}",
+     "time": "1791861655959",
+     "dbUpdateTime": null,
+     "describe": null
+    },
+    {
+     "name": "电池包基础信息",
+     "identify": "BMS_Info",
+     "value": "{\"softwareVersion\":\"\",\"hardwareVersion\":\"\",\"partNumber\":\"\",\"supplier\":\"\"}",
+     "time": "1791861655959",
+     "dbUpdateTime": null,
+     "describe": null
+    }
+   ],
+   "serviceRechargeStatus": "0",
+   "refreshTime": "2026-10-13 12:10:16",
+   "vehicleScalePicUrl": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758172641684.png?x-oss-process=image/resize,m_fixed,w_500,h_314",
+   "functionPopUpId": null,
+   "functionPopUpTitle": null,
+   "functionPopUpContent": null,
+   "licensePlate": "沪A00000",
+   "vehicleKinds": 1,
+   "iotPlatformType": 1,
+   "virtualFlag": "0",
+   "inductiveDistance": 1,
+   "bluetoothCustomFlag": false,
+   "precisionEnduranceFlag": "1",
+   "inductiveUnlockMaxCount": false,
+   "bleStatusVO": {
+    "btMacEnable": 1,
+    "hmiBleMacEnable": 0
+   },
+   "inductiveUnlocking2": 1,
+   "inductiveUnlocking3Flag": false,
+   "hasInductiveUnlocking": 0,
+   "ble2NeedAuthentication": false,
+   "supportCustomWallpaper": false,
+   "multimediaBluetoothName": "ZEEHO-025900",
+   "builtInTirePressure": false,
+   "builtInTirePressureVersion": 1,
+   "batteryType": 0,
+   "drivingRecordAndSentryFlag": false,
+   "sdMemoryStatus": null,
+   "vehicleParkingPhoto": null,
+   "mmiConfigId": null,
+   "mmiSubjectConfigId": null,
+   "homePagePermanentFunctionList": [
+    {
+     "functionCode": "OPEN_CUSHION",
+     "functionName": "打开坐垫"
+    },
+    {
+     "functionCode": "VEHICLE_USE_MANAGE",
+     "functionName": "车辆分享"
+    },
+    {
+     "functionCode": "SOUND_EFFECT",
+     "functionName": "音效设置"
+    },
+    {
+     "functionCode": "AUTO_SHUTDOWN_TIME",
+     "functionName": "安防设置"
+    },
+    {
+     "functionCode": "PASSWORD_UNLOCKING",
+     "functionName": "密码解锁"
+    },
+    {
+     "functionCode": "CUSTOM_NFC",
+     "functionName": "NFC钥匙"
+    },
+    {
+     "functionCode": "VEHICLE_INFO",
+     "functionName": "车辆信息"
+    }
+   ],
+   "batteryInfos": [
+    {
+     "bmssoc": "93",
+     "batteryTemp": null
+    }
+   ],
+   "isSupportChargePower": false,
+   "batteryPower": "--",
+   "chargeTimeString": "-",
+   "isSupportSensorCheck": true,
+   "isRefresh": true,
+   "refreshRate": 600,
+   "isSupportSmartPart": true,
+   "moreVehicleTypeUrl": null,
+   "batteryAbnormalType": null,
+   "batteryState": "0",
+   "batteryProveFlag": "0",
+   "batteryPullOutFlag": "0",
+   "wallpaperResolutionWidth": null,
+   "wallpaperResolutionHeight": null,
+   "subjectWallpaperConfig": null,
+   "themeShopFlag": "0",
+   "themeShopNewFlag": "0",
+   "appThemeRgb": "#131415",
+   "appChargeRgb": "#FFFFFF",
+   "appThemePlayType": null,
+   "appChargePlayType": null
+  }
+ },
+ "vehicle_list": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": [
+   {
+    "vinNo": "358122*****5900",
+    "vehicleName": "华为智选：极核电自",
+    "vehiclePicUrl": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758172641684.png",
+    "vehicleType": "AE5i Pro",
+    "virtualFlag": "0",
+    "licensePlate": "沪A00000",
+    "sharedFlag": "0",
+    "shareNickName": null
+   },
+   {
+    "vinNo": "LCETFG*******4220",
+    "vehicleName": "小篮紫",
+    "vehiclePicUrl": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1776241593223.png",
+    "vehicleType": "AE4 MAX2+",
+    "virtualFlag": "0",
+    "licensePlate": "沪A00000",
+    "sharedFlag": "1",
+    "shareNickName": "80"
+   }
+  ]
+ },
+ "vehicle_props": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": null
+ },
+ "vehicle_set_info": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+   "vinNo": "358122*****5900",
+   "topSpeed": "120",
+   "lowPower": "20",
+   "lowPowerRule": null,
+   "mileageUnit": "1",
+   "temperatureUnit": "1",
+   "leaveOffTime": "3",
+   "timeFormat": "1",
+   "language": "1",
+   "easyReadyGo": 0,
+   "themeId": "1",
+   "themeName": "蓝色电波",
+   "soundEffectStatus": "1",
+   "rideMemoryModel": 0,
+   "chargingPower": "200",
+   "soundEffectSetting": {
+    "switchAll": 1,
+    "switchLowVelocity": 0,
+    "switchStand": 1,
+    "switchRidingModel": 1,
+    "switchSitDown": 1,
+    "switchReady": 1,
+    "switchShutdown": 1,
+    "switchCruiseControl": 1,
+    "soundSize": 100,
+    "unlockLock": 1,
+    "modeSwitching": 1,
+    "staticOperation": 1,
+    "burglarAlarm": 1,
+    "cyclingSteering": 1,
+    "radarSound": 1
+   },
+   "motoPlay": 1,
+   "tcsTractionControl": 1,
+   "automaticShutdown": 0,
+   "cruiseControlFunction": 0,
+   "inductiveUnlocking": 1,
+   "kineticEnergyRecovery": 2,
+   "automaticParking": 1,
+   "inducedVibration": 3,
+   "cushionSensor": 1,
+   "inductiveUnlocking2": 1,
+   "inductiveDistance": 1,
+   "customInductiveDistance": "",
+   "bluetoothStrengthMin": 55,
+   "bluetoothStrengthMax": 90,
+   "customBluetoothStrength": 0,
+   "energyRecoveryStreet": 1,
+   "energyRecoverySport": 1,
+   "energyRecoveryEco": 1,
+   "passwordUnlocking": 1,
+   "passwordUnlockSwitch": 1,
+   "edgeSupportSensing": 1,
+   "extendedRange": 0,
+   "maximumSpeed": 0,
+   "maximumSpeedLimit": 25,
+   "bmsBind": 0,
+   "comeHomeWithYou": 0,
+   "comeHomeWithYouTime": 3,
+   "barkePower": 1,
+   "precisionEndurance": 1,
+   "updateDate": "2026-10-12T16:15:21.937+0800",
+   "radarBsd": 2,
+   "radarRcw": 2,
+   "ecoMaxSpeed": null,
+   "streetMaxSpeed": null,
+   "sportMaxSpeed": null,
+   "isSupportRcw": 1,
+   "originNfc": 1,
+   "cruiseControlHold": 1,
+   "antiLockBrakeSystem": 1,
+   "disabledContent": [
+    {
+     "functionName": "automaticShutdown",
+     "content": "打开座垫感应功能后可恢复正常",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "easyReadyGo",
+     "content": "打开边撑感应和座垫感应功能后可恢复正常",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "easyReadyGo_01",
+     "content": "开启后将激活座垫感应和边撑感应功能",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "easyReadyGo_02",
+     "content": "开启后将激活边撑感应功能",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "easyReadyGo_03",
+     "content": "开启后将激活座垫感应功能",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "cushionSensor_01",
+     "content": "关闭后将无法使用离车关机和简易骑行功能，请确认是否关闭？",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "cushionSensor_02",
+     "content": "关闭后将无法使用离车关机功能，请确认是否关闭？",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "cushionSensor_03",
+     "content": "关闭后将无法使用简易骑行功能，请确认是否关闭？",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "cushionSensor_04",
+     "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "edgeSupportSensing_01",
+     "content": "关闭后将无法使用简易骑行功能，请确认是否关闭？",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "autoShutdownTimeGo_01",
+     "content": "开启后将激活座垫感应功能",
+     "relatedFunctions": null
+    },
+    {
+     "functionName": "autoShutdownTimeGo_02",
+     "content": "开启后将激活座垫感应功能",
+     "relatedFunctions": null
+    }
+   ],
+   "oldVehicleTypeFlag": false,
+   "deviceType": 1,
+   "emergencyBrakeFlash": 1,
+   "automaticShutdownSwitch": 0,
+   "automaticShutdownTimeout": 5,
+   "steepSlopeDescent": 0,
+   "customButtonLeft": 1,
+   "customButtonRight": 0,
+   "customButtonCombination": 0,
+   "customButtonSingle": 1,
+   "customButtonLongPress": 1,
+   "vehicleKind": 1,
+   "cruiseMode": 1,
+   "cruiseAcc": 2,
+   "radarFcw": 2,
+   "isCruiseCc": true,
+   "automaticLock": 1,
+   "instrumentGame": 0,
+   "lightEffectSetting": {
+    "parkingDynamicEffect": 1,
+    "cyclingDynamicEffect": 1,
+    "ecoColor": 4,
+    "streetColor": 5,
+    "sportColor": 6,
+    "projectionLight": 0,
+    "lowBeamLight": 1,
+    "positionLight": 1,
+    "chargingDynamicEffect": 2,
+    "longDistanceLighting": 0,
+    "pixelLight": 1
+   },
+   "powerMode": 0,
+   "nitro": 0,
+   "isAgree": false,
+   "rideFunctionVOList": [
+    {
+     "parentCode": "EASY_RIDE",
+     "functionCode": "1.0",
+     "messages": null,
+     "specialVersion": null
+    },
+    {
+     "parentCode": "E_CUSHION_SENSOR",
+     "functionCode": "2.0",
+     "messages": [
+      {
+       "functionName": "eCushionSensor_02",
+       "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": {
+        "EASY_RIDE": false
+       }
+      },
+      {
+       "functionName": "eCushionSensor_03",
+       "content": "关闭后需要按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": null
+      },
+      {
+       "functionName": "eCushionSensor_04",
+       "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+       "relatedFunctions": {
+        "AUTO_SHUTDOWN_TIME_GO": false
+       }
+      },
+      {
+       "functionName": "eCushionSensor_05",
+       "content": "关闭后离车关机和简易骑行功能都将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": {
+        "EASY_RIDE": false,
+        "AUTO_SHUTDOWN_TIME_GO": false
+       }
+      },
+      {
+       "functionName": "eCushionSensor_06",
+       "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+       "relatedFunctions": {
+        "AUTO_SHUTDOWN_TIME_GO": false
+       }
+      },
+      {
+       "functionName": "eCushionSensor_07",
+       "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": {
+        "EASY_RIDE": false
+       }
+      },
+      {
+       "functionName": "eCushionSensor_08",
+       "content": "关闭后离车关机功能将无法使用,同时需要按启动键进入ready骑行，请确认是否关闭？",
+       "relatedFunctions": {
+        "AUTO_SHUTDOWN_TIME_GO": false
+       }
+      }
+     ],
+     "specialVersion": {
+      "DASH_Info": true,
+      "MCU_Info": false
+     }
+    },
+    {
+     "parentCode": "AUTO_SHUTDOWN_TIME_GO",
+     "functionCode": "2.0",
+     "messages": null,
+     "specialVersion": null
+    },
+    {
+     "parentCode": "EDGE_SUPPORT_SENSING",
+     "functionCode": "2.0",
+     "messages": [
+      {
+       "functionName": "edgeSupportSensing_01",
+       "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": {
+        "EASY_RIDE": false
+       }
+      },
+      {
+       "functionName": "edgeSupportSensing_02",
+       "content": "关闭后需要按启动键解除P档骑行，请确认是否关闭？",
+       "relatedFunctions": null
+      }
+     ],
+     "specialVersion": null
+    }
+   ],
+   "hasInductiveUnlocking": 0,
+   "easterEggSwitch": 1,
+   "mediaBluetoothMusicChannel": 2,
+   "lowPowerThreshold": "0",
+   "ultraLowBatteryReminder": 0,
+   "withdrawalStartTime": "07:00:00",
+   "withdrawalEndTime": "21:00:00",
+   "drivingRecorderSetting": {
+    "privacyMode": 0,
+    "resolution": 2,
+    "videoWatermark": 1,
+    "impactSnapshot": 0,
+    "sentryMode": 0,
+    "geoFenceAutoClose": 0,
+    "memoryCardData": {
+     "memoryCardData": null,
+     "memoryCardDataRemain": null,
+     "loopVideoPercent": null,
+     "sentryVideoPercent": null,
+     "emergencyVideoPercent": null,
+     "manualVideoPercent": null,
+     "manualPhotoPercent": null,
+     "sdMemoryStatus": null
+    }
+   },
+   "driverAssistSetting": {
+    "env3dModel": 0,
+    "startReminder": 0,
+    "laneAssist": 0,
+    "reverseImage": 0,
+    "parking": 0,
+    "rearviewMirrorWarningLight": 1,
+    "bsdSetting": 1,
+    "fcwSetting": 1,
+    "rcwSetting": 1
+   },
+   "radarPosition": 1,
+   "etcsTractionControl": 1,
+   "ecushionSensor": 0
+  }
+ },
+ "vehicle_set_items": {
+  "code": "10000",
+  "message": "操作成功",
+  "data": [
+   {
+    "functionCode": "BATTERY_LEVEL",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "functionConfig": [
+     {
+      "functionCode": "POWER",
+      "functionName": "电量"
+     }
+    ]
+   },
+   {
+    "functionCode": "CRUISE_CONTROL_HOLD",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "CRUISE_CONTROL_HOLD",
+      "serviceCode": 603980085,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "INDUCED_VIBRATION_GO",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "INDUCED_VIBRATION_GO",
+      "serviceCode": 553648130,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "INSTRUMENT_SETTING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "TIME_FORMAT_SETTING",
+      "serviceCode": 268435460,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "MILEAGE_UNIT",
+      "serviceCode": 268435458,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "TEMPERATURE_UNIT",
+      "serviceCode": 268435459,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "SOUND_EFFECT",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "SOUND_EFFECT",
+      "serviceCode": 268435504,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "TIRE_MONITORING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "AUTO_SHUTDOWN_TIME_GO",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "AUTO_SHUTDOWN_TIME_SWITCH",
+      "serviceCode": 268435527,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "AUTO_SHUTDOWN_TIME",
+      "serviceCode": 268435511,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "functionConfig": [
+     {
+      "functionRestrictVersion": [],
+      "functionCode": "1.0",
+      "functionName": "1.0"
+     },
+     {
+      "functionRestrictVersion": [
+       {
+        "versionType": "DASH_Info",
+        "version": "1.01.04",
+        "isShow": "0"
+       }
+      ],
+      "functionCode": "2.0",
+      "functionName": "2.0"
+     }
+    ]
+   },
+   {
+    "functionCode": "AUTOMATIC_SHUTDOWN_TIMEOUT",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "AUTOMATIC_SHUTDOWN_TIMEOUT",
+      "serviceCode": 603980113,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.89\",\"versionType\":\"DASH_Info\"}]"
+   },
+   {
+    "functionCode": "COME_HOME_WITH_YOU",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "COME_HOME_WITH_YOU",
+      "serviceCode": 603980053,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "CUSTOM_BUTTON_LOW",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "CUSTOM_BUTTON_SINGLE",
+      "serviceCode": 603980117,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]",
+    "functionConfig": [
+     {
+      "functionCode": "SAY_HELLO",
+      "functionName": "单键-Hello音效",
+      "restrictVersionV2": []
+     },
+     {
+      "functionCode": "STEEP_SLOPE_DESCENT",
+      "functionName": "单键-陡坡缓降设置",
+      "restrictVersionV2": [
+       {},
+       {}
+      ]
+     },
+     {
+      "functionCode": "CUSHION_UNLOCK",
+      "functionName": "单键-解锁座垫",
+      "restrictVersionV2": []
+     },
+     {
+      "functionCode": "NO_OPERATION",
+      "functionName": "单键-无操作",
+      "restrictVersionV2": []
+     }
+    ]
+   },
+   {
+    "functionCode": "E_TCS_TRACTION_CONTROL",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "E_TCS_TRACTION_CONTROL",
+      "serviceCode": 268435752,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "LABMS_FIRMWARE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "ELECTRONIC_FENCE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "INDUCTIVE_UNLOCKING_2",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "inductiveLockOpenMap": {
+     "function": "INDUCTIVE_UNLOCKING_DISTANCE",
+     "inductiveUnlocking2": "1",
+     "broadcastType": "1"
+    },
+    "isSupportBlueTooth": true,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "INDUCTIVE_UNLOCKING_2",
+      "serviceCode": 603980033,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "INDUCTIVE_UNLOCKING_DISTANCE",
+      "serviceCode": 268435558,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "INDUCTIVE_UNLOCKING",
+      "serviceCode": 268435526,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "INSTRUMENT_SET_CUSTOM_WALLPAPER",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.01.15\",\"versionType\":\"DASH_Info\"},{\"isShow\":\"1\",\"version\":\"1.0F.0B\",\"versionType\":\"TBOX_Info\"}]"
+   },
+   {
+    "functionCode": "KINETIC_ENERGY_RECOVERY",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "KINETIC_ENERGY_RECOVERY",
+      "serviceCode": 268435544,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "MOTOPLAY",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "functionConfig": [
+     {
+      "functionRestrictVersion": [],
+      "functionCode": "1",
+      "functionName": "支持扫码投屏"
+     }
+    ]
+   },
+   {
+    "functionCode": "PRECISION_ENDURANCE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "PRECISION_ENDURANCE",
+      "serviceCode": 603980050,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"0\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]"
+   },
+   {
+    "functionCode": "DRIVING_MODE_SETTING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "CUSTOM_DRIVE_MODE",
+      "serviceCode": 603980307,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "SET_CUSTOM_DRIVE_MODE_PARAM",
+      "serviceCode": 603980308,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "EDGE_SUPPORT_SENSING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "EDGE_SUPPORT_SENSING",
+      "serviceCode": 603980040,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "functionConfig": [
+     {
+      "functionRestrictVersion": [],
+      "functionCode": "2.0",
+      "functionName": "2.0"
+     },
+     {
+      "functionRestrictVersion": [
+       {
+        "versionType": "TBOX_Firmware",
+        "version": "V3211-21.01.0F.02",
+        "isShow": "0"
+       }
+      ],
+      "functionCode": "3.0",
+      "functionName": "3.0"
+     }
+    ]
+   },
+   {
+    "functionCode": "EMERGENCY_BRAKE_FLASH",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "EMERGENCY_BRAKE_FLASH",
+      "serviceCode": 603980112,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]"
+   },
+   {
+    "functionCode": "RADAR_BLIND_MONITOR",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "RADAR_BSD",
+      "serviceCode": 603980054,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "RADAR_RCW",
+      "serviceCode": 603980055,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "SHARE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "AUTOMATIC_PARKING_GO",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "AUTOMATIC_PARKING_GO",
+      "serviceCode": 268435559,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "CUSTOM_NFC",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "ORIGIN_NFC_SWITCH",
+      "serviceCode": 603980069,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "CUSTOM_NFC_SETTING",
+      "serviceCode": 603980067,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "CUSTOM_NFC_ERASE",
+      "serviceCode": 603980068,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.29\",\"versionType\":\"DASH_Info\"}]"
+   },
+   {
+    "functionCode": "E_CUSHION_SENSOR",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "E_CUSHION_SENSOR",
+      "serviceCode": 603980087,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "functionConfig": [
+     {
+      "functionRestrictVersion": [],
+      "functionCode": "2.0",
+      "functionName": "2.0"
+     },
+     {
+      "functionRestrictVersion": [
+       {
+        "versionType": "DASH_Info",
+        "version": "1.01.04",
+        "isShow": "0"
+       },
+       {
+        "versionType": "MCU_Info",
+        "version": "1.02.21",
+        "isShow": "0"
+       }
+      ],
+      "functionCode": "3.0",
+      "functionName": "3.0"
+     }
+    ]
+   },
+   {
+    "functionCode": "FIRMWARE_VERSION",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "ECU_FIRMWARE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "PASSWORD_UNLOCKING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "PASSWORD_UNLOCKING",
+      "serviceCode": 603980041,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "STEEP_SLOPE_DESCENT",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "STEEP_SLOPE_DESCENT",
+      "serviceCode": 603980114,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"0\",\"version\":\"1.01.04\",\"versionType\":\"DASH_Info\"},{\"isShow\":\"0\",\"version\":\"1.02.21\",\"versionType\":\"MCU_Info\"}]"
+   },
+   {
+    "functionCode": "HMI_FIRMWARE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "MAXIMUM_SPEED",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "MAXIMUM_SPEED",
+      "serviceCode": 603980038,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "BLUETOOTH_ADDRESS",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "BRAKE_POWER",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "BRAKE_POWER",
+      "serviceCode": 603980052,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "LOW_BATTERY_WARN",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "LOW_BATTERY_WARN",
+      "serviceCode": 603980293,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "functionConfig": [
+     {
+      "functionCode": "1.0",
+      "functionName": "1.0"
+     }
+    ]
+   },
+   {
+    "functionCode": "EXTENDED_RANGE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "EXTENDED_RANGE",
+      "serviceCode": 603980039,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ]
+   },
+   {
+    "functionCode": "KEY_SHARE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "CUSTOM_KEY_SET",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "INSTRUMENT_SET",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "AUDIO_SET",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "ASSIST_DRIVING",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "AVOID_THEFT_SECURITY",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "SMART_PART",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "QUICK_RIDE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "BATTERY_INFO_AND_SETTINGS",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   },
+   {
+    "functionCode": "CUSTOM_AUDIO",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "blueToothServiceCodeList": [
+     {
+      "functionName": "CUSTOM_AUDIO_SETTING",
+      "serviceCode": 603980065,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "CUSTOM_AUDIO_PLAY",
+      "serviceCode": 603980070,
+      "serviceValues": null,
+      "isSupportSetting": null
+     },
+     {
+      "functionName": "VOLUME_LEVEL",
+      "serviceCode": 268435504,
+      "serviceValues": null,
+      "isSupportSetting": null
+     }
+    ],
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.29\",\"versionType\":\"DASH_Info\"}]",
+    "functionConfig": [
+     {
+      "functionCode": "1.0",
+      "functionName": "1.0"
+     }
+    ],
+    "settingFlag": "1"
+   },
+   {
+    "functionCode": "LOUDLY_SEARCH_CAR",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false,
+    "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.40\",\"versionType\":\"DASH_Info\"}]"
+   },
+   {
+    "functionCode": "BMS_VOLTAGE",
+    "sortNum": 1,
+    "isSupport": true,
+    "isSupportSetting": true,
+    "isSupportBlueTooth": false
+   }
+  ]
+ }
+};
+
+/* ===== js/endpoints.js ===== */
+// 接口表：路径 / 参数占位 / 显示名。改接口只需改这里。
+//
+// 占位符由 api.js 用当前上下文替换：{vin} {uid} {month_dot} {month_dash} {date}；
+// 替换后为空串的参数会被丢掉（与模块里 ApiRunner.buildUrl 的规则一致，服务端也按这个签名）。
+//
+// 路径与参数全部来自真机实测（tools/dashboard/.state/dump 里存着原始响应样例）。
+
+window.ZEEHO_EP = {
+  base: 'https://tapi.zeehoev.com',
+  h5: 'https://h5.zeehoev.com',
+
+  list: [
+    // ---- 账号 ----
+    { id: 'vehicle_list', tag: 'app', label: '车辆列表', path: '/v1.0/app/cfmotoserverapp/vehicle/list' },
+    { id: 'integral_total', tag: 'app', label: '积分', path: '/v1.0/mine/cfmotoservermine/integral/totalIntegral' },
+    // uid 传 "0" 就是当前登录账号自己（传 bindingUserId / uuid 都会被业务码 40000 拒掉）
+    { id: 'user_info', tag: 'app', label: '用户资料', path: '/v1.0/mine/cfmotoservermine/setting/other/{uid}' },
+    { id: 'signin_info', tag: 'h5', label: '签到', path: '/cfmotoservermine/signin/info', query: { month: '{month_dash}', server_name: 'SMART' } },
+
+    // ---- 车辆 ----
+    { id: 'vehicle_home', tag: 'app', label: '车辆主页（车况全量）', path: '/v1.0/app/cfmotoserverapp/vehicleHomePageV2/{vin}' },
+    { id: 'vehicle_props', tag: 'app', label: '车辆属性', path: '/v1.0/app/cfmotoserverapp/carSet', query: { carUserId: '{carUid}', vinNo: '{vin}', virtualFlag: '0' } },
+
+    // ---- 状态 ----
+    { id: 'battery_info', tag: 'app', label: '电池信息', path: '/v1.0/app/cfmotoserverapp/batteryInfo/{vin}' },
+    { id: 'tire_monitor', tag: 'app', label: '胎压监测', path: '/v1.0/app/cfmotoserverapp/app/vehicle/tire/monitoring', query: { sensorType: 'EXTERNAL', vinNo: '{vin}' } },
+
+    // ---- 设置（能力表 + 当前值） ----
+    { id: 'vehicle_set_items', tag: 'app', label: '设置项能力表', path: '/v1.0/app/cfmotoserverapp/vehicleSet/items', query: { homepageInvoke: '1', vinNo: '{vin}' } },
+    { id: 'vehicle_set_info', tag: 'app', label: '设置项当前值', path: '/v1.0/app/cfmotoserverapp/vehicleSet/vehicleSetInfo/{vin}' },
+
+    // ---- 骑行 ----
+    { id: 'ride_home', tag: 'app', label: '最近骑行', path: '/v1.0/app/cfmotoserverapp/homeRideInfo', query: { vinNo: '{vin}' } },
+    { id: 'ride_month', tag: 'app', label: '月度骑行', path: '/v1.0/app/cfmotoserverapp/myRideInfo', query: { month: '{month_dot}', vinNo: '{vin}' } },
+    { id: 'ride_track', tag: 'app', label: '骑行轨迹', path: '/v1.0/app/cfmotoserverapp/ridetrack_v2', query: { page: '1', pageSize: '20', vinNo: '{vin}', date: '{date}' } },
+    { id: 'analyse', tag: 'app', label: '骑行画像', path: '/v1.0/app/cfmotoserverapp/analyse/analyse', query: { month: '{month_dot}', vinNo: '{vin}' } },
+
+    // ---- 其它 ----
+    { id: 'service_recharge', tag: 'app', label: '智能服务', path: '/v1.0/app/cfmotoserverapp/app/service/recharge/vehicle', query: { vinNo: '{vin}' } },
+    { id: 'ota_records', tag: 'app', label: 'OTA 记录', path: '/v1.0/app/cfmotoserverapp/otaRecord', query: { vinNo: '{vin}' } },
+    { id: 'nav_addresses', tag: 'app', label: '导航地址簿', path: '/v1.0/app/cfmotoserverapp/vehicle/navigation/address/list/0' },
+
+    // ---- 写接口（改设置，PUT + JSON body；签名要连 body 一起算，见 sign.mjs）----
+    // 实测：motoPlay 写 1→0→1 返回 10000 且 vehicleSetInfo 秒级跟着变；propertyOne 一律被 VIP 门禁拦
+    // （3003HM0003027「成为春风电动摩托VIP后即可享受此专属服务」），那三个设置走 4G 就是这条路。
+    { id: 'set_motoPlay', tag: 'app', method: 'PUT', label: '写：投屏开关', path: '/v1.0/app/cfmotoserverapp/vehicleSet/motoPlay/one' },
+    { id: 'set_property', tag: 'app', method: 'PUT', label: '写：通用属性（VIP 专属）', path: '/v1.0/app/cfmotoserverapp/vehicleSet/propertyOne/one' },
+  ],
+};
+
+
+/* ===== js/model.js ===== */
+// 归一化层：把接口原始响应变成视图模型。
+//
+// 视图层只认这里吐出来的字段，所以接口加字段、改枚举，只需要改这一个文件。
+// 每个字段都按「真机实测值」处理过（样例见 tools/dashboard/.state/dump）：
+//   bmssoc "93"      —— 数字是字符串
+//   chargeState "0"  —— 0 未充电 / 1 充电中 / 2 已充满（服务端还会给 chargeStateStr 文本，优先用它）
+//   headLockState "1"/seatLockState "1" —— "1" 表示已锁
+//   location.coordinateSystem "2" —— GCJ-02，贴到 OSM（WGS-84）前必须转换
+
+window.MODEL = (() => {
+  // ---------------- 小工具 ----------------
+  const n = (v, d = null) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? d : Number(v));
+  const s = (v, d = '') => (v === null || v === undefined ? d : String(v));
+  const on = (v) => v === true || v === 1 || v === '1' || v === 'true' || v === 'y' || v === 'yes';
+  const esc = (t) => s(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /** 时间字符串 → Date。吃过三种格式：2026-10-13 12:09:11 / 10/13  11:23 / ISO 带 +0800 */
+  function parseTime(v) {
+    const t = s(v).trim();
+    if (!t) return null;
+    let m = t.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    m = t.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+    if (m) return new Date(new Date().getFullYear(), +m[1] - 1, +m[2], +m[3], +m[4]);
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function relTime(v) {
+    const d = parseTime(v);
+    if (!d) return s(v);
+    const sec = Math.round((Date.now() - d.getTime()) / 1000);
+    if (sec < 0) return '刚刚';
+    if (sec < 60) return '刚刚';
+    if (sec < 3600) return `${Math.floor(sec / 60)} 分钟前`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)} 小时前`;
+    if (sec < 86400 * 7) return `${Math.floor(sec / 86400)} 天前`;
+    return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  }
+
+  /** 分钟 → "1 小时 54 分" */
+  function minutes(v) {
+    const m = n(v);
+    if (m === null) return '—';
+    if (m < 60) return `${Math.round(m)} 分钟`;
+    const h = Math.floor(m / 60);
+    const r = Math.round(m % 60);
+    return r ? `${h} 小时 ${r} 分` : `${h} 小时`;
+  }
+
+  /** 分钟 → "16h12m"（小格子里放得下的紧凑写法） */
+  function minutesShort(v) {
+    const m = n(v);
+    if (m === null) return '—';
+    if (m < 60) return `${Math.round(m)}m`;
+    const h = Math.floor(m / 60);
+    const r = Math.round(m % 60);
+    return r ? `${h}h${r}m` : `${h}h`;
+  }
+
+  /** 把 "1h54min" / "0h30min" 之类的服务端文案转成中文（转不了就原样返回） */
+  function durationText(v) {
+    const t = s(v).trim();
+    if (!t || t === '-' || t === '0.0') return '';
+    const m = t.match(/^(?:(\d+)\s*h)?\s*(\d+)\s*min$/i);
+    if (m) return [m[1] ? `${m[1]} 小时` : '', m[2] ? `${m[2]} 分钟` : ''].filter(Boolean).join(' ');
+    return t;
+  }
+
+  /** 秒 → 中文时长 */
+  function secText(v) {
+    const t = n(v);
+    if (t === null || t <= 0) return '';
+    if (t < 60) return `${Math.round(t)} 秒`;
+    return minutes(t / 60);
+  }
+
+  // ---------------- 电量分档 ----------------
+  // 阈值按行业惯例：≥50 健康 / 20–49 提醒 / <20 告急；充电中一律用充电色
+  function socLevel(soc, charging) {
+    if (charging) return { key: 'charge', color: 'var(--c-charge)', text: '充电中' };
+    const v = n(soc, 0);
+    if (v >= 50) return { key: 'ok', color: 'var(--c-success)', text: '电量充足' };
+    if (v >= 20) return { key: 'warn', color: 'var(--c-warning)', text: '建议补能' };
+    return { key: 'bad', color: 'var(--c-danger)', text: '电量告急' };
+  }
+
+  const CHARGE_MAP = { 0: '未充电', 1: '充电中', 2: '已充满', 3: '充电中' };
+  function chargeState(home = {}, battery = {}) {
+    const str = s(battery.chargeStateStr);
+    const code = s(home.chargeState ?? battery.chargeState);
+    const charging = code === '1' || on(home.whetherChargeState) || on(battery.whetherChargeState);
+    const text = str || CHARGE_MAP[code] || '未知';
+    const left = durationText(home.chargeTimeString) || durationText(battery.chargeDuration);
+    return {
+      code,
+      charging: charging && code !== '2',
+      full: code === '2',
+      text: charging ? (code === '2' ? '已充满' : '充电中') : text,
+      left,
+      expect: s(home.expectFullTimeDescribe),
+      power: n(home.batteryPower ?? battery.power),
+    };
+  }
+
+  // ---------------- 坐标 ----------------
+  const PI = Math.PI;
+  const X_PI = (PI * 3000) / 180;
+  const A = 6378245.0;
+  const EE = 0.00669342162296594323;
+
+  const outOfChina = (lng, lat) => lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
+
+  function tlng(x, y) {
+    let r = 300 + x * 2 + y * 0.1 + x * 0.1 + Math.sqrt(Math.abs(x));
+    r += ((20 * Math.sin(6 * x * PI) + 20 * Math.sin(2 * x * PI)) * 2) / 3;
+    r += ((20 * Math.sin(x * PI) + 40 * Math.sin((x / 3) * PI)) * 2) / 3;
+    r += ((160 * Math.sin((x / 12) * PI) + 320 * Math.sin((x * PI) / 30)) * 2) / 3;
+    return r;
+  }
+  function tlat(x, y) {
+    let r = -100 + x * 2 + y * 3 + y * 0.2 * y + x * 0.1 + Math.sqrt(Math.abs(x));
+    r += ((20 * Math.sin(6 * x * PI) + 20 * Math.sin(2 * x * PI)) * 2) / 3;
+    r += ((20 * Math.sin(y * PI) + 40 * Math.sin((y / 3) * PI)) * 2) / 3;
+    r += ((150 * Math.sin((y / 12) * PI) + 300 * Math.sin((y / 30) * PI)) * 2) / 3;
+    return r;
+  }
+
+  /** GCJ-02 → WGS-84（迭代逼近）。车定位是 GCJ-02，贴 OSM 瓦片前必须过这道。
+   *  注意方向：GCJ-02 是「加密后」的坐标，要减掉偏移才能落到 WGS-84 的地图上。 */
+  function gcj02ToWgs84(lng, lat) {
+    if (outOfChina(lng, lat)) return [lng, lat];
+    let wlng = lng;
+    let wlat = lat;
+    for (let i = 0; i < 3; i++) {
+      const dLat = tlat(wlng - 105, wlat - 35);
+      const dLng = tlng(wlng - 105, wlat - 35);
+      const radLat = (wlat / 180) * PI;
+      let magic = Math.sin(radLat);
+      magic = 1 - EE * magic * magic;
+      const sqrtMagic = Math.sqrt(magic);
+      const mLat = (dLat * 180) / (((A * (1 - EE)) / (magic * sqrtMagic)) * PI);
+      const mLng = (dLng * 180) / ((A / sqrtMagic) * Math.cos(radLat) * PI);
+      wlat = lat - mLat;
+      wlng = lng - mLng;
+    }
+    return [wlng, wlat];
+  }
+
+  // ---------------- 车辆列表 ----------------
+  function vehicles(res) {
+    const list = Array.isArray(res?.data) ? res.data : [];
+    return list.map((v) => ({
+      vin: s(v.vinNo),
+      name: s(v.vehicleName, '未命名车辆'),
+      type: s(v.vehicleType),
+      plate: s(v.licensePlate),
+      pic: s(v.vehiclePicUrl),
+      shared: on(v.sharedFlag),
+      shareNick: s(v.shareNickName),
+      virtual: on(v.virtualFlag),
+      raw: v,
+    }));
+  }
+
+  // ---------------- 车况（vehicleHomePageV2） ----------------
+  function home(res) {
+    const d = res?.data || {};
+    const charge = chargeState(d);
+    const locRaw = d.location || {};
+    const lng = n(locRaw.longitude);
+    const lat = n(locRaw.latitude);
+    const iot = Array.isArray(d.iotProperties) ? d.iotProperties : [];
+    const iotMap = {};
+    for (const it of iot) iotMap[s(it.identify)] = { name: s(it.name), value: s(it.value), describe: s(it.describe) };
+    const online = ['online', '1', 'true'].includes(s(d.onlineStatus).toLowerCase()) || s(d.onlineStatus) === 'ONLINE';
+
+    return {
+      vin: s(d.vinNo),
+      name: s(d.vehicleName, '我的车'),
+      type: s(d.vehicleType),
+      typeName: s(d.vehicleTypeName),
+      plate: s(d.licensePlate),
+      pic: s(d.vehiclePicUrl),
+      scalePic: s(d.vehicleScalePicUrl),
+      soc: n(d.bmssoc, null),
+      // hmiRidableMile / maxRangeMileage：官方没做校准，数值没有参考意义，界面上一律不用
+      // （英雄位右列放的是电池电压）。要核对原始值就去调试面板看原始响应。
+      range: n(d.hmiRidableMile, null),
+      maxRange: n(d.maxRangeMileage ?? d.maxMileage, null),
+      temp: n(d.batteryTemp, null),
+      tempState: s(d.batteryTempState),
+      padding: true,
+      charge,
+      socColor: socLevel(n(d.bmssoc, 0), charge.charging),
+      headLock: on(d.headLockState),          // 龙头锁："1" = 已锁（真状态，仪表 BLE `Lock` 指令的目标）
+      // 注意：iotProperties:VehicleLock_S（「整车锁定状态_GO」）**不是**车锁状态——实测两台不同车型恒为 0，
+      // 与车实际锁没锁无关（配套的 supportUnlock 也是 0，那是"远程锁车"功能的开关）。这儿只解析出来备查，
+      // 界面上一律不用它；龙头锁 + 坐垫锁才是物理锁的那套状态。
+      vehLock: on((iotMap.VehicleLock_S || {}).value),
+      seatLock: on(d.seatLockState),          // 坐垫锁："1" = 已锁（真状态，与龙头锁同一套锁机构）
+      cushionOpen: on(d.openCushionFlag),     // 座垫（坐垫）当前是否可开
+      storageOpen: on(d.openStorageBoxFlag),
+      canNetUnlock: on(d.supportNetworkUnlock),
+      canSearch: on(d.loudlySearchCar),
+      canUnlock: on(d.supportUnlock),
+      hasInductive: on(d.hasInductiveUnlocking) || on(d.inductiveUnlocking2),
+      online,
+      rideState: s(d.rideState),
+      lastUse: s(d.lastUseDate),
+      refreshAt: s(d.refreshTime),
+      relRefresh: relTime(d.refreshTime),
+      loc: {
+        lng,
+        lat,
+        has: lng !== null && lat !== null,
+        altitude: n(locRaw.altitude),
+        crs: s(locRaw.coordinateSystem),
+        time: s(locRaw.locationTime),
+        relTime: relTime(locRaw.locationTime),
+        address: s(d.address || locRaw.address || locRaw.addressName),
+        parkPhoto: s(d.vehicleParkingPhoto),
+      },
+      signal: { level: n(d.gsmRxLevel), text: s(d.gsmRxLevValue), dbm: n(d.gsmRxLev) },
+      totalMile: n(d.totalRideMile, null),
+      monthMile: n(d.rideMileageMonth, null),
+      monthMinutes: n(d.ridingTimeMonthUnitMinute, null),
+      avgSpeed: n(d.avgVelocityMonth, null),
+      maxMileage: n(d.maxMileage, null),
+      otaVersion: s(d.otaVersion),
+      iot,
+      iotMap,
+      firmware: iot
+        .filter((x) => /_Firmware$/.test(s(x.identify)))
+        .map((x) => ({ name: s(x.name).replace(/版本号.*/, '').replace(/_GO$/, ''), value: s(x.value), key: s(x.identify) })),
+      bt: s(d.bluetoothAddress),
+      activationDate: s(d.activationDate),
+      firstBind: s(d.firstBindDate || d.bindStartTime),
+      serviceEnd: s(d.rechargeEndDate),
+      serviceStatus: s(d.serviceRechargeStatus),
+      themeName: '',
+      fate: n(d.fate),
+      green: n(d.greenContribution),
+      functions: Array.isArray(d.homePagePermanentFunctionList) ? d.homePagePermanentFunctionList : [],
+      raw: d,
+    };
+  }
+
+  // ---------------- 胎压 ----------------
+  function tires(res) {
+    const d = res?.data || {};
+    const list = Array.isArray(d.realTimeData) ? d.realTimeData : [];
+    const wheels = list.map((t) => ({
+      pos: n(t.sensorPosition) === 1 ? '前轮' : '后轮',
+      pressure: n(t.tirePressure),
+      temp: n(t.tireTemp),
+      warn: n(t.warningType, 0) > 0,
+      time: s(t.reportTime),
+    }));
+    wheels.sort((a, b) => (a.pos === '前轮' ? -1 : 1) - (b.pos === '前轮' ? -1 : 1));
+    return { updateTime: s(d.updateTime), relTime: relTime(d.updateTime), wheels };
+  }
+
+  // ---------------- 电池 ----------------
+  function battery(res) {
+    const d = res?.data || {};
+    return {
+      soc: n(d.bmssoc, null),
+      voltage: n(d.voltage ?? d.bmsVoltage, null),   // 82.8 V 母线 / 83 V BMS
+      bmsVoltage: n(d.bmsVoltage, null),
+      current: n(d.current, null),
+      power: n(d.power, null),
+      soh: n(d.soh, null),
+      level: n(d.batteryLevel, null),
+      score: s(d.score),
+      chargeCount: n(d.chargeCount, null),
+      useToday: n(d.powerUseToday, null),
+      useMonth: n(d.powerUseMonth, null),
+      chargeMonth: n(d.powerChargeMonth, null),
+      temp: n(d.batteryTemp, null),
+      refreshAt: s(d.refreshTime),
+      raw: d,
+    };
+  }
+
+  // ---------------- 骑行 ----------------
+  function rideHome(res) {
+    const d = res?.data || {};
+    return {
+      todayMile: n(d.rideMileageDay, null),
+      lastMile: n(d.lastRideMileage, null),
+      lastMinutes: n(d.lastRidingTimeUnitMinute, null),
+      mileages: (d.mileages || []).map((x) => n(x, 0)),
+      times: (d.ridingTimes || []).map((x) => n(x, 0)),
+    };
+  }
+
+  function rideMonth(res) {
+    const d = res?.data || {};
+    const list = (Array.isArray(d.rideRecordList) ? d.rideRecordList : []).map((r) => ({
+      date: s(r.date),
+      day: n(s(r.date).slice(-2), 0),
+      mile: n(r.rideMileage, 0),
+      minutes: n(r.ridingTimeDayUnitMinute, 0),
+      maxSpeed: n(r.maxSpeed, 0),
+      accel: n(r.accelerationTimesDay, 0),
+    }));
+    // 演示/真实都只画最近 7 天
+    return { total: n(d.rideMileageTotal, null), days: list.slice(-7), all: list };
+  }
+
+  function analyse(res) {
+    const d = res?.data || {};
+    return {
+      month: s(d.rideMonth),
+      mile: n(d.rideMileage, null),
+      minutes: n(d.ridingTimeUnitMinute, null),
+      maxSpeed: n(d.maxSpeed, null),
+      accel: n(d.accelerationTimes, null),
+      brakes: n(d.brakesTimes, null),
+      bends: n(d.bendingTimes, null),
+      extreme: n(d.extremeSpeedNumber, null),
+      longDrive: n(d.longDrive, null),
+      raw: d,
+    };
+  }
+
+  // ---------------- 骑行记录（按月 / 按日） ----------------
+  const WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+  /** "2026.10.01" → { mmdd, wd, iso } */
+  function dayInfo(dateStr) {
+    const m = /^(\d{4})\.(\d{2})\.(\d{2})$/.exec(s(dateStr));
+    if (!m) return { mmdd: s(dateStr), wd: '' };
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return { mmdd: `${m[2]}.${m[3]}`, wd: WD[d.getDay()], iso: `${m[1]}-${m[2]}-${m[3]}` };
+  }
+
+  /**
+   * 一个月的骑行记录：逐日明细（日期倒序）+ 汇总。
+   * 注意 myRideInfo 里的 rideMileageTotal 是**累计总里程**，不是本月——月度汇总优先用 analyse 的字段，
+   * 没有 analyse 时才用逐日累加兜底。
+   */
+  function rideRecords(res, analyseRes) {
+    const d = res?.data || {};
+    const rows = (Array.isArray(d.rideRecordList) ? d.rideRecordList : []).map((r) => {
+      const info = dayInfo(r.date);
+      return {
+        date: s(r.date), mmdd: info.mmdd, wd: info.wd,
+        mile: n(r.rideMileage, 0),
+        minutes: n(r.ridingTimeDayUnitMinute, 0),
+        maxSpeed: n(r.maxSpeed, 0),
+        accel: n(r.accelerationTimesDay, 0),
+        brakes: n(r.brakesTimesDay, 0),
+        bends: n(r.bendingTimesDay, 0),
+      };
+    }).reverse();                       // 接口按日期升序给，界面要最近的在上面
+    const active = rows.filter((r) => r.mile > 0);
+    const a = analyseRes?.data || {};
+    const sum = (k) => active.reduce((t, r) => t + r[k], 0);
+    return {
+      rows,
+      activeCount: active.length,
+      mile: n(a.rideMileage) ?? sum('mile'),
+      minutes: n(a.ridingTimeUnitMinute) ?? sum('minutes'),
+      maxSpeed: n(a.maxSpeed) ?? (active.length ? Math.max(...active.map((r) => r.maxSpeed)) : null),
+      accel: n(a.accelerationTimes),
+      brakes: n(a.brakesTimes),
+      bends: n(a.bendingTimes),
+      extreme: n(a.extremeSpeedNumber),
+      totalMile: n(d.rideMileageTotal),   // 累计总里程（展示时要写清"累计"）
+      ok: !!res?.ok,
+      err: res?.ok ? '' : (res?.message || res?.err || '取不到'),
+    };
+  }
+
+  /** 轨迹响应 → [{lng,lat}]。字段名没实测过（这台车接口一直返回空数组），按几种常见形状兜底解析。 */
+  function track(res) {
+    let arr = res?.data;
+    if (arr && !Array.isArray(arr)) arr = arr.list || arr.trackList || arr.points || arr.records || arr.data;
+    if (!Array.isArray(arr)) return [];
+    const out = [];
+    for (const it of arr) {
+      if (!it || typeof it !== 'object') continue;
+      const lng = n(it.longitude ?? it.lng ?? it.lon ?? it.longtitude);
+      const lat = n(it.latitude ?? it.lat);
+      if (lng === null || lat === null) continue;
+      out.push({ lng, lat });
+    }
+    return out;
+  }
+
+  const pad2 = (v) => String(v).padStart(2, '0');
+  /** '2026.10' → '2026 年 10 月' */
+  function monthLabel(m) {
+    const [y, mm] = s(m).split('.');
+    return y && mm ? `${y} 年 ${Number(mm)} 月` : s(m);
+  }
+  function monthShift(m, delta) {
+    const [y, mm] = s(m).split('.').map(Number);
+    if (!y || !mm) return s(m);
+    const d = new Date(y, mm - 1 + delta, 1);
+    return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}`;
+  }
+  /** 最近 n 个月（含当月），由近到远 */
+  function recentMonths(n = 18, from = null) {
+    const base = from || `${new Date().getFullYear()}.${pad2(new Date().getMonth() + 1)}`;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(monthShift(base, -i));
+    return out;
+  }
+
+  // ---------------- 用户 ----------------
+  function user(res, integral) {
+    const d = res?.data || {};
+    const i = integral?.data || {};
+    return {
+      nick: s(d.nickName || d.memoName, '未登录'),
+      avatar: s(d.avatar),
+      sign: s(d.signature),
+      id: s(d.id),
+      score: n(i.integralTotal ?? d.score, null),
+      uuid: s(i.uuid),
+    };
+  }
+
+  // ---------------- 设置页 ----------------
+  // 设置项的「中文名 + 归属分组 + 用哪个键当前值」全在这张表里。
+  // 标题一律用官方 App 的叫法：从 _work/cfmoto-origin.apk 的资源表里按 functionCode 的 snake_case 反查出来的
+  // （`aapt2 dump resources` → string/<code>；脚本见 _work/official_names.js）。
+  // 资源表里查不到的项就保留英文 code，别自己造词。
+  // kind：switch 开关 / select 枚举 / value 数值 / version 版本号 / action 入口 / none 无当前值
+  const GROUPS = [
+    { id: 'ride', t: '骑行与动力', icon: 'speed' },
+    { id: 'key', t: '解锁与钥匙', icon: 'key' },
+    { id: 'safety', t: '安全与安防', icon: 'shield' },
+    { id: 'sensor', t: '座垫与感应', icon: 'seat' },
+    { id: 'sound', t: '声光与仪表', icon: 'volume' },
+    { id: 'radar', t: '雷达与辅助', icon: 'radar' },
+    { id: 'battery', t: '电池与充电', icon: 'battery' },
+    { id: 'smart', t: '投屏与智能', icon: 'bt' },
+    { id: 'device', t: '固件与设备', icon: 'chip' },
+  ];
+
+  /** 官方说明（资源表里的 *_tip/_note，原封不动，详情弹层里显示） */
+  const OFFICIAL_TIP = {
+    MAXIMUM_SPEED: '设置骑行时的最高车速，让您的骑行更安全。',
+    CRUISE_CONTROL_HOLD: '进入定速巡航时，拧动转把车辆加速，松开转把，车速将回到原来定速巡航速度。',
+    E_TCS_TRACTION_CONTROL: '开启后，通过电控算法精确地控制车辆动力输出，防止湿滑或泥泞路面造成车辆打滑等危险情况，让车辆起步更稳定，驾驶更安全。',
+    PRECISION_ENDURANCE: '开启后，将根据用户骑行习惯计算续航里程。',
+    BRAKE_POWER: '开启后，刹车时会切断整车动力。',
+    STEEP_SLOPE_DESCENT: '开启后车辆下坡时，将智能调节车辆速度，下坡更平稳。',
+    INDUCED_VIBRATION_GO: '你可以调整车辆对震动的敏感程度，强度越高，车辆对震动越敏感。',
+    AUTOMATIC_SHUTDOWN_TIMEOUT: '车辆较长时间内开机停放不使用（如忘关机）时将自动关机，防止电池耗尽或车辆被盗用。',
+    EMERGENCY_BRAKE_FLASH: '开启后，车辆在紧急制动时，车身灯会快速闪烁，以提醒后方车辆驾驶员注意，降低追尾风险。',
+    E_CUSHION_SENSOR: '开启后，当座垫识别到有外部压力时，车辆才具备ready的条件；关闭后，车辆进入ready状态将不再判断座垫是否有压力。',
+    COME_HOME_WITH_YOU: '车辆下电之后，大灯根据设置时间延时关闭，为您提供照明。',
+    INSTRUMENT_SET_CUSTOM_WALLPAPER: '仪表视界，由你定义。',
+    NITRO: '开启氮气加速可短时间提高车辆性能，但开启后会降低续航，请结合实际场景使用。',
+    CUSTOM_KEY_SET: '个性化自定义按键设置，快捷设置车辆。',
+  };
+
+  const SET_ROWS = {
+    // ---- 骑行与动力 ----
+    MAXIMUM_SPEED: { g: 'ride', t: '最高车速限制', kind: 'value', key: 'maximumSpeedLimit', unit: 'km/h', subs: [{ key: 'maximumSpeed', t: '限速档' }] },
+    DRIVING_MODE_SETTING: { g: 'ride', t: '驾驶模式及骑行参数设置', kind: 'select', key: 'powerMode', options: { 0: '标准', 1: '经济', 2: '运动' }, subs: [{ key: 'ecoMaxSpeed', t: 'ECO 极速', unit: 'km/h' }, { key: 'streetMaxSpeed', t: 'Street 极速', unit: 'km/h' }, { key: 'sportMaxSpeed', t: 'Sport 极速', unit: 'km/h' }] },
+    KINETIC_ENERGY_RECOVERY: { g: 'ride', t: '动能回收', kind: 'switch', key: 'kineticEnergyRecovery', subs: [{ key: 'energyRecoveryEco', t: 'ECO 档回收' }, { key: 'energyRecoveryStreet', t: 'Street 档回收' }, { key: 'energyRecoverySport', t: 'Sport 档回收' }] },
+    CRUISE_CONTROL_HOLD: { g: 'ride', t: '动态定速巡航', kind: 'switch', key: 'cruiseControlHold', subs: [{ key: 'cruiseMode', t: '巡航模式' }, { key: 'cruiseAcc', t: '巡航加速度档' }] },
+    E_TCS_TRACTION_CONTROL: { g: 'ride', t: 'eTCS牵引力控制系统', kind: 'switch', key: 'etcsTractionControl', subs: [{ key: 'tcsTractionControl', t: 'TCS 开关' }] },
+    LOW_BATTERY_LONG_RANGE: { g: 'ride', t: '低电量长续航', kind: 'switch', key: 'extendedRange' },
+    PRECISION_ENDURANCE: { g: 'ride', t: '精准续航', kind: 'switch', key: 'precisionEndurance' },
+    BRAKE_POWER: { g: 'ride', t: '电子制动', kind: 'switch', key: 'barkePower' },
+    STEEP_SLOPE_DESCENT: { g: 'ride', t: '陡坡缓降', kind: 'switch', key: 'steepSlopeDescent' },
+    QUICK_RIDE: { g: 'ride', t: '简易骑行', kind: 'switch', key: 'easyReadyGo' },
+    CUSTOM_KEY_SET: { g: 'ride', t: '自定义按键', kind: 'value', key: 'customButtonSingle', subs: [{ key: 'customButtonLongPress', t: '长按' }, { key: 'customButtonLeft', t: '左键' }, { key: 'customButtonRight', t: '右键' }, { key: 'customButtonCombination', t: '组合键' }] },
+    CUSTOM_BUTTON_LOW: { g: 'ride', t: '自定义按键 · 可选功能', kind: 'none', note: '能力表下发项：Hello 音效 / 陡坡缓降 / 解锁座垫 / 无操作' },
+
+    // ---- 解锁与钥匙 ----
+    INDUCTIVE_UNLOCKING_2: { g: 'key', t: '感应解锁2.0', kind: 'switch', key: 'inductiveUnlocking2', subs: [{ key: 'inductiveDistance', t: '感应距离档' }, { key: 'customInductiveDistance', t: '自定义距离' }, { key: 'bluetoothStrengthMin', t: '蓝牙强度下限' }, { key: 'bluetoothStrengthMax', t: '蓝牙强度上限' }] },
+    INDUCED_VIBRATION_GO: { g: 'key', t: '震动防盗报警', kind: 'select', key: 'inducedVibration', options: { 0: '关闭', 1: '弱', 2: '中', 3: '强' } },
+    PASSWORD_UNLOCKING: { g: 'key', t: '密码解锁', kind: 'switch', key: 'passwordUnlocking', subs: [{ key: 'passwordUnlockSwitch', t: '密码解锁开关' }] },
+    CUSTOM_NFC: { g: 'key', t: 'NFC卡片钥匙', kind: 'switch', key: 'originNfc' },
+    LOUDLY_SEARCH_CAR: { g: 'key', t: '寻车鸣笛', kind: 'switch', key: 'loudlySearchCar', from: 'home' },
+    KEY_SHARE: { g: 'key', t: '钥匙分享', kind: 'action' },
+    SHARE: { g: 'key', t: '车辆分享', kind: 'action' },
+
+    // ---- 安全与安防 ----
+    AUTOMATIC_PARKING_GO: { g: 'safety', t: '自动驻车', kind: 'switch', key: 'automaticParking' },
+    AUTOMATIC_SHUTDOWN_TIMEOUT: { g: 'safety', t: '超时保护关机', kind: 'value', key: 'automaticShutdownTimeout', unit: '分钟', subs: [{ key: 'automaticShutdownSwitch', t: '开关' }, { key: 'leaveOffTime', t: '关机时长', unit: '分钟' }] },
+    AUTO_SHUTDOWN_TIME_GO: { g: 'safety', t: '安防设置', kind: 'none', note: '能力表下发 1.0 / 2.0 两档（首页固定入口里就叫「安防设置」）' },
+    EMERGENCY_BRAKE_FLASH: { g: 'safety', t: '紧急制动警示', kind: 'switch', key: 'emergencyBrakeFlash' },
+    AVOID_THEFT_SECURITY: { g: 'safety', t: '防盗功能', kind: 'switch', key: 'automaticLock' },
+    ELECTRONIC_FENCE: { g: 'safety', t: '电子围栏', kind: 'none', note: '接口没返回当前值' },
+
+    // ---- 座垫与感应 ----
+    E_CUSHION_SENSOR: { g: 'sensor', t: '座垫感应', kind: 'switch', key: 'cushionSensor', subs: [{ key: 'ecushionSensor', t: '电子座垫感应' }] },
+    EDGE_SUPPORT_SENSING: { g: 'sensor', t: '边撑感应', kind: 'switch', key: 'edgeSupportSensing' },
+
+    // ---- 声光与仪表 ----
+    SOUND_EFFECT: { g: 'sound', t: '音效设置', kind: 'switch', key: 'soundEffectStatus', subs: [{ key: 'soundEffectSetting.switchAll', t: '总开关' }, { key: 'soundEffectSetting.soundSize', t: '音量' }] },
+    CUSTOM_AUDIO: { g: 'sound', t: '自定义音效', kind: 'action' },
+    AUDIO_SET: { g: 'sound', t: '蓝牙音乐声音通道', kind: 'value', key: 'mediaBluetoothMusicChannel' },
+    INSTRUMENT_SETTING: { g: 'sound', t: '仪表设置', kind: 'value', key: 'instrumentNavigation' },
+    INSTRUMENT_SET: { g: 'sound', t: '仪表设置项', kind: 'switch', key: 'instrumentGame' },
+    INSTRUMENT_SET_CUSTOM_WALLPAPER: { g: 'sound', t: '自定义壁纸', kind: 'switch', key: 'supportCustomWallpaper', from: 'home' },
+
+    // ---- 雷达与辅助 ----
+    RADAR_BLIND_MONITOR: { g: 'radar', t: 'BSD盲区监测', kind: 'select', key: 'radarBsd', options: { 0: '关闭', 1: '仅提示', 2: '提示 + 预警' }, subs: [{ key: 'radarRcw', t: 'RCW后碰撞预警' }, { key: 'radarFcw', t: 'FCW前碰撞预警' }, { key: 'radarPosition', t: '雷达安装位置' }] },
+    ASSIST_DRIVING: { g: 'radar', t: '辅助驾驶', kind: 'switch', key: 'driverAssistSetting.bsdSetting', subs: [{ key: 'driverAssistSetting.fcwSetting', t: '前碰撞' }, { key: 'driverAssistSetting.rcwSetting', t: '后碰撞' }, { key: 'driverAssistSetting.rearviewMirrorWarningLight', t: '后视镜警示灯' }, { key: 'driverAssistSetting.env3dModel', t: '3D 环境模型' }, { key: 'driverAssistSetting.laneAssist', t: '车道辅助' }] },
+
+    // ---- 电池与充电 ----
+    BATTERY_INFO_AND_SETTINGS: { g: 'battery', t: '电池信息与设置', kind: 'value', key: 'chargingPower', unit: 'W', subs: [{ key: 'batteryType', t: '电池类型' }] },
+    BMS_VOLTAGE: { g: 'battery', t: '电池电压', kind: 'value', key: 'bmsVoltage', unit: 'V', from: 'battery' },
+    LOW_BATTERY_WARN: { g: 'battery', t: '低电量提醒', kind: 'value', key: 'lowPower', unit: '%', subs: [{ key: 'lowPowerThreshold', t: '阈值' }, { key: 'ultraLowBatteryReminder', t: '极限低电提醒' }] },
+    TIRE_MONITORING: { g: 'battery', t: '胎压监测', kind: 'none', note: '数值来自胎压接口（外置传感器），首页「车况」卡里显示' },
+    BATTERY_LEVEL: { g: 'battery', t: '剩余电量', kind: 'value', key: 'level', unit: '%', from: 'battery' },
+
+    // ---- 投屏与智能 ----
+    MOTOPLAY: { g: 'smart', t: '投屏（Motoplay）', kind: 'switch', key: 'motoPlay', subs: [{ key: 'motoPlayLinkType', t: '连接方式' }, { key: 'motoPlayAutoNetwork', t: '自动联网' }] },
+    SMART_PART: { g: 'smart', t: '智能部件', kind: 'none', from: 'home', note: '看车况里的能力字段 isSupportSmartPart' },
+    COME_HOME_WITH_YOU: { g: 'smart', t: '伴我回家', kind: 'switch', key: 'comeHomeWithYou', subs: [{ key: 'comeHomeWithYouTime', t: '延时', unit: '秒' }] },
+
+    // ---- 固件与设备 ----
+    FIRMWARE_VERSION: { g: 'device', t: '固件版本', kind: 'version', key: 'otaVersion', from: 'home' },
+    ECU_FIRMWARE: { g: 'device', t: 'ECU 版本', kind: 'version', iot: 'ECU_Firmware' },
+    HMI_FIRMWARE: { g: 'device', t: '仪表版本', kind: 'version', iot: 'HMI_Firmware' },
+    LABMS_FIRMWARE: { g: 'device', t: '计量器', kind: 'version', iot: 'LABMS_Info' },
+    BLUETOOTH_ADDRESS: { g: 'device', t: '蓝牙地址', kind: 'version', key: 'bluetoothAddress', from: 'home', mono: true },
+  };
+  // 能力表里叫 EXTENDED_RANGE，设置项里的键是 extendedRange
+  SET_ROWS.EXTENDED_RANGE = SET_ROWS.LOW_BATTERY_LONG_RANGE;
+
+  /** 不在能力表里、但车况/设置里有的行，作为补充项展示（标题同样取官方叫法） */
+  const EXTRA_ROWS = [
+    { g: 'sound', t: '灯效设置', kind: 'switch', key: 'lightEffectSetting.parkingDynamicEffect', subs: [{ key: 'lightEffectSetting.cyclingDynamicEffect', t: '骑行动效' }, { key: 'lightEffectSetting.projectionLight', t: '投影灯' }, { key: 'lightEffectSetting.pixelLight', t: '像素灯语' }, { key: 'lightEffectSetting.positionLight', t: '位置灯' }, { key: 'lightEffectSetting.lowBeamLight', t: '自动近光灯' }] },
+    { g: 'sound', t: '仪表主题', kind: 'version', key: 'themeName' },
+    { g: 'smart', t: '节日音效', kind: 'switch', key: 'easterEggSwitch' },
+    { g: 'smart', t: '氮气加速', kind: 'switch', key: 'nitro' },
+    { g: 'radar', t: '行车记录仪', kind: 'switch', key: 'drivingRecorderSetting.privacyMode', subs: [{ key: 'drivingRecorderSetting.resolution', t: '分辨率档' }, { key: 'drivingRecorderSetting.sentryMode', t: '哨兵模式' }, { key: 'drivingRecorderSetting.impactSnapshot', t: '碰撞抓拍' }] },
+    { g: 'key', t: '撤防时段', kind: 'version', key: 'withdrawalStartTime', suffixKey: 'withdrawalEndTime' },
+    { g: 'device', t: '里程单位', kind: 'value', key: 'mileageUnit', subs: [{ key: 'temperatureUnit', t: '温度单位' }, { key: 'timeFormat', t: '时间格式' }, { key: 'language', t: '语言' }] },
+  ];
+
+  /**
+   * 能写的设置项：`vehicleSetInfo` 里的键 → 写接口 + 请求体形状。**只放实测过的**。
+   *
+   * 通用属性写 `PUT vehicleSet/propertyOne/one` 的 body 形状是从官方 App 抓包里复刻的：
+   *   {"commond":"55","commondParam":"1","relatedFunctions":null,"vcu":"<VIN>","version":""}
+   * - `commond` = 《春风车联网平台属性事件控制定义》里的指令码（proto 里 `Operate4g.command` 注释也提到这套码：
+   *   「如指令 16 进制 0x10000001 转化为 int 后 268435457」），**只能从 App 的真实请求里拿**：
+   *   dex 是爱加密加固的，资源表/assets 里都没有这张码表（都搜过了）。
+   * - `commondParam` = 目标值的字符串（开关就是 "1"/"0"），`vcu` 传 VIN。
+   * - 实测：精准续航 commond=55，写 "0" → 读回 0 → 写 "1" → 读回 1，秒级生效（2026-10-13）。
+   *
+   * 踩过的坑：早先按 `{vinNo, functionCode, value}` 之类瞎试，服务端一律回
+   * `3003HM0003027 成为春风电动摩托VIP后即可享受此专属服务` —— 那是**请求体不认**导致的误导性报错，
+   * 不是 VIP 门禁。key/value 形状是错的，必须用 commond/commondParam。
+   */
+  const WRITE = {
+    // ✅ 实测过的：kind='commond' 走通用属性写（commond 是指令码）；kind='field' 走专属接口
+    precisionEndurance: { ep: 'set_property', kind: 'commond', commond: '55', on: '1', off: '0' },
+    motoPlay: { ep: 'set_motoPlay', kind: 'field', field: 'motoPlay', on: 1, off: 0 },
+
+    // ⏳ 同样是通用属性写，但 commond 还没抓到（官方 App 对这几项是纯蓝牙路径，没有 4G 回退）。
+    //    抓到码以后把 null 换成 '码' 就行，界面会自动变可写。清单与抓包配方见 写设置指令码.md。
+    cruiseControlHold: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    etcsTractionControl: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    barkePower: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    steepSlopeDescent: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    comeHomeWithYou: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    automaticParking: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    extendedRange: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    passwordUnlocking: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    automaticLock: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    originNfc: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    emergencyBrakeFlash: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    cushionSensor: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    edgeSupportSensing: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    soundEffectStatus: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    instrumentGame: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+    lowPower: { ep: 'set_property', kind: 'commond', commond: null, on: '1', off: '0' },
+  };
+
+  /** 按 WRITE 规格拼请求体（界面预览和真写共用，避免两边漂移）；commond 没抓到就给个占位。 */
+  function writeBody(spec, target, vin) {
+    if (spec.kind === 'commond') {
+      return { commond: spec.commond ?? '<待抓>', commondParam: String(target), relatedFunctions: null, vcu: vin, version: '' };
+    }
+    return { vinNo: vin, [spec.field]: target };
+  }
+
+  const getPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+
+  function settingRow(code, spec, ctx) {
+    const src = spec.from === 'home' ? ctx.homeRaw || {} : spec.from === 'battery' ? ctx.batteryRaw || {} : ctx.info || {};
+    let value = spec.key ? getPath(src, spec.key) : undefined;
+    if (spec.iot) {
+      const it = (ctx.home?.iotMap || {})[spec.iot];
+      value = it ? it.value : undefined;
+    }
+    if (spec.kind === 'version' && spec.suffixKey) {
+      const a = s(getPath(src, spec.key));
+      const b = s(getPath(src, spec.suffixKey));
+      value = a ? `${a} – ${b}` : '';
+    }
+    const subs = (spec.subs || []).map((sub) => {
+      const v = getPath(src, sub.key);
+      if (v === undefined || v === null || v === '') return null;
+      return { t: sub.t, v: `${typeof v === 'boolean' ? (v ? '开' : '关') : v}${sub.unit ? ' ' + sub.unit : ''}` };
+    }).filter(Boolean);
+
+      /** 只保留真正的 0/1 才画开关：像 kineticEnergyRecovery=2 这种是档位，画成开关会骗人 */
+    const binary = value === true || value === false || value === 1 || value === 0 || value === '1' || value === '0';
+
+    let display = '';
+    if (spec.kind === 'switch') display = binary ? (on(value) ? '已开启' : '已关闭') : `档位 ${value}`;
+    else if (spec.kind === 'select') display = spec.options?.[String(value)] || (value === undefined || value === '' ? '—' : String(value));
+    else if (spec.kind === 'value' || spec.kind === 'version') display = value === undefined || value === null || value === '' ? '—' : `${value}${spec.unit ? ' ' + spec.unit : ''}`;
+    else display = '';
+
+    return {
+      code: code || spec.t,
+      title: spec.t,
+      kind: spec.kind,
+      binary,
+      keys: [spec.key, ...(spec.subs || []).map((x) => x.key)].filter(Boolean),
+      value: spec.kind === 'switch' && binary ? on(value) : value,
+      display,
+      subs,
+      note: spec.note || '',
+      tip: OFFICIAL_TIP[code] || '',
+      mono: !!spec.mono,
+      key: spec.key || '',                       // 顶层键名（写回时查 WRITE 用）
+      write: (() => { const w = WRITE[spec.key]; return w ? { ...w, ready: w.kind !== 'commond' || !!w.commond } : null; })(),
+    };
+  }
+
+  /**
+   * 第二页：能力表（哪些功能这台车支持）× 当前值 → 分组设置列表。
+   * 能力表里 isSupport 为 false 的项不展示（车没有这个硬件）。
+   */
+  function settings(ctx) {
+    const caps = Array.isArray(ctx.caps?.data) ? ctx.caps.data : [];
+    const out = GROUPS.map((g) => ({ ...g, rows: [] }));
+    const byId = Object.fromEntries(out.map((g) => [g.id, g]));
+    let known = 0;
+
+    for (const cap of caps) {
+      if (cap.isSupport === false) continue;
+      const code = s(cap.functionCode);
+      const spec = SET_ROWS[code];
+      if (!spec) {
+        byId.ride.rows.push({ code, title: code, kind: 'none', keys: [], value: '', display: '—', subs: [], note: '能力表里有、但还没做中文映射' });
+        continue;
+      }
+      known++;
+      byId[spec.g]?.rows.push(settingRow(code, spec, ctx));
+    }
+
+    // 补充项：能力表没覆盖的（灯光/主题/彩蛋/记录仪…）
+    for (const spec of EXTRA_ROWS) byId[spec.g]?.rows.push(settingRow('', spec, ctx));
+
+    for (const g of out) {
+      g.rows.sort((a, b) => (b.kind === 'switch' ? 1 : 0) - (a.kind === 'switch' ? 1 : 0));
+    }
+    return { groups: out.filter((g) => g.rows.length), caps, known, total: caps.length };
+  }
+
+  return {
+    n, s, on, esc, clamp, parseTime, relTime, minutes, minutesShort, durationText, secText,
+    socLevel, chargeState, gcj02ToWgs84,
+    vehicles, home, tires, battery, rideHome, rideMonth, analyse, user,
+    rideRecords, track, dayInfo, monthLabel, monthShift, recentMonths, writeBody,
+    settings, GROUPS,
+  };
+})();
+
+
+/* ===== js/sign.js ===== */
+// 浏览器版签名（与 tools/dashboard/sign.mjs、模块 SignUtil.java 三处同算法）。
+//
+// 为什么不用 crypto.subtle：它没有 MD5；而且纯 JS 实现不挑上下文（file:// 也能跑）。
+//   sign = md5Hex(sha1Hex(query + body? + "appId=..&nonce=..&timestamp=.." + SECRET))
+// 细节与 sign.mjs 完全一致：query 按 key 字典序、value 不编码；h5 域用 UUID nonce 且不拼 body。
+
+window.ZEEHO_SIGN = (() => {
+  const APP_ID = 'S7qPWPU1';
+  const APP_SECRET = 'c5e0da7f4da28df805694ec3dd1fc6792e9df99d';
+  const BASE = 'https://tapi.zeehoev.com';
+  const H5 = 'https://h5.zeehoev.com';
+  const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const enc = new TextEncoder();
+
+  const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+
+  /** SHA-1（FIPS 180-1） */
+  function sha1Bytes(bytes) {
+    const bitLen = bytes.length * 8;
+    const total = Math.ceil((bytes.length + 9) / 64) * 64;
+    const buf = new Uint8Array(total);
+    buf.set(bytes);
+    buf[bytes.length] = 0x80;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(total - 8, Math.floor(bitLen / 4294967296), false);
+    dv.setUint32(total - 4, bitLen >>> 0, false);
+
+    let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0;
+    const w = new Uint32Array(80);
+    for (let off = 0; off < total; off += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4, false);
+      for (let i = 16; i < 80; i++) {
+        const v = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
+        w[i] = (v << 1) | (v >>> 31);
+      }
+      let a = h0, b = h1, c = h2, d = h3, e = h4;
+      for (let i = 0; i < 80; i++) {
+        let f, k;
+        if (i < 20) { f = (b & c) | (~b & d); k = 0x5a827999; }
+        else if (i < 40) { f = b ^ c ^ d; k = 0x6ed9eba1; }
+        else if (i < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8f1bbcdc; }
+        else { f = b ^ c ^ d; k = 0xca62c1d6; }
+        const t = ((((a << 5) | (a >>> 27)) + f + e + k + w[i]) >>> 0);
+        e = d; d = c; c = (b << 30) | (b >>> 2); b = a; a = t;
+      }
+      h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+    }
+    const out = new Uint8Array(20);
+    new DataView(out.buffer).setUint32(0, h0, false);
+    new DataView(out.buffer).setUint32(4, h1, false);
+    new DataView(out.buffer).setUint32(8, h2, false);
+    new DataView(out.buffer).setUint32(12, h3, false);
+    new DataView(out.buffer).setUint32(16, h4, false);
+    return out;
+  }
+
+  const SHIFT = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21];
+  const K = new Uint32Array(64);
+  for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296);
+
+  /** MD5（RFC 1321） */
+  function md5Bytes(bytes) {
+    const bitLen = bytes.length * 8;
+    const total = Math.ceil((bytes.length + 9) / 64) * 64;
+    const buf = new Uint8Array(total);
+    buf.set(bytes);
+    buf[bytes.length] = 0x80;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(total - 8, bitLen >>> 0, true);
+    dv.setUint32(total - 4, Math.floor(bitLen / 4294967296), true);
+
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    const m = new Uint32Array(16);
+    for (let off = 0; off < total; off += 64) {
+      for (let i = 0; i < 16; i++) m[i] = dv.getUint32(off + i * 4, true);
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        let f, g;
+        if (i < 16) { f = (B & C) | (~B & D); g = i; }
+        else if (i < 32) { f = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+        else if (i < 48) { f = B ^ C ^ D; g = (3 * i + 5) % 16; }
+        else { f = C ^ (B | ~D); g = (7 * i) % 16; }
+        f = (f + A + K[i] + m[g]) >>> 0;
+        A = D; D = C; C = B;
+        B = (B + ((f << SHIFT[i]) | (f >>> (32 - SHIFT[i])))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    const out = new Uint8Array(16);
+    const od = new DataView(out.buffer);
+    od.setUint32(0, a0, true); od.setUint32(4, b0, true); od.setUint32(8, c0, true); od.setUint32(12, d0, true);
+    return out;
+  }
+
+  const sha1Hex = (s) => hex(sha1Bytes(enc.encode(s)));
+  const md5Hex = (s) => hex(md5Bytes(enc.encode(s)));
+
+  const toQuery = (params) => {
+    if (!params) return '';
+    return Object.keys(params)
+      .filter((k) => params[k] !== null && params[k] !== undefined && String(params[k]) !== '')
+      .sort()
+      .map((k) => `${k}=${params[k]}`)
+      .join('&');
+  };
+
+  const randChars = (n) => Array.from({ length: n }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+
+  function sign(tag, params, body = null, method = 'GET') {
+    const ts = Date.now();
+    const nonce = tag === 'h5'
+      ? (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${randChars(12)}`)
+      : `${ts}${randChars(16)}`;
+    const query = toQuery(params);
+    const bodyPart = body != null ? body : '';
+    const s = tag === 'h5' ? query : query + bodyPart;
+    const raw = `${s}appId=${APP_ID}&nonce=${nonce}&timestamp=${ts}${APP_SECRET}`;
+    return { param: `appId=${APP_ID}&nonce=${nonce}&timestamp=${ts}`, sign: md5Hex(sha1Hex(raw)), nonce, ts };
+  }
+
+  const baseFor = (tag) => (tag === 'h5' ? H5 : BASE);
+
+  /** 直连要带的头，与 server.mjs 的 buildHeaders 一致 */
+  function buildHeaders(tag, params, body, method, token) {
+    const signed = sign(tag === 'h5' ? 'h5' : 'app', params, body, method);
+    return {
+      'Content-Type': 'application/json;charset=UTF-8',
+      'Accept-Language': 'zh-CN',
+      interfaceversion: '2',
+      Authorization: `Bearer ${token}`,
+      'cfmoto-x-param': signed.param,
+      'cfmoto-x-sign': signed.sign,
+      'cfmoto-x-sign-type': '0',
+    };
+  }
+
+  return { APP_ID, BASE, H5, baseFor, toQuery, sign, buildHeaders, sha1Hex, md5Hex, _sha1Bytes: sha1Bytes, _md5Bytes: md5Bytes };
+})();
+
+
+/* ===== js/api.js ===== */
+// 数据源适配：页面只认 API.call(id, ctx)，至于数据从演示样例、本机代理还是直连接口来，
+// 由 source 决定。三处只有这一层知道差别，视图层完全不用改。
+//
+//   demo   —— 读 window.ZEEHO_MOCK（build-mock.mjs 从真实响应生成），离线可用
+//   live   —— POST /api/call，交给本机 Node 服务签名转发（token 存在服务端文件里）
+//   direct —— 浏览器直连 tapi.zeehoev.com，签名用 public/js/sign.js 现算（纯静态、无后端）
+//            前提：极核服务端对 CORS 是全放开的（实测回显任意 Origin，PUT/content-type 预检也过），
+//            token 只能存在 localStorage 里 —— 所以直连模式只适合自用设备，别在别人的机器上留 token。
+//
+// bridge（以后嵌 WebView 用）仍然预留：换成调 window.ZeehoBridge.get(...)。
+
+window.API = {
+  source: 'demo',      // 'demo' | 'live' | 'direct'
+  server: null,        // /api/status 的返回；null = 没有后端（file:// 或纯静态托管）
+  token: '',           // 直连模式用的 token（localStorage）
+  lastRaw: {},         // id -> 最近一次原始响应（调试面板用）
+  onSourceChange: null,
+
+  /** 启动：先探本机服务；没有服务就自动用直连（有 token）或演示数据 */
+  async init(prefer) {
+    try {
+      const r = await fetch('/api/status', { cache: 'no-store' });
+      this.server = await r.json();
+    } catch {
+      this.server = null;                     // 没有后端：file:// 打开，或纯静态托管
+    }
+    this.token = this.loadToken();
+    if (prefer) this.source = prefer;
+    else this.source = this.server?.hasToken ? 'live' : (this.token ? 'direct' : 'demo');
+    return this.source;
+  },
+
+  loadToken() {
+    try { return localStorage.getItem('zeeho.token') || ''; } catch { return ''; }
+  },
+  saveToken(v) {
+    this.token = String(v || '').trim().replace(/^bearer\s+/i, '');
+    try { localStorage.setItem('zeeho.token', this.token); } catch { /* 隐私模式下写不了，只留内存 */ }
+    return this.token;
+  },
+
+  async setSource(s) {
+    this.source = s;
+    if (this.onSourceChange) this.onSourceChange(s);
+  },
+
+  ep(id) {
+    return window.ZEEHO_EP.list.find((e) => e.id === id) || null;
+  },
+
+  /** 把 {vin}/{uid}/{month_dot}/{month_dash}/{date}/{carUid} 换成当前上下文，空值丢弃。 */
+  resolve(id, ctx = {}) {
+    const ep = this.ep(id);
+    if (!ep) return null;
+    const map = {
+      '{vin}': ctx.vin || '',
+      // user_info 的 uid 必须传 "0"（服务端只认这个表示"自己"），bindingUserId 反而会被拒
+      '{uid}': ctx.uid === undefined || ctx.uid === null ? '' : String(ctx.uid),
+      '{carUid}': ctx.carUid === undefined || ctx.carUid === null ? '' : String(ctx.carUid),
+      '{month_dot}': ctx.month || '',
+      '{month_dash}': (ctx.month || '').replace('.', '-'),
+      '{date}': ctx.date || '',
+    };
+    const fill = (s) => String(s).replace(/\{(vin|uid|carUid|month_dot|month_dash|date)\}/g, (m) => map[m] ?? m);
+    const query = {};
+    for (const [k, v] of Object.entries(ep.query || {})) {
+      const val = fill(v);
+      if (val !== '') query[k] = val;
+    }
+    return { tag: ep.tag, path: fill(ep.path), query, label: ep.label, method: ep.method || 'GET' };
+  },
+
+  /**
+   * 取一条数据（也用来写：opts.body 有值时按接口表里的 method 发 PUT/POST）。
+   * 永远不抛异常，失败在返回值里：{ ok, source, code, message, data, err, ms, http }
+   */
+  async call(id, ctx = {}, opts = {}) {
+    const t0 = Date.now();
+    const ep = this.ep(id);
+    const body = opts.body !== undefined ? JSON.stringify(opts.body) : null;
+    const method = opts.method || ep?.method || 'GET';
+
+    if (this.source === 'live') {
+      const req = this.resolve(id, ctx);
+      if (!req) return this.fail(id, `没有这个接口：${id}`);
+      try {
+        const r = await fetch('/api/call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag: req.tag, path: req.path, params: req.query, method, body }),
+        });
+        const out = await r.json();
+        if (out.err === 'no_token') {
+          // 服务端没 token：退回演示数据，并在源上标一下，界面会提示
+          await this.setSource('demo');
+          const m = this.mock(id);
+          return m ? { ...m, note: '本机服务里没有 token，已切回演示数据' } : this.fail(id, '没有 token');
+        }
+        if (out.err) return this.fail(id, out.err);
+        return this.finish(id, out, t0, 'live');
+      } catch (e) {
+        return this.fail(id, '请求转发失败：' + e.message);
+      }
+    }
+
+    if (this.source === 'direct') {
+      const req = this.resolve(id, ctx);
+      if (!req) return this.fail(id, `没有这个接口：${id}`);
+      if (!this.token) return this.fail(id, '直连模式需要 token：右上角齿轮里粘贴一个');
+      try {
+        const q = window.ZEEHO_SIGN.toQuery(req.query);
+        const url = window.ZEEHO_SIGN.baseFor(req.tag) + req.path + (q ? `?${q}` : '');
+        const r = await fetch(url, {
+          method,
+          headers: window.ZEEHO_SIGN.buildHeaders(req.tag, req.query, body, method, this.token),
+          body: body || undefined,
+        });
+        const text = await r.text();
+        return this.finish(id, { http: r.status, body: text, ms: Date.now() - t0, url }, t0, 'direct');
+      } catch (e) {
+        return this.fail(id, '直连失败：' + e.message + '（网络或 CORS）');
+      }
+    }
+
+    // 演示
+    await new Promise((r) => setTimeout(r, 90 + Math.random() * 120));   // 假装有个网络往返
+    // 演示模式下的"写"：直接改内存里的样例，界面看起来才是一致的（刷新页面就还原）
+    if (body && opts.mockField) {
+      const info = window.ZEEHO_MOCK?.vehicle_set_info?.data;
+      if (info) {
+        if (opts.mockField.includes('.')) {
+          const [a, b] = opts.mockField.split('.');
+          if (info[a]) info[a][b] = opts.value;
+        } else if (opts.mockField in info) {
+          info[opts.mockField] = opts.value;
+        }
+      }
+      const res = { ok: true, source: 'demo', code: '10000', message: '操作成功（演示数据已改，刷新页面还原）', data: true, raw: { code: '10000' }, ms: Date.now() - t0, http: 200 };
+      this.lastRaw[id] = res;
+      return res;
+    }
+    const m = this.mock(id);
+    if (!m) return this.fail(id, '演示数据里没有这个接口');
+    const res = { ...m, source: 'demo', ms: Date.now() - t0, http: 200 };
+    this.lastRaw[id] = res;
+    return res;
+  },
+
+  /** live/direct 两个分支共用的响应收尾（解析 code/message/data） */
+  finish(id, out, t0, source) {
+    let j = null;
+    try { j = JSON.parse(out.body); } catch { /* 服务端偶尔会回 XML 错误页 */ }
+    const res = {
+      ok: out.http >= 200 && out.http < 400 && (!j || j.code === '10000'),
+      source,
+      http: out.http,
+      code: j ? j.code : null,
+      message: j ? j.message : (out.body || '').slice(0, 200),
+      data: j ? j.data : null,
+      raw: j || out.body,
+      ms: out.ms ?? Date.now() - t0,
+    };
+    this.lastRaw[id] = res;
+    return res;
+  },
+
+  mock(id) {
+    const M = (window.ZEEHO_MOCK || {})[id];
+    if (!M) return null;
+    return { ok: M.code === '10000', code: M.code, message: M.message, data: M.data, raw: M };
+  },
+
+  fail(id, err) {
+    const res = { ok: false, source: this.source, code: null, message: err, data: null, err, ms: 0 };
+    this.lastRaw[id] = res;
+    return res;
+  },
+
+  /** 一次拿多条（并发），返回 { id: res }。 */
+  async all(ids, ctx = {}) {
+    const pairs = await Promise.all(ids.map(async (id) => [id, await this.call(id, ctx)]));
+    return Object.fromEntries(pairs);
+  },
+};
+
+
+/* ===== js/ui.js ===== */
+// 视图零件：图标、卡片、图表、地图瓦片、底部弹层、轻提示。
+// 全部是纯 DOM/字符串拼装，不依赖任何框架 —— 以后整包塞进 WebView 也能直接跑。
+
+window.UI = (() => {
+  const esc = window.MODEL.esc;
+
+  // ---------------- 图标（线性 24px，stroke 跟随 currentColor） ----------------
+  const P = {
+    lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+    unlock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.7-1.4"/>',
+    key: '<circle cx="8" cy="15" r="3.2"/><path d="M10.3 12.7 19 4M16 7l2 2M13.8 9.2l2 2"/>',
+    horn: '<path d="M4 10v4h3l5 3.6V6.4L7 10H4z"/><path d="M15.5 9.6a3.6 3.6 0 0 1 0 4.8"/><path d="M18 7a7 7 0 0 1 0 10"/>',
+    volume: '<path d="M5 10v4h3l4.5 3.2V6.8L8 10H5z"/><path d="M16 9.5a4 4 0 0 1 0 5"/>',
+    box: '<rect x="4" y="7" width="16" height="10.5" rx="2.4"/><path d="M4 11.4h16"/><path d="M9.5 14.6h5"/>',
+    seat: '<path d="M4.5 15.5h15"/><path d="M8 15.5V9.6A4 4 0 0 1 12 5.6a4 4 0 0 1 4 4v5.9"/><path d="M6.5 15.5v2.2M17.5 15.5v2.2"/>',
+    bolt: '<path d="M13.2 2.8 5.6 13.2h5l-1.4 8L18 10.6h-5.2l.4-7.8z"/>',
+    pin: '<path d="M12 21.2s6.8-5.6 6.8-10.8a6.8 6.8 0 1 0-13.6 0C5.2 15.6 12 21.2 12 21.2z"/><circle cx="12" cy="10.2" r="2.6"/>',
+    nav: '<path d="M12 3.2 20 20.4l-8-3.8-8 3.8L12 3.2z"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.2v5h-5"/>',
+    gear: '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.4l2.1 1.2M17.7 15.4l2.1 1.2M4.2 16.6l2.1-1.2M17.7 8.6l2.1-1.2"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.4 5.4l1.4 1.4M17.2 17.2l1.4 1.4M18.6 5.4l-1.4 1.4M6.8 17.2l-1.4 1.4"/>',
+    moon: '<path d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/>',
+    down: '<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>',
+    right: '<path d="m9.5 6.5 5.5 5.5-5.5 5.5"/>',
+    left: '<path d="m14.5 6.5-5.5 5.5 5.5 5.5"/>',
+    battery: '<rect x="3" y="7.5" width="15.5" height="9" rx="2.6"/><path d="M21 11v2"/><path d="M6.5 10v4"/>',
+    tire: '<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.1"/><path d="M12 3.8v5.1M12 15.1v5.1M3.8 12h5.1M15.1 12h5.1"/>',
+    speed: '<path d="M3.6 17.4a9 9 0 1 1 16.8 0"/><path d="m12 17.4 4.2-6.6"/>',
+    route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18h5.3a3 3 0 0 0 0-6H10a3 3 0 0 1 0-6h5.8"/>',
+    shield: '<path d="M12 3 19 5.8v6.1c0 4.4-2.9 7.9-7 9.1-4.1-1.2-7-4.7-7-9.1V5.8L12 3z"/><path d="m9.2 12 2 2 3.6-3.8"/>',
+    radar: '<path d="M12 12v-8"/><path d="M12 4a8 8 0 1 1-5.7 2.4"/><circle cx="12" cy="12" r="2"/><path d="M12 12 7.5 16.5"/>',
+    clock: '<circle cx="12" cy="12" r="8.4"/><path d="M12 7.4V12l3.2 2"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2.4"/><path d="M5 15.2V6.4A2.4 2.4 0 0 1 7.4 4h8.8"/>',
+    close: '<path d="M6.4 6.4l11.2 11.2M17.6 6.4 6.4 17.6"/>',
+    check: '<path d="m5.2 12.6 4.6 4.6L19 7.2"/>',
+    alert: '<path d="M12 3.6 21 19.4H3L12 3.6z"/><path d="M12 10v4M12 16.8h.01"/>',
+    info: '<circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v4.6M12 8.2h.01"/>',
+    share: '<circle cx="6" cy="12" r="2.4"/><circle cx="17.4" cy="6.2" r="2.4"/><circle cx="17.4" cy="17.8" r="2.4"/><path d="M8.2 10.8 15.2 7.4M8.2 13.2l7 3.4"/>',
+    bt: '<path d="M9.4 7.6 12 5v14l-2.6-2.6"/><path d="M9.4 16.4 15.2 10"/>',
+    chip: '<rect x="7" y="7" width="10" height="10" rx="2.4"/><path d="M10 3.4v3.6M14 3.4v3.6M10 17v3.6M14 17v3.6M3.4 10H7M3.4 14H7M17 10h3.6M17 14h3.6"/>',
+    more: '<circle cx="5.2" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.8" cy="12" r="1.7"/>',
+    flash: '<path d="M9 4.4 4.4 12H10l-1 7.6L15.6 12H10l1-7.6z"/>',
+    plug: '<rect x="3.6" y="9.4" width="9.4" height="5.6" rx="2.2"/><path d="M13 10.6h2.8a3 3 0 0 1 3 3v1.8"/><path d="M18.8 15.4v2.2M18.8 19.6h.01"/>',
+    seatlock: '<path d="M5 15.6h14"/><path d="M8.4 15.6V10a3.6 3.6 0 0 1 7.2 0v5.6"/><rect x="10.6" y="11.4" width="2.8" height="2.4" rx=".8"/>',
+    wheel: '<circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4M3.8 12h16.4"/>',
+    db: '<ellipse cx="12" cy="6.4" rx="7" ry="2.8"/><path d="M5 6.4v11.2c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9V6.4"/><path d="M5 12c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9"/>',
+    eye: '<path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="3.1"/>',
+    eyeOff: '<path d="M4 4l16 16"/><path d="M9.8 5.9A9.7 9.7 0 0 1 12 5.6c5.8 0 9.4 6.4 9.4 6.4a17.6 17.6 0 0 1-2.6 3.4"/><path d="M6.2 7.6A17.7 17.7 0 0 0 2.6 12S6.2 18.4 12 18.4c1.2 0 2.2-.2 3.2-.6"/><path d="M9.9 9.9a3.1 3.1 0 0 0 4.2 4.2"/>',
+    bike: '<circle cx="6" cy="17.4" r="3.2"/><circle cx="18.6" cy="17.4" r="2.6"/><path d="M6 17.4h6.2l-2-6.6H7.4M10.2 10.8h4.2l3 6.6"/><path d="M14 7.4h2.4"/>',
+    user: '<circle cx="12" cy="8.4" r="3.8"/><path d="M4.8 20.4c1.2-3.7 3.9-5.6 7.2-5.6s6 1.9 7.2 5.6"/>',
+  };
+
+  const icon = (name, size = 24) =>
+    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[name] || P.info}</svg>`;
+
+  /** 车辆图加载失败时的兜底：一台极简电摩侧视剪影 */
+  function fallbackScooter() {
+    return `<svg class="fallback" viewBox="0 0 320 180" width="320" height="180" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--md-sys-color-on-surface-variant);opacity:.9">
+      <circle cx="66" cy="132" r="26"/><circle cx="66" cy="132" r="9"/>
+      <circle cx="252" cy="132" r="26"/><circle cx="252" cy="132" r="9"/>
+      <path d="M92 132h134"/>
+      <path d="M118 132c-10-18 2-38 22-46l30-10c14-5 30-2 40 8l18 18"/>
+      <path d="M150 76h72c10 0 18 8 18 18v16"/>
+      <path d="M196 76l10-28h26"/>
+      <path d="M226 48h18"/>
+      <path d="M92 132c-4-14-2-26 4-34h30c8 0 14 6 14 14v20"/>
+      <path d="M240 76h22"/>
+    </svg>`;
+  }
+
+  const chip = (text, cls = '', opts = {}) =>
+    `<span class="chip ${cls}${opts.pulse ? ' pulse' : ''}">${opts.nodot ? '' : '<i class="dot"></i>'}${esc(text)}</span>`;
+
+  const stat = (k, v, unit = '') =>
+    `<div class="stat"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ''}</span></div>`;
+
+  /** opts: { mono, raw, attrs, unsafe, pointer }——unsafe 表示 v 是一段自己拼好的 HTML（调用方负责转义动态部分） */
+  const kv = (k, v, opts = {}) =>
+    `<div class="kv${opts.pointer ? ' kv-act' : ''}"${opts.attrs ? ' ' + opts.attrs : ''}><span class="k">${esc(k)}</span><span class="v${opts.mono ? ' mono' : ''} tnum">${opts.unsafe ? v : esc(v)}${opts.raw ? `<span class="raw">${esc(opts.raw)}</span>` : ''}</span></div>`;
+
+  const card = (inner, cls = '') => `<section class="card ${cls}">${inner}</section>`;
+
+  const cardHead = (title, sub = '', right = '', iconName = '') => `
+    <div class="card-head">
+      ${iconName ? `<span class="muted">${icon(iconName, 18)}</span>` : ''}
+      <div><div class="card-title">${esc(title)}</div>${sub ? `<div class="card-sub">${esc(sub)}</div>` : ''}</div>
+      ${right ? `<div style="margin-left:auto">${right}</div>` : ''}
+    </div>`;
+
+  const sectionTitle = (t, right = '') =>
+    `<div class="section-title"><span>${esc(t)}</span><span class="line"></span>${right}</div>`;
+
+  /** 电量条：charging 时走流光动画 */
+  function socBar(pct, color, charging) {
+    const w = window.MODEL.clamp(pct ?? 0, 0, 100);
+    return `<div class="bar${charging ? ' charging' : ''}" style="--bar-c:${color}"><i style="width:${w}%"></i></div>`;
+  }
+
+  /** 最近 7 天柱状图 */
+  function bars(days, unit = 'km') {
+    const max = Math.max(1, ...days.map((d) => d.mile));
+    return `<div class="bars">${days.map((d, i) => `
+      <div class="b${i === days.length - 1 ? ' today' : ''}" title="${esc(d.date)} · ${d.mile} ${unit}">
+        <i style="height:${Math.max(3, Math.round((d.mile / max) * 100))}%"></i>
+        <span>${d.day}</span>
+      </div>`).join('')}</div>`;
+  }
+
+  /** 胎压小环：2.5 bar 视作满量程 */
+  function tireRing(bar, warn) {
+    const pct = window.MODEL.clamp((bar ?? 0) / 2.5, 0, 1);
+    const c = 2 * Math.PI * 13;
+    const color = warn ? 'var(--c-danger)' : pct < 0.6 ? 'var(--c-warning)' : 'var(--c-success)';
+    return `<svg class="ring" viewBox="0 0 34 34" width="34" height="34">
+      <circle cx="17" cy="17" r="13" fill="none" stroke="var(--md-sys-color-outline-variant)" stroke-width="3.4"/>
+      <circle cx="17" cy="17" r="13" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round"
+        stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" transform="rotate(-90 17 17)"/>
+    </svg>`;
+  }
+
+  // ---------------- 地图瓦片 ----------------
+  // 直接拼瓦片，不引 Leaflet：3×3 张 256px 图足够铺满一张卡片。
+  // OSM 是 WGS-84（车坐标是 GCJ-02，必须先转换）；高德瓦片本身就是 GCJ-02，不用转。
+  const TILES = {
+    osm: {
+      name: 'OSM',
+      attr: '© OpenStreetMap contributors',
+      crs: 'wgs84',
+      url: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+    },
+    amap: {
+      name: '高德',
+      attr: '© 高德地图',
+      crs: 'gcj02',
+      url: (z, x, y) => `https://webrd0${1 + ((x + y) % 4)}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`,
+    },
+  };
+
+  function mapBox(lng, lat, opts = {}) {
+    const t = TILES[opts.tile] || TILES.osm;
+    const zoom = opts.zoom || 16;
+    let x = lng;
+    let y = lat;
+    if (t.crs === 'wgs84') [x, y] = window.MODEL.gcj02ToWgs84(lng, lat);
+    const n = 2 ** zoom;
+    const rad = (y * Math.PI) / 180;
+    const xf = ((x + 180) / 360) * n;
+    const yf = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
+    const cx = Math.floor(xf);
+    const cy = Math.floor(yf);
+    const tiles = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const tx = cx + dx;
+        const ty = cy + dy;
+        if (ty < 0 || ty >= n) continue;
+        const wrapped = ((tx % n) + n) % n;
+        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
+          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)"
+          onerror="this.remove();window.__mapErr=(window.__mapErr||0)+1;var b=this.parentNode.parentNode;if(window.__mapErr>=9&&b&&!b.dataset.warn){b.dataset.warn=1;var d=document.createElement('div');d.className='mapload';d.textContent='地图瓦片加载失败';b.appendChild(d);}">`);
+      }
+    }
+    // 默认打码（opts.masked 缺省即打码）：瓦片模糊、定位针隐藏，点一下才揭开
+    const masked = opts.masked !== false;
+    return `<div class="mapbox${masked ? ' masked' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
+      <div class="tiles">${tiles.join('')}</div>
+      <div class="pin">${icon('pin', 30)}</div>
+      <button class="unmask${masked ? '' : ' hidden'}" tabindex="-1">
+        <span class="ico">${icon('eye', 20)}</span>
+        <span>位置已打码 · 点击显示</span>
+      </button>
+      <div class="attr">${esc(t.attr)}</div>
+    </div>`;
+  }
+
+  /** 轨迹地图：把一串经纬度画成折线（起点绿、终点主色），瓦片按轨迹跨度自动选缩放级别。
+   *  SVG 用「以地图中心为原点的像素坐标」画，跟瓦片同一套坐标系，所以不需要量容器宽高。 */
+  function mapBoxPath(points, opts = {}) {
+    const t = TILES[opts.tile] || TILES.osm;
+    const conv = (p) => (t.crs === 'wgs84' ? window.MODEL.gcj02ToWgs84(p.lng, p.lat) : [p.lng, p.lat]);
+    const pts = points.map(conv);
+    const lngs = pts.map((p) => p[0]);
+    const lats = pts.map((p) => p[1]);
+    const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const span = Math.max(Math.max(...lats) - Math.min(...lats), (Math.max(...lngs) - Math.min(...lngs)) * 0.8);
+    let zoom = 16;
+    for (const [over, z] of [[0.004, 15], [0.008, 14], [0.02, 13], [0.05, 12], [0.12, 11]]) if (span > over) zoom = z;
+
+    const n = 2 ** zoom;
+    const proj = (lng, lat) => {
+      const rad = (lat * Math.PI) / 180;
+      return [((lng + 180) / 360) * n, ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n];
+    };
+    const [xf, yf] = proj(cLng, cLat);
+    const cx = Math.floor(xf);
+    const cy = Math.floor(yf);
+    const tiles = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const tx = cx + dx;
+        const ty = cy + dy;
+        if (ty < 0 || ty >= n) continue;
+        const wrapped = ((tx % n) + n) % n;
+        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
+          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)">`);
+      }
+    }
+    const px = pts.map(([lng, lat]) => proj(lng, lat));
+    const line = px.map(([x, y]) => `${Math.round((x - xf) * 256)},${Math.round((y - yf) * 256)}`).join(' ');
+    const [sx, sy] = [Math.round((px[0][0] - xf) * 256), Math.round((px[0][1] - yf) * 256)];
+    const [ex, ey] = [Math.round((px[px.length - 1][0] - xf) * 256), Math.round((px[px.length - 1][1] - yf) * 256)];
+    const masked = opts.masked !== false;
+    return `<div class="mapbox${masked ? ' masked' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
+      <div class="tiles">${tiles.join('')}</div>
+      <svg class="track" width="2400" height="2400" viewBox="-1200 -1200 2400 2400"
+           style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none">
+        <polyline points="${line}" fill="none" stroke="var(--md-sys-color-primary)" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+        <circle cx="${sx}" cy="${sy}" r="6" fill="var(--c-success)" stroke="#fff" stroke-width="2"/>
+        <circle cx="${ex}" cy="${ey}" r="6" fill="var(--md-sys-color-primary)" stroke="#fff" stroke-width="2"/>
+      </svg>
+      <button class="unmask${masked ? '' : ' hidden'}" tabindex="-1">
+        <span class="ico">${icon('eye', 20)}</span>
+        <span>轨迹已打码 · 点击显示</span>
+      </button>
+      <div class="attr">${esc(t.attr)}</div>
+    </div>`;
+  }
+
+  // ---------------- 弹层 / 轻提示 ----------------
+  let sheetEl = null;
+  let scrimEl = null;
+
+  function ensureSheet(host) {
+    if (sheetEl) return;
+    scrimEl = document.createElement('div');
+    scrimEl.className = 'scrim';
+    scrimEl.addEventListener('click', closeSheet);
+    sheetEl = document.createElement('div');
+    sheetEl.className = 'sheet';
+    sheetEl.setAttribute('role', 'dialog');
+    host.appendChild(scrimEl);
+    host.appendChild(sheetEl);
+  }
+
+  function sheet(host, { title, sub, body, onMount }) {
+    ensureSheet(host);
+    sheetEl.innerHTML = `
+      <div class="grab"></div>
+      <div class="sheet-head">
+        <div><div class="sheet-title">${esc(title)}</div>${sub ? `<div class="card-sub">${esc(sub)}</div>` : ''}</div>
+        <button class="iconbtn" data-close style="margin-left:auto">${icon('close', 20)}</button>
+      </div>
+      <div class="sheet-body">${body}</div>`;
+    sheetEl.querySelector('[data-close]').addEventListener('click', closeSheet);
+    requestAnimationFrame(() => {
+      scrimEl.classList.add('show');
+      sheetEl.classList.add('show');
+    });
+    if (onMount) onMount(sheetEl);
+  }
+
+  function closeSheet() {
+    if (!sheetEl) return;
+    sheetEl.classList.remove('show');
+    scrimEl.classList.remove('show');
+    setTimeout(() => {
+      if (sheetEl) sheetEl.innerHTML = '';
+    }, 260);
+  }
+
+  let toastTimer = null;
+  function toast(host, msg, ms = 1900) {
+    let el = host.querySelector('.toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'toast';
+      host.appendChild(el);
+    }
+    el.textContent = msg;
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  async function copy(text, host) {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (host) toast(host, '已复制');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      if (host) toast(host, '已复制');
+    }
+  }
+
+  return {
+    icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars, tireRing,
+    mapBox, mapBoxPath, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
+  };
+})();
+
+
+/* ===== js/app.js ===== */
+// 应用层：状态、三页渲染、弹层、轮询。
+//
+// 页面永远只跟 API 说话（API 再决定走演示数据还是本机服务），视图层不碰网络细节。
+// 三页：爱车（车况仪表盘）/ 车辆设置（能力表 + 当前值）/ 我的（用户与车辆属性 + 调试）。
+
+window.APP = (() => {
+  const M = window.MODEL;
+  const U = window.UI;
+  const esc = M.esc;
+
+  const S = {
+    theme: 'dark',
+    accent: 'green',
+    tile: 'osm',
+    pollMs: 30000,
+    tab: 'home',
+    vin: '',
+    uid: '',
+    month: '',
+    vehicles: [],
+    source: 'demo',
+    token: '',
+    hasToken: false,
+    locShown: false,       // 精确位置是否已揭开（只在内存里，刷新页面重新打码）
+    data: {},
+    loading: false,
+    lastErr: '',
+    lastLoad: 0,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const phone = () => $('phone');
+  const scroll = () => $('scroll');
+
+  // ---------------- 偏好持久化 ----------------
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(localStorage.getItem('zeeho.dash') || '{}');
+      Object.assign(S, {
+        theme: p.theme, accent: p.accent, tile: p.tile, pollMs: p.pollMs, tab: p.tab, vin: p.vin,
+      });
+    } catch { /* 第一次打开 */ }
+    if (!S.theme) S.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    if (!S.accent) S.accent = 'green';
+    if (!S.tile) S.tile = 'osm';
+    if (S.pollMs === undefined || S.pollMs === null) S.pollMs = 30000;
+    if (!S.tab) S.tab = 'home';
+  }
+  const savePrefs = () => {
+    try {
+      localStorage.setItem('zeeho.dash', JSON.stringify({
+        theme: S.theme, accent: S.accent, tile: S.tile, pollMs: S.pollMs, tab: S.tab, vin: S.vin,
+      }));
+    } catch { /* 忽略 */ }
+  };
+
+  function applyTheme() {
+    document.documentElement.dataset.theme = S.theme;
+    document.documentElement.dataset.accent = S.accent;
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.setAttribute('content', S.theme === 'dark' ? '#141218' : '#fef7ff');
+  }
+
+  // ---------------- 车控动作（接口待接入） ----------------
+  // 这些按钮现在只负责说明"将来该打哪个接口"，真控制仍由宿主 App 执行。
+  // 注意三个锁不是一回事：整车锁（云解锁，一次性加密）/ 龙头锁 headLockState / 座垫锁 seatLockState。
+  const ACTIONS = [
+    {
+      id: 'unlock', t: '远程解锁', icon: 'unlock',
+      ep: {
+        m: 'POST', p: '/v1.0/app/cfmotoserverapp/vehicleSet/network/unlock',
+        body: '{"secret":"<一次性加密串>"}',
+        note: '极核 App 里叫「远程锁车」功能。secret 要用车况里的 encryptInfo{key,iv} 现场做 AES 加密（算法在爱加密壳里，模块只留了探针没复刻）。车况字段 supportNetworkUnlock=1 表示这台车支持。',
+      },
+    },
+    {
+      id: 'search', t: '寻车鸣笛', icon: 'horn',
+      ep: { m: '云端指令', p: 'HmModel.lightAndWhistle(vinNo)', note: '纯云端，不依赖蓝牙；车况字段 loudlySearchCar=1 表示支持。' },
+    },
+    {
+      id: 'cushion', t: '打开坐垫', icon: 'seat',
+      ep: { m: 'POST', p: 'vehicleSet/**（待抓包）', note: '车况里有 openCushionFlag，首页固定入口里这项就叫「打开坐垫」；具体路径还没抓，模块里是借 App 的 HmModel。' },
+    },
+    {
+      id: 'headlock', t: '龙头锁', icon: 'lock', state: 'headLock', onT: '已上锁', offT: '未上锁',
+      ep: { m: '状态位', p: 'vehicleSet/**（待抓包）', note: '车况字段 headLockState：1 = 已锁。' },
+    },
+    {
+      id: 'seatlock', t: '座垫锁', icon: 'seatlock', state: 'seatLock', onT: '已上锁', offT: '未上锁',
+      ep: { m: '状态位', p: 'vehicleSet/**（待抓包）', note: '车况字段 seatLockState：1 = 已锁。' },
+    },
+    {
+      id: 'storage', t: '储物箱', icon: 'box',
+      ep: { m: '—', p: '未找到独立接口', note: '车况字段 openStorageBoxFlag 为 false，这台车应该是没有电控储物箱（只有座垫）。' },
+    },
+    {
+      id: 'flash', t: '闪灯', icon: 'flash',
+      ep: { m: '云端指令', p: 'HmModel.lightAndWhistleHigh（同族）', note: '与鸣笛同族的灯光指令，模块里没实测过。' },
+    },
+    { id: 'more', t: '更多', icon: 'more', more: true },
+  ];
+
+  /** 首页快捷操作只放这 4 个（一行）；其余动作在「更多」面板里，都带当前状态 */
+  const PRIMARY_ACTIONS = ['search', 'unlock', 'cushion', 'more'];
+
+  // ---------------- 数据加载 ----------------
+  const HOME_IDS = ['vehicle_home', 'battery_info', 'tire_monitor', 'ride_home', 'ride_month', 'analyse', 'service_recharge'];
+  const SET_IDS = ['vehicle_set_items', 'vehicle_set_info'];
+  const ME_IDS = ['vehicle_list', 'user_info', 'integral_total', 'signin_info', 'battery_info', 'analyse', 'ota_records', 'service_recharge'];
+
+  /** 设置页的行 = 能力表 × 当前值 × 车况补充字段，任一侧更新都要重算 */
+  function buildSettings() {
+    S.data.settings = M.settings({
+      caps: S.data.caps,
+      info: S.data.info?.data,
+      home: S.data.home,
+      homeRaw: S.data.home?.raw,
+      batteryRaw: S.data.battery?.raw,
+    });
+  }
+
+  async function load({ silent } = {}) {
+    if (!S.vin && S.vehicles.length) S.vin = S.vehicles[0].vin;
+    if (!silent) S.loading = true;
+    const ctx = { vin: S.vin, uid: '0', carUid: S.uid, month: S.month };
+    const need = S.tab === 'settings' ? SET_IDS : S.tab === 'me' ? ME_IDS : HOME_IDS;
+    const got = await API.all(need, ctx);
+    Object.assign(S.data, got);
+
+    // 车况里有 bindingUserId，作为 uid 上下文（user_info 传 0 表示自己，bindingUserId 拿来做展示）
+    if (got.vehicle_home?.data) {
+      S.uid = got.vehicle_home.data.bindingUserId || S.uid;
+      S.data.home = M.home(got.vehicle_home);
+      S.data.tires = M.tires(got.tire_monitor);
+      S.data.battery = M.battery(got.battery_info);
+      S.data.rideHome = M.rideHome(got.ride_home);
+      S.data.rideMonth = M.rideMonth(got.ride_month);
+      S.data.analyse = M.analyse(got.analyse);
+      S.data.service = got.service_recharge?.data || {};
+    }
+    if (got.vehicle_list?.data) {
+      S.vehicles = M.vehicles(got.vehicle_list);
+      if (!S.vehicles.some((v) => v.vin === S.vin)) S.vin = S.vehicles[0]?.vin || '';
+    }
+    if (got.user_info) S.data.user = M.user(got.user_info, got.integral_total);
+    if (got.vehicle_set_items) S.data.caps = got.vehicle_set_items;
+    if (got.vehicle_set_info) S.data.info = got.vehicle_set_info;
+    if (S.data.caps) buildSettings();
+
+    const first = got[need[0]];
+    S.lastErr = first && !first.ok ? `${first.code ? '业务码 ' + first.code + '：' : ''}${first.message || '请求失败'}` : '';
+    S.source = API.source;
+    S.loading = false;
+    S.lastLoad = Date.now();
+    savePrefs();
+    render({ keepScroll: silent });
+  }
+
+  async function refreshServer() {
+    try {
+      const r = await fetch('/api/status', { cache: 'no-store' });
+      const j = await r.json();
+      S.hasToken = !!j.hasToken;
+      S.token = j.token || '';
+      S.serverState = j.state || '';
+    } catch {
+      S.hasToken = false;
+    }
+  }
+
+  // ---------------- 顶栏 ----------------
+  function renderTop() {
+    const home = S.data.home;
+    const cur = S.vehicles.find((v) => v.vin === S.vin);
+    const name = home?.name || cur?.name || '我的车';
+    const sub = home?.type || cur?.type || (S.vin ? S.vin.slice(-6) : '');
+    $('topbar').innerHTML = `
+      <button class="vswitch" data-act="vehicles">
+        <span class="vtext">
+          <span class="vname">${esc(name)}</span>
+          <span class="vsub">${esc(sub)}${S.vehicles.length > 1 ? ` · 共 ${S.vehicles.length} 台` : ''}</span>
+        </span>
+        ${U.icon('down', 18)}
+      </button>
+      <span class="spacer"></span>
+      <button class="iconbtn${S.loading ? ' spin' : ''}" data-act="refresh" title="刷新">${U.icon('refresh', 22)}</button>
+      <button class="iconbtn" data-act="theme" title="深浅色">${U.icon(S.theme === 'dark' ? 'sun' : 'moon', 22)}</button>
+      <button class="iconbtn" data-act="debug" title="数据与调试">${U.icon('gear', 22)}</button>`;
+    // 顶栏高度是内容撑出来的（车名一行还是两行、有没有安全区都会变），量完写回 CSS 变量，
+    // 滚动区的上内边距按它算；写死数值会让第一张卡压在顶栏下面。
+    document.documentElement.style.setProperty('--topbar-h', `${$('topbar').offsetHeight}px`);
+  }
+
+  // ---------------- 底部 tab ----------------
+  function renderTabs() {
+    const tabs = [
+      { id: 'home', t: '爱车', icon: 'bike' },
+      { id: 'settings', t: '车辆设置', icon: 'gear' },
+      { id: 'me', t: '我的', icon: 'user' },
+    ];
+    $('tabbar').innerHTML = tabs.map((x) => `
+      <button class="tab${S.tab === x.id ? ' sel' : ''}" data-act="tab" data-tab="${x.id}">
+        <span class="pill">${U.icon(x.icon, 22)}</span><span>${esc(x.t)}</span>
+      </button>`).join('');
+  }
+
+  // ---------------- 第一页：爱车 ----------------
+  function viewHome() {
+    const h = S.data.home;
+    if (!h) return skeleton();
+
+    const b = S.data.battery || {};
+    const t = S.data.tires;
+    const rm = S.data.rideMonth;
+    const rh = S.data.rideHome;
+    const an = S.data.analyse;
+    const svc = S.data.service?.serviceRechargeVehicleList?.[0];
+    const soc = h.soc ?? 0;
+    // 快捷操作只留 4 个（一行）：寻车鸣笛 / 远程解锁 / 打开坐垫 / 更多；
+    // 龙头锁、车锁的状态挪到上面的胶囊行，座垫锁/储物箱/闪灯收进「更多」面板
+    const actions = PRIMARY_ACTIONS.map((id) => actionBtn(ACTIONS.find((a) => a.id === id), h)).join('');
+    // 英雄位右列放电池电压：官方对 hmiRidableMile（预计续航）没做校准，那个数不可用
+    const volt = b.voltage ?? b.bmsVoltage ?? null;
+
+    // ---- 车辆卡：车图 + 电量 + 续航 + 进度条，全在一张卡里 ----
+    // 胶囊行：在线 + 两个锁状态。
+    // 名称与真伪都核对过：龙头锁←headLockState、坐垫锁←seatLockState，这两个是**真状态**
+    // （实测两台车 seatLockState 不同值 1/0），对应仪表主机那条 BLE `Lock` 指令（龙头/坐垫是同一套锁机构）。
+    // 官方叫法：龙头锁 ← auto_lock_title「自动龙头锁」；坐垫锁 ← 官方两种写法都有（座垫感应 / 打开坐垫），跟项目文档统一用「坐垫」。
+    // 注意别把 iotProperties:VehicleLock_S（「整车锁定状态_GO」）当车锁：它在两台不同车型上恒为 0，
+    // 与车实际锁没锁无关（`supportUnlock` 也是 0，那是「远程锁车」功能的开关），所以不放胶囊行，只在「更多」里列原始值。
+    const topChips = [
+      h.online ? U.chip('在线', 'ok', { pulse: true }) : U.chip('离线', ''),
+      h.charge.charging ? U.chip('充电中', 'charge', { pulse: true }) : (h.charge.full ? U.chip('已充满', 'ok', { pulse: true }) : ''),
+      U.chip(`龙头锁 ${h.headLock ? '已锁' : '未锁'}`, h.headLock ? '' : 'warn'),
+      U.chip(`坐垫锁 ${h.seatLock ? '已锁' : '未锁'}`, h.seatLock ? '' : 'warn'),
+    ].filter(Boolean).join('');
+
+    const heroCard = U.card(
+      `<div class="hero-top">${topChips}</div>
+      <div class="hero-stage">
+        <div class="bignum left">
+          <b class="tnum" style="color:${h.socColor.color}">${soc}<i>%</i></b>
+        </div>
+        ${h.pic ? `<img src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter()">` : U.fallbackScooter()}
+        <div class="bignum right">
+          <b class="tnum">${volt ?? '—'}<i>V</i></b>
+        </div>
+        ${tireBubble('前轮', t?.wheels?.find((w) => w.pos === '前轮'), 'left')}
+        ${tireBubble('后轮', t?.wheels?.find((w) => w.pos === '后轮'), 'right')}
+      </div>
+      ${U.socBar(soc, h.socColor.color, h.charge.charging)}
+      <div class="hero-meta">
+        <span>总里程 ${h.totalMile ?? '—'} km</span><i class="sep"></i>
+        <span>本月 ${h.monthMile ?? '—'} km</span><i class="sep"></i>
+        ${h.signal.text ? `<span>信号 ${h.signal.text}</span><i class="sep"></i>` : ''}
+        <span>${h.relRefresh ? '同步于 ' + h.relRefresh : '等车机上报'}</span>
+      </div>`,
+      'hero-card',
+    );
+
+    // ---- 充电卡（充电中才出现）----
+    const chargeCard = h.charge.charging || h.charge.full ? U.card(
+      U.cardHead(h.charge.text, h.charge.left ? `预计 ${h.charge.left} 充满` : (h.charge.expect || ''), '', 'bolt') +
+      `<div class="grid3">
+        ${tile('充电功率', b.power ?? h.charge.power ?? '—', 'W')}
+        ${tile('电池温度', b.temp ? b.temp : (h.temp || '—'), '℃')}
+        ${tile('充电电流', b.current ?? '—', 'A')}
+      </div>`,
+    ) : '';
+
+    // ---- 位置卡：地图默认打码，点地图或卡头那只眼睛才揭开 ----
+    const loc = h.loc;
+    const eyeBtn = loc.has ? `<button class="iconbtn" data-act="reveal" title="${S.locShown ? '隐藏位置' : '显示位置'}">${U.icon(S.locShown ? 'eyeOff' : 'eye', 20)}</button>` : '';
+    const navBtn = loc.has ? `<button class="iconbtn" data-act="navigate" title="导航到车辆">${U.icon('nav', 20)}</button>` : '';
+    const locCard = U.card(
+      U.cardHead('车辆位置', loc.relTime ? `更新于 ${loc.relTime}` : '', eyeBtn + navBtn, 'pin') +
+      (loc.has ? U.mapBox(loc.lng, loc.lat, { tile: S.tile, masked: !S.locShown }) : `<div class="mapbox"><div class="mapload">车况里没有定位</div></div>`) +
+      (loc.address ? U.kv('地址', loc.address) : '') +
+      U.kv('坐标', S.locShown ? `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}` : '已打码 · 点击显示',
+        { mono: S.locShown, attrs: `data-loc="coord" data-act="reveal" data-real="${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}"`, pointer: true }) +
+      U.kv('定位', `${esc(loc.time || '—')}${loc.altitude !== null ? `<span data-loc="alt"> · 海拔 ${Math.round(loc.altitude)} m</span>` : ''} · ${esc(loc.crs === '2' ? 'GCJ-02' : 'WGS-84')}`,
+        { unsafe: true }),
+    );
+
+    // ---- 骑行数据：4 个小格 + 7 天柱状图，点卡头或柱子看全部记录 ----
+    const rideCard = U.card(
+      U.cardHead('骑行数据', M.monthLabel(S.month),
+        `<button class="iconbtn" data-act="ride" title="全部记录">${U.icon('right', 20)}</button>`, 'route') +
+      `<div class="grid4">
+        ${tile('今日', rh?.todayMile ?? '—', 'km')}
+        ${tile('本月', h.monthMile ?? '—', 'km')}
+        ${tile('骑行时长', M.minutesShort(h.monthMinutes))}
+        ${tile('平均车速', h.avgSpeed ?? '—', 'km/h')}
+      </div>` +
+      (rm?.days?.length
+        ? `<div class="mt12" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>
+           <div class="card-sub">最近 7 天里程（km）· 点这里按月看全部记录</div>`
+        : ''),
+    );
+
+    // ---- 原来那张「车况」卡撤了：胎压挪到车图的前后轮上（tireBubble），
+    //      电池温度/电流挪到「我的 → 电池与能耗」----
+
+    // ---- 服务与固件 ----
+    const moreCard = U.card(
+      U.cardHead('服务与固件', '', '', 'db') +
+      U.kv('整车固件', h.otaVersion || '—') +
+      U.kv('智能服务', svc?.rechargeEndTime || h.serviceEnd || '—', { raw: svc ? `剩余 ${daysLeft(svc.rechargeEndDate)} 天` : '' }) +
+      U.kv('激活日期', h.activationDate || '—'),
+    );
+
+    const errBanner = S.lastErr ? `<div class="note bad">${U.icon('alert', 18)}<div>
+        <b>数据没取到：</b>${esc(S.lastErr)}<br>
+        网页自己登不了录，token 只能从极核那边来：模块设置页有「复制 token」，或 <code>su -c 'cat /data/data/com.cfmoto/files/zeeho_token.txt'</code>，粘到右上角齿轮里的调试面板。
+      </div></div>` : '';
+
+    const demoBanner = API.source === 'demo' ? `<div class="note info">${U.icon('info', 18)}<div>
+        当前是<b>演示数据</b>（来自真机抓取的响应样例，已脱敏）。在齿轮里粘贴 token 就能看真车。
+      </div></div>` : '';
+
+    return `
+      ${errBanner}${demoBanner}
+      ${heroCard}
+      <div class="actions">${actions}</div>
+      ${chargeCard}
+      ${locCard}
+      ${rideCard}
+      ${moreCard}
+      <div class="card-sub center">
+        ${API.source === 'demo' ? '演示样例' : '真车数据'} · VIN ${h.vin.slice(-6)} · ${new Date(S.lastLoad).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 更新
+      </div>`;
+  }
+
+  /** 紧凑小格：标签 + 大数字 + 单位 + 可选小字说明；值缺失时只显示「—」，不挂单位 */
+  function tile(k, v, unit = '', sub = '') {
+    const missing = v === null || v === undefined || v === '' || v === '—';
+    return `<div class="tile">
+      <span class="k">${esc(k)}</span>
+      <span class="v tnum">${missing ? '—' : esc(v)}${!missing && unit ? `<small>${esc(unit)}</small>` : ''}</span>
+      ${sub ? `<span class="s">${esc(sub)}</span>` : ''}
+    </div>`;
+  }
+
+  /**
+   * 胎压气球：绝对定位在车图的前/后轮外侧（左=前轮、右=后轮），位置本身就说明了是哪条轮，
+   * 所以不放「前轮/后轮」文字，只留「2.3 bar 24°」一行；完整信息（含上报时间）挂在 title 上。
+   * 分档上色：< 1.6 bar 或车机报异常=红，< 1.9 bar=琥珀，其余=绿；没数据就整个不画。
+   */
+  function tireBubble(label, w, side) {
+    if (!w || w.pressure === null) return '';
+    const cls = w.warn || w.pressure < 1.6 ? 'bad' : w.pressure < 1.9 ? 'warn' : 'ok';
+    const title = `${label} ${w.pressure.toFixed(1)} bar${w.temp !== null ? ` · ${w.temp} ℃` : ''}${w.time ? `（${M.relTime(w.time)}）` : ''}`;
+    return `<div class="tirebub ${side} ${cls}" title="${esc(title)}">
+      <span class="pv tnum">${w.pressure.toFixed(1)}</span><span class="pu">bar</span>${
+        w.temp !== null ? `<span class="pt tnum">${w.temp}\u00b0</span>` : ''
+      }
+    </div>`;
+  }
+
+  function actionBtn(a, h) {
+    if (a.more) {
+      return `<button class="action" data-act="action" data-id="more">
+        <span class="ico">${U.icon('more', 20)}</span><span class="lbl">更多</span><span class="st">能力表</span></button>`;
+    }
+    let sub = '';
+    let on = false;
+    if (a.state) {
+      on = !!h?.[a.state];
+      sub = on ? a.onT : a.offT;
+    } else if (a.id === 'search') sub = h?.canSearch ? '车支持' : '—';
+    else if (a.id === 'unlock') sub = h?.canNetUnlock ? '云端可解' : '不支持';
+    else if (a.id === 'cushion') sub = h?.cushionOpen ? '可开启' : '—';
+    else if (a.id === 'storage') sub = h?.storageOpen ? '可开启' : '不支持';
+    return `<button class="action${on ? ' on' : ''}" data-act="action" data-id="${a.id}">
+      <span class="ico">${U.icon(a.icon, 18)}</span>
+      <span class="lbl">${esc(a.t)}</span>
+      ${sub ? `<span class="st">${esc(sub)}</span>` : ''}
+    </button>`;
+  }
+
+  /** 位置打码的就地切换：只动这几处 DOM，不整页重渲染（重渲染会重新拉瓦片，会闪）。
+   *  所有带 data-act="reveal" 的地图（首页那张 + 骑行记录里的轨迹图）一起跟着状态走。 */
+  function applyLocMask() {
+    phone().querySelectorAll('.mapbox[data-act="reveal"]').forEach((box) => {
+      box.classList.toggle('masked', !S.locShown);
+      box.querySelector('.unmask')?.classList.toggle('hidden', S.locShown);
+    });
+    const coord = phone().querySelector('[data-loc="coord"]');
+    if (coord) {
+      coord.textContent = S.locShown ? coord.dataset.real : '已打码 · 点击地图显示';
+      coord.classList.toggle('mono', S.locShown);
+    }
+    const alt = phone().querySelector('[data-loc="alt"]');
+    if (alt) alt.classList.toggle('hidden', !S.locShown);
+    const eye = phone().querySelector('.card-head [data-act="reveal"]');
+    if (eye) {
+      eye.innerHTML = U.icon(S.locShown ? 'eyeOff' : 'eye', 20);
+      eye.title = S.locShown ? '隐藏位置' : '显示位置';
+    }
+  }
+
+  // ---------------- 骑行记录：按月 → 按日 → 单条 ----------------
+  const RIDE = { month: '', day: null, cache: {}, track: {} };
+
+  /** 一个月的记录（月度汇总 + 逐日明细）取一次就缓存 */
+  async function ensureMonth(m) {
+    const hit = RIDE.cache[m];
+    if (hit && (hit.loading || hit.ready)) return hit;
+    RIDE.cache[m] = { loading: true };
+    const ctx = { vin: S.vin, month: m };
+    const [rec, an] = await Promise.all([API.call('ride_month', ctx), API.call('analyse', ctx)]);
+    RIDE.cache[m] = { ready: true, model: M.rideRecords(rec, an) };
+    return RIDE.cache[m];
+  }
+
+  function openRide(m) {
+    RIDE.month = m || S.month;
+    RIDE.day = null;
+    renderRideSheet();
+    ensureMonth(RIDE.month).then(() => { if (!RIDE.day) renderRideSheet(); });
+  }
+
+  function renderRideSheet() {
+    if (RIDE.day) return renderRideDay();
+    const m = RIDE.month;
+    const hit = RIDE.cache[m];
+    let body;
+    if (!hit || !hit.ready) {
+      body = '<div class="sk" style="height:64px;border-radius:16px"></div>';
+    } else if (!hit.model.ok) {
+      body = `<div class="note bad">${U.icon('alert', 18)}<div>这个月取不到：${esc(hit.model.err)}</div></div>`;
+    } else {
+      const r = hit.model;
+      body = `<div class="mstats">
+          ${tile('本月里程', r.mile ?? '—', 'km')}
+          ${tile('骑行天数', r.activeCount, '天')}
+          ${tile('骑行时长', M.minutesShort(r.minutes))}
+          ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
+        </div>` +
+        (r.rows.length
+          ? r.rows.map(recRow).join('')
+          : '<div class="muted center" style="padding:24px 0">这个月没有骑行记录</div>');
+    }
+    U.sheet(phone(), {
+      title: '骑行记录',
+      sub: '按月浏览，点某一天看单条记录',
+      body: `<div class="monthbar">
+          <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, -1)}" title="上个月">${U.icon('left', 20)}</button>
+          <div class="monthlabel">${esc(M.monthLabel(m))}</div>
+          <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, 1)}" title="下个月"${m >= S.month ? ' disabled' : ''}>${U.icon('right', 20)}</button>
+        </div>${body}<div style="height:6px"></div>`,
+    });
+    applyLocMask();
+  }
+
+  function recRow(r) {
+    return `<div class="rec-row${r.mile > 0 ? '' : ' zero'}" data-act="day" data-date="${esc(r.date)}">
+      <div class="d"><b class="tnum">${esc(r.mmdd)}</b><span>${esc(r.wd)}</span></div>
+      <div class="m"><b class="tnum">${r.mile.toFixed(1)}</b> <span>km</span>${
+        r.mile > 0 ? ` <span>· ${esc(M.minutesShort(r.minutes))} · 最高 ${r.maxSpeed} km/h</span>` : ''
+      }</div>
+      <div class="tail">${U.icon('right', 18)}</div>
+    </div>`;
+  }
+
+  function renderRideDay() {
+    const m = RIDE.month;
+    const model = RIDE.cache[m]?.model;
+    const row = model?.rows.find((r) => r.date === RIDE.day);
+    if (!row) { RIDE.day = null; return renderRideSheet(); }
+    const t = RIDE.track[RIDE.day];
+    const share = model.mile > 0 ? Math.round((row.mile / model.mile) * 100) : 0;
+
+    let trackBlock;
+    if (row.mile <= 0) {
+      trackBlock = `<div class="note info">${U.icon('info', 18)}<div>这天没有骑行（里程 0）。</div></div>`;
+    } else if (!t || !t.ready) {
+      trackBlock = '<div class="sk" style="height:150px;border-radius:16px"></div>';
+    } else if (t.points.length >= 2) {
+      trackBlock = U.mapBoxPath(t.points, { tile: S.tile, masked: !S.locShown });
+    } else {
+      trackBlock = `<div class="note info">${U.icon('info', 18)}<div>
+        <b>这天没有轨迹点。</b>ridetrack_v2 对两台车都返回 0 条（带日期 / 不带日期 / 两种日期格式都试过），
+        应该是这台车没开放轨迹功能。等它哪天有数据，这里会自动画成折线。
+      </div></div>`;
+    }
+
+    U.sheet(phone(), {
+      title: `${row.mmdd} ${row.wd}`,
+      sub: '单条骑行记录',
+      body: `
+        <button class="rec-back" data-act="rideback">${U.icon('left', 16)}<span>返回 ${esc(M.monthLabel(m))}</span></button>
+        <div class="mstats mt12">
+          ${tile('里程', row.mile, 'km')}
+          ${tile('时长', M.minutesShort(row.minutes))}
+          ${tile('最高车速', row.maxSpeed, 'km/h')}
+          ${tile('占本月', share, '%')}
+        </div>
+        <div class="grid3">
+          ${tile('急加速', row.accel, '次')}
+          ${tile('急刹车', row.brakes, '次')}
+          ${tile('压弯', row.bends, '次')}
+        </div>
+        <div class="card-sub mt12">本月最高 ${model.maxSpeed ?? '—'} km/h · 本月里程 ${model.mile ?? '—'} km</div>
+        <div class="section-title"><span>轨迹</span><span class="line"></span></div>
+        ${trackBlock}
+        <div style="height:8px"></div>`,
+    });
+    applyLocMask();
+
+    if (row.mile > 0 && !RIDE.track[RIDE.day]) {
+      const date = RIDE.day;
+      RIDE.track[date] = { loading: true };
+      API.call('ride_track', { vin: S.vin, date }).then((res) => {
+        RIDE.track[date] = { ready: true, points: M.track(res) };
+        if (RIDE.day === date) renderRideDay();
+      });
+    }
+  }
+
+  // ---------------- 写设置（功能开关） ----------------
+  const allRows = () => (S.data.settings?.groups || []).flatMap((g) => g.rows);
+
+  /** 重新拉一次设置项当前值（写完车机可能慢一拍，所以延迟一点再拉） */
+  async function refreshSetInfo() {
+    const got = await API.all(['vehicle_set_info'], { vin: S.vin, uid: '0', month: S.month });
+    if (got.vehicle_set_info) S.data.info = got.vehicle_set_info;
+    if (S.data.caps) buildSettings();
+    render({ keepScroll: true });
+  }
+
+  /** 点开关：先出确认弹层，说明写哪个接口、会变成什么 */
+  function toggleSheet(code) {
+    const row = allRows().find((r) => r.code === code);
+    if (!row || !row.binary) return;
+    const target = !row.value;
+    const stateText = (v) => (v ? '开启' : '关闭');
+
+    if (!row.write || !row.write.ready) {
+      const planned = row.write ? M.writeBody(row.write, row.value ? row.write.off : row.write.on, S.vin) : null;
+      U.sheet(phone(), {
+        title: row.title,
+        sub: row.write ? '接口已接，指令码未抓到' : '暂时写不了',
+        body: `
+          <div class="note">${U.icon('alert', 18)}<div>
+            ${row.write
+              ? `这一项走通用属性写 <code>propertyOne</code>，但它的<b>平台指令码（commond）还没抓到</b>——
+                 官方 App 对这类设置是<b>纯蓝牙路径</b>（关掉手机蓝牙它会直接弹回，不发 HTTP），
+                 所以只能靠抓包补。`
+              : `这项还没接写接口。`}
+            码表在爱加密加固的 dex 里，APK 静态挖不出来（资源表 / assets / proto / 接口全表都翻过了）。
+          </div></div>
+          <div class="mt16">
+            ${U.kv('当前状态', stateText(row.value))}
+            ${U.kv('字段', row.key || row.code)}
+          </div>
+          ${planned ? `<div class="card-sub mt12">将来要发的请求体（commond 待填）</div><div class="code">${esc(JSON.stringify(planned, null, 2))}</div>` : ''}
+          <div class="card-sub mt12">
+            补码办法见 <code>tools/dashboard/写设置指令码.md</code>：关手机蓝牙 → App 里拨一次 →
+            抓 <code>PUT propertyOne/one</code> 的 body → 把 commond 填进 <code>model.js</code> 的 WRITE。
+          </div>`,
+      });
+      return;
+    }
+
+    const body = M.writeBody(row.write, row.value ? row.write.off : row.write.on, S.vin);
+
+    U.sheet(phone(), {
+      title: row.title,
+      sub: `确认${stateText(target)}？`,
+      body: `
+        <div class="note">${U.icon('alert', 18)}<div>写的是真车，不是演示数据——点确认会把这项<b>真正下发到车辆</b>。</div></div>
+        <div class="mt16">
+          ${U.kv('当前', stateText(row.value))}
+          ${U.kv('将变为', stateText(target))}
+        </div>
+        <div class="card-sub mt12">接口</div>
+        <div class="code">PUT ${esc(window.ZEEHO_EP.list.find((e) => e.id === row.write.ep)?.path || row.write.ep)}</div>
+        <div class="card-sub mt12">请求体</div>
+        <div class="code">${esc(JSON.stringify(body, null, 2))}</div>
+        ${row.write.kind === 'commond' ? `<div class="card-sub mt12">
+          commond ${esc(row.write.commond)} 是平台指令码，形状复刻自官方 App 的抓包（commond / commondParam / vcu）。
+        </div>` : ''}
+        <div class="field mt16">
+          <button class="btn tonal block" data-act="dowrite" data-code="${esc(code)}">${U.icon('check', 18)}<span>确认${stateText(target)}</span></button>
+        </div>
+        <div style="height:8px"></div>`,
+    });
+  }
+
+  /** 真正写下去 */
+  async function doWrite(code) {
+    const row = allRows().find((r) => r.code === code);
+    if (!row?.write) return;
+    const w = row.write;
+    const target = row.value ? w.off : w.on;
+    const sw = phone().querySelector(`.switch[data-code="${code}"]`);
+    sw?.classList.add('busy');
+
+    const res = await API.call(w.ep, { vin: S.vin, uid: '0', month: S.month }, {
+      body: M.writeBody(w, target, S.vin),
+      method: 'PUT',
+      mockField: row.key,
+      value: target,
+    });
+
+    if (res.ok) {
+      U.closeSheet();
+      U.toast(phone(), `${row.title} 已写入（${target ? '开' : '关'}），刷新中…`);
+      await new Promise((r) => setTimeout(r, 1200));      // 车机回执慢一拍，等一下再拉
+      await refreshSetInfo();
+      U.toast(phone(), '已按车机回报更新');
+    } else {
+      sw?.classList.remove('busy');
+      U.toast(phone(), `${res.code ? res.code + ' ' : ''}${res.message || res.err || '写入失败'}`, 3600);
+    }
+  }
+
+  function daysLeft(dateStr) {
+    const d = M.parseTime(dateStr);
+    if (!d) return '—';
+    return Math.max(0, Math.round((d - Date.now()) / 86400000));
+  }
+
+  // ---------------- 第二页：车辆设置 ----------------
+  function viewSettings() {
+    const st = S.data.settings;
+    if (!st) return skeleton();
+    const rows = (list) => list.map((r) => setRow(r)).join('');
+    const groups = st.groups.map((g) => U.card(
+      U.cardHead(g.t, `${g.rows.length} 项`, '', g.icon) + rows(g.rows),
+    )).join('');
+
+    return `
+      <div class="note info">${U.icon('info', 18)}<div>
+        真实数据来自 <code>vehicleSet/items</code>（车辆能力表，共 ${st.total} 项）与
+        <code>vehicleSetInfo</code>（当前值）。<b>开关可以点</b>：点下去先弹确认，再真正下发到车辆。
+        实测能写通的是<b>精准续航</b>（通用属性写，commond 55）和<b>投屏</b>（专属接口）；其余项的指令码还没拿到。
+      </div></div>
+      ${U.sectionTitle('设置项', `<span class="card-sub">${st.known}/${st.total} 已映射中文</span>`)}
+      ${groups}`;
+  }
+
+  function setRow(r) {
+    // 开关：能写的做成可点（data-act=toggle），不能写的也能点，弹层里说明原因
+    const ctrl = r.kind === 'switch'
+      ? (r.binary
+        ? `<span class="switch${r.value ? ' on' : ''}${r.write?.ready ? '' : ' ro'}" data-act="toggle" data-code="${esc(r.code)}" title="${r.write?.ready ? '点击切换' : (r.write ? '指令码未抓到' : '暂时写不了')}"></span>`
+        : `<span class="v tnum">${esc(r.display)}</span>`)
+      : r.kind === 'action'
+        ? `<span class="muted">${U.icon('right', 18)}</span>`
+        : `<span class="v tnum">${esc(r.display)}</span>`;
+    const subs = r.subs?.length
+      ? `<span class="raw" style="opacity:.85">${r.subs.map((x) => `${esc(x.t)} ${esc(x.v)}`).join(' · ')}</span>`
+      : '';
+    // 没有当前值的项（kind=none）就把说明当副标题，否则整行只剩一个光秃秃的标题
+    const keyLine = r.kind === 'none'
+      ? (r.note || r.code || '')
+      : (r.keys?.length ? r.keys.slice(0, 3).join(', ') : (r.code || ''));
+    return `<div class="kv" data-act="setting" data-code="${esc(r.code)}" style="cursor:pointer">
+      <span class="k" style="min-width:0">
+        <span style="color:var(--md-sys-color-on-surface);font-weight:500">${esc(r.title)}</span>
+        <span class="raw">${esc(keyLine)}</span>${subs}
+      </span>
+      ${ctrl}
+    </div>`;
+  }
+
+  // ---------------- 第三页：我的 ----------------
+  function viewMe() {
+    const h = S.data.home;
+    const u = S.data.user;
+    const b = S.data.battery || {};
+    const an = S.data.analyse;
+
+    const userCard = U.card(
+      U.cardHead('账号', API.source === 'demo' ? '演示样例里的账号' : '当前登录账号', '', 'user') +
+      `<div style="display:flex;align-items:center;gap:14px">
+        <span class="avatar" style="width:56px;height:56px;border-radius:999px;overflow:hidden;background:var(--md-sys-color-primary-container);display:grid;place-items:center">
+          ${u?.avatar ? `<img src="${esc(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : U.icon('user', 26)}
+        </span>
+        <div>
+          <div style="font-size:17px;font-weight:600">${esc(u?.nick || '—')}</div>
+          <div class="card-sub">${esc(u?.sign || '极核账号')}</div>
+        </div>
+      </div>
+      <div class="grid3 mt16">
+        ${U.stat('积分', u?.score ?? '—')}
+        ${U.stat('签到', S.data.signin?.data?.signCount ?? '—', '天')}
+        ${U.stat('碳贡献', h?.green ?? '—', 'kg')}
+      </div>`,
+    );
+
+    const carCard = U.card(
+      U.cardHead('车辆属性', h?.type || '', '', 'bike') +
+      U.kv('车辆名称', h?.name || '—') +
+      U.kv('车型', `${h?.type || '—'}${h?.typeName ? ' / ' + h.typeName : ''}`) +
+      U.kv('VIN', h?.vin || '—', { mono: true }) +
+      U.kv('激活日期', h?.activationDate || '—') +
+      U.kv('首次绑定', h?.firstBind || '—') +
+      U.kv('蓝牙地址', h?.bt || '—', { mono: true }) +
+      U.kv('感应解锁', h?.hasInductive ? '支持' : '不支持') +
+      U.kv('云端解锁', h?.canNetUnlock ? '支持' : '不支持') +
+      U.kv('寻车鸣笛', h?.canSearch ? '支持' : '不支持'),
+    );
+
+    const batCard = U.card(
+      U.cardHead('电池与能耗', b.refreshAt ? `更新于 ${M.relTime(b.refreshAt)}` : '', '', 'battery') +
+      `<div class="grid3">
+        ${U.stat('电量', b.soc ?? '—', '%')}
+        ${U.stat('母线电压', b.voltage ?? '—', 'V')}
+        ${U.stat('电流', b.current ?? '—', 'A')}
+      </div>` +
+      U.kv('健康度 SOH', b.soh !== null ? `${b.soh} %` : '—') +
+      U.kv('电池温度', b.temp ? `${b.temp} ℃` : (h?.temp ? `${h.temp} ℃` : '车机未上报')) +
+      U.kv('电池评等', b.score || '—') +
+      U.kv('充放电次数', b.chargeCount ?? '—') +
+      U.kv('今日用电', b.useToday !== null ? `${b.useToday} kWh` : '—') +
+      U.kv('本月用电 / 充电', `${b.useMonth ?? '—'} / ${b.chargeMonth ?? '—'} kWh`),
+    );
+
+    const fw = h?.firmware?.length
+      ? U.card(U.cardHead('固件版本', `${h.firmware.length} 个部件`, '', 'chip') +
+          U.kv('整车 OTA', h.otaVersion || '—') +
+          h.firmware.map((f) => U.kv(f.name, f.value, { raw: f.key })).join(''))
+      : '';
+
+    const anCard = an ? U.card(
+      U.cardHead('骑行分析', an.month ? M.monthLabel(`${an.month.slice(0, 4)}.${an.month.slice(4)}`) : '',
+        `<button class="btn text sm" data-act="ride">查看记录</button>`, 'speed') +
+      `<div class="grid3">
+        ${U.stat('月里程', an.mile ?? '—', 'km')}
+        ${U.stat('骑行时长', M.minutes(an.minutes), '')}
+        ${U.stat('最高车速', an.maxSpeed ?? '—', 'km/h')}
+      </div>
+      <div class="grid3 mt12">
+        ${U.stat('急加速', an.accel ?? '—', '次')}
+        ${U.stat('急刹车', an.brakes ?? '—', '次')}
+        ${U.stat('超速', an.extreme ?? '—', '次')}
+      </div>`,
+    ) : '';
+
+    const svc = S.data.service?.serviceRechargeVehicleList?.[0];
+    const svcCard = svc ? U.card(
+      U.cardHead('智能服务', M.on(svc.serviceRechargeStatus) ? '已开通' : '未开通', '', 'shield') +
+      U.kv('到期时间', svc.rechargeEndTime || svc.rechargeEndDate || '—') +
+      U.kv('剩余天数', `${daysLeft(svc.rechargeEndDate)} 天`) +
+      U.kv('激活日期', svc.activationDate || '—'),
+    ) : '';
+
+    const devCard = U.card(
+      U.cardHead('数据与调试', API.source === 'demo' ? '演示数据' : '真车数据', '', 'db') +
+      U.kv('本机服务 token', S.hasToken ? `已有（${esc(S.token)}）` : '没有', { raw: S.serverState || '' }) +
+      U.kv('接口上下文', `VIN ${h?.vin?.slice(-6) || '—'} · UID ${S.uid || '—'}`) +
+      `<div class="field mt12">
+        <button class="btn tonal block" data-act="debug">${U.icon('gear', 18)}<span>打开调试面板</span></button>
+      </div>`,
+    );
+
+    return `
+      ${U.sectionTitle('用户属性')}${userCard}
+      ${U.sectionTitle('车辆属性')}${carCard}${fw}
+      ${U.sectionTitle('电池与骑行')}${batCard}${anCard}
+      ${U.sectionTitle('服务')}${svcCard}
+      ${U.sectionTitle('调试')}${devCard}`;
+  }
+
+  function skeleton() {
+    return `<div class="hero" style="padding-top:40px">
+      <div class="sk" style="height:180px;border-radius:24px"></div>
+      <div class="sk mt16" style="height:56px;border-radius:16px"></div>
+      <div class="sk mt12" style="height:120px;border-radius:20px"></div>
+      <div class="sk mt12" style="height:160px;border-radius:20px"></div>
+    </div>`;
+  }
+
+  // ---------------- 渲染 ----------------
+  function render({ keepScroll } = {}) {
+    applyTheme();
+    renderTop();
+    renderTabs();
+    const y = keepScroll ? scroll().scrollTop : 0;
+    const view = S.tab === 'home' ? viewHome() : S.tab === 'settings' ? viewSettings() : viewMe();
+    // 统一套一层 .page：区块间距由它的 gap 给，别再让各模块自己写 margin-top
+    scroll().innerHTML = `<div class="page">${view}</div>`;
+    // 必须显式回写：整块换 innerHTML 时 Chrome 的滚动锚定会把上一页的位置留下来
+    scroll().scrollTop = y;
+    // .phone 是 overflow:hidden 的滚动壳，scrollIntoView/聚焦会把它滚走、把顶栏顶出视口
+    phone().scrollTop = 0;
+    // 位置打码的状态要跟着每次重渲染走（轮询刷新后不能自己变回明文）
+    if (S.tab === 'home') applyLocMask();
+  }
+
+  // ---------------- 弹层 ----------------
+  function vehicleSheet() {
+    const home = S.data.home;
+    const body = S.vehicles.map((v) => `
+      <div class="sheet-item${v.vin === S.vin ? ' sel' : ''}" data-act="pickvin" data-vin="${esc(v.vin)}">
+        <span class="ico" style="background:var(--md-sys-color-surface-container-high);overflow:hidden">
+          ${v.pic ? `<img src="${esc(v.pic)}" style="width:100%;height:100%;object-fit:contain" onerror="this.remove()">` : U.icon('bike', 18)}
+        </span>
+        <span>
+          <span class="t">${esc(v.name)}</span>
+          <span class="s">${esc(v.type)}${v.shared ? ' · 共享（' + esc(v.shareNick || '他人') + '）' : ''}</span>
+        </span>
+        <span class="tail">${v.vin === S.vin ? U.icon('check', 20) : ''}</span>
+      </div>`).join('') || '<div class="muted">车辆列表没取到</div>';
+
+    const cur = S.vehicles.find((v) => v.vin === S.vin);
+    const ctx = home ? `
+      <div class="card mt16">
+        <div class="card-title">当前车辆</div>
+        ${U.kv('名称', home.name)}
+        ${U.kv('VIN', home.vin, { mono: true })}
+        ${U.kv('在线状态', home.online ? '在线' : '离线')}
+        ${U.kv('同步时间', home.refreshAt || '—')}
+        ${U.kv('绑定账号', String(S.uid || '—'))}
+        ${cur?.shared ? U.kv('共享自', cur.shareNick || '他人') : ''}
+      </div>` : '';
+
+    U.sheet(phone(), { title: '切换车辆', sub: `${S.vehicles.length} 台车 · 数据源 ${API.source === 'demo' ? '演示' : '真车'}`, body: body + ctx });
+  }
+
+  function actionSheet(id) {
+    const a = ACTIONS.find((x) => x.id === id);
+    if (!a) return;
+    if (a.more) return moreSheet();
+    const h = S.data.home || {};
+    const cur = a.state ? (h[a.state] ? a.onT : a.offT) : '';
+    const base = window.ZEEHO_EP.base;
+    const curl = `curl -X ${a.ep.m} '${base}${a.ep.p}' \\\n  -H 'Authorization: Bearer <token>' \\\n  -H 'cfmoto-x-param: appId=..&nonce=..&timestamp=..' \\\n  -H 'cfmoto-x-sign: <签名>' \\\n  -H 'cfmoto-x-sign-type: 0'${a.ep.body && a.ep.body.startsWith('{') ? ` \\\n  -d '${a.ep.body}'` : ''}`;
+    U.sheet(phone(), {
+      title: a.t,
+      sub: cur ? `当前状态：${cur}` : '接口待接入',
+      body: `
+        <div class="note">${U.icon('alert', 18)}<div>
+          这次只做界面，<b>不发车控请求</b>。真控制仍由宿主 App 执行（模块里走 HmModel，签名和一次性加密都借 App 的手）。
+        </div></div>
+        <div class="mt16">
+          ${U.kv('调用方式', a.ep.m)}
+          ${U.kv('路径', a.ep.p, { mono: true })}
+          ${a.ep.body ? U.kv('请求体', a.ep.body, { mono: true }) : ''}
+        </div>
+        <div class="card-sub mt12">${esc(a.ep.note || '')}</div>
+        <div class="code">${esc(curl)}</div>
+        <div class="field">
+          <button class="btn tonal block" data-copy="${esc(curl)}">${U.icon('copy', 18)}<span>复制 curl</span></button>
+        </div>
+        <div style="height:4px"></div>`,
+      onMount: (el) => {
+        el.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => U.copy(b.dataset.copy, phone())));
+      },
+    });
+  }
+
+  /** 一个动作当前的状态文案（能用就用，没有就说接口待接入） */
+  function actionState(a, h) {
+    if (a.state) return h[a.state] ? a.onT : a.offT;
+    if (a.id === 'search') return h.canSearch ? '支持' : '不支持';
+    if (a.id === 'unlock') return h.canNetUnlock ? '支持云端解锁' : '不支持';
+    if (a.id === 'cushion') return h.cushionOpen ? '可开启' : '—';
+    if (a.id === 'storage') return h.storageOpen ? '可开启' : '不支持';
+    return '接口待接入';
+  }
+
+  /**
+   * 「更多」面板：三块——能操作的项（带状态）/ 车机上报的 IoT 参数 / 车辆能力表（48 项）。
+   * 前两块就是"有没有类似首页那几个操作的其他参数"的答案：锁、座垫、储物箱、闪灯都在这里，
+   * 另外 iotProperties 里还有整车锁定/限速模式/GSM 信号等 14 项原始上报值。
+   */
+  function moreSheet() {
+    const h = S.data.home || {};
+    const acts = ACTIONS.filter((a) => !a.more).map((a) => `
+      <div class="sheet-item" data-act="action" data-id="${a.id}">
+        <span class="ico">${U.icon(a.icon, 18)}</span>
+        <span><span class="t">${esc(a.t)}</span><span class="s">${esc(actionState(a, h))}</span></span>
+        <span class="tail">${U.icon('right', 18)}</span>
+      </div>`).join('');
+
+    // 车机参数里有 JSON 长值（后雷达/车型配置），原样铺开会把弹层撑出横向滚动条，截断 + 完整值挂 title
+    const clip = (v, n = 26) => (M.s(v).length > n ? M.s(v).slice(0, n) + '…' : M.s(v));
+    const iot = (h.iot || []).map((x) => {
+      const label = x.describe ? `${x.name}（${x.describe}）` : x.name;
+      return `<div class="kv" title="${esc(`${x.identify} = ${x.value}`)}">
+        <span class="k">${esc(label)}<span class="raw">${esc(x.identify)}</span></span>
+        <span class="v tnum">${esc(clip(x.value))}</span>
+      </div>`;
+    }).join('');
+
+    const caps = S.data.settings?.caps || [];
+    const capRows = caps.map((c) => `<div class="kv">
+        <span class="k"><span>${esc(c.functionCode)}</span></span>
+        <span class="v">${c.isSupport === false ? '<span class="muted">不支持</span>' : '<span class="chip ok">支持</span>'}</span>
+      </div>`).join('');
+
+    U.sheet(phone(), {
+      title: '更多',
+      sub: `${ACTIONS.length - 1} 个可操作项 · ${(h.iot || []).length} 项车机参数 · ${caps.length} 项能力`,
+      body: `
+        <div class="section-title"><span>可操作项</span><span class="line"></span></div>
+        ${acts}
+        <div class="section-title"><span>车机上报的参数</span><span class="line"></span><span class="card-sub">iotProperties</span></div>
+        <div class="card">${iot || '<div class="muted">这台车没上报</div>'}</div>
+        <div class="section-title"><span>车辆能力表</span><span class="line"></span><span class="card-sub">vehicleSet/items</span></div>
+        <div class="card">${capRows || '<div class="muted">能力表没取到</div>'}</div>
+        <div style="height:6px"></div>`,
+    });
+  }
+
+  function settingSheet(code) {
+    const st = S.data.settings;
+    const row = st?.groups.flatMap((g) => g.rows).find((r) => r.code === code);
+    if (!row) return;
+    const infoRaw = S.data.vehicle_set_info?.data || {};
+    const lines = row.keys.map((k) => `${k} = ${JSON.stringify(k.split('.').reduce((o, kk) => (o == null ? o : o[kk]), infoRaw))}`);
+    U.sheet(phone(), {
+      title: row.title,
+      sub: `能力项 ${code}`,
+      body: `
+        <div class="note">${U.icon('alert', 18)}<div>改设置同样要车控签名与一次性加密，本次只展示当前值。</div></div>
+        ${row.tip ? `<div class="note info mt12">${U.icon('info', 18)}<div>${esc(row.tip)}</div></div>` : ''}
+        <div class="mt16">
+          ${U.kv('当前值', row.display || '—')}
+          ${row.subs?.length ? row.subs.map((x) => U.kv(x.t, x.v)).join('') : ''}
+        </div>
+        ${row.note ? `<div class="card-sub mt12">${esc(row.note)}</div>` : ''}
+        <div class="code">${esc(lines.join('\n') || '（该能力项没有对应的当前值字段）')}</div>`,
+    });
+  }
+
+  function rawSheet() {
+    const ids = Object.keys(API.lastRaw).filter((k) => API.lastRaw[k]?.raw !== undefined);
+    const items = ids.map((id) => `<div class="sheet-item" data-act="raw" data-id="${esc(id)}">
+        <span class="ico">${U.icon('db', 18)}</span>
+        <span><span class="t">${esc(API.ep(id)?.label || id)}</span><span class="s">${esc(API.lastRaw[id].source === 'demo' ? '演示样例' : '真车')} · ${API.lastRaw[id].ms ?? 0}ms</span></span>
+        <span class="tail">${U.icon('right', 18)}</span>
+      </div>`).join('');
+    U.sheet(phone(), { title: '原始响应', sub: '最近一次调用的响应体，可用于核对字段', body: items || '<div class="muted">还没调用过接口</div>' });
+  }
+
+  function rawDetail(id) {
+    const r = API.lastRaw[id];
+    const text = typeof r.raw === 'string' ? r.raw : JSON.stringify(r.raw, null, 2);
+    U.sheet(phone(), {
+      title: API.ep(id)?.label || id,
+      sub: `${API.resolve(id, S)?.path || ''}`,
+      body: `<div class="code">${esc(text).slice(0, 20000)}</div>
+        <div class="field"><button class="btn tonal block" data-copy="${esc(text)}">${U.icon('copy', 18)}<span>复制 JSON</span></button></div>`,
+      onMount: (el) => el.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => U.copy(b.dataset.copy, phone()))),
+    });
+  }
+
+  function debugSheet() {
+    const opt = (k, v, cur) => `<span class="chip${cur === v ? ' ok' : ''}" data-act="opt" data-k="${k}" data-v="${esc(String(v))}" style="cursor:pointer">${esc(String(v))}</span>`;
+    U.sheet(phone(), {
+      title: '数据与调试',
+      sub: '切换数据源 / 粘贴 token / 换配色',
+      body: `
+        <div class="card-title mt8">数据源</div>
+        <div class="field" style="flex-wrap:wrap;gap:8px">
+          ${opt('source', 'demo', API.source)}
+          ${opt('source', 'live', API.source)}
+          ${opt('source', 'direct', API.source)}
+        </div>
+        <div class="card-sub mt8">
+          ${API.server?.hasToken ? `本机服务里有 token：${esc(S.token)}` : '本机服务里没有 token'}
+          · ${API.server ? '检测到本机服务（代理模式可用）' : '没检测到本机服务（直连/演示可用）'}
+          ${API.source === 'direct' ? ` · 直连用的 token：${API.token ? esc(API.token.slice(0, 8)) + '…' : '还没填'}` : ''}
+        </div>
+
+        <div class="card-title mt16">粘贴 token</div>
+        <div class="card-sub">从模块 App 的「设置 → 复制 token」拿，或 <code>su -c 'cat /data/data/com.cfmoto/files/zeeho_token.txt'</code>（第二行才是值）。</div>
+        <div class="field">
+          <input id="tokenInput" type="text" placeholder="360089a2-…" autocomplete="off" spellcheck="false">
+          <button class="btn sm" data-act="savetoken">保存</button>
+        </div>
+
+        <div class="card-title mt16">强调色</div>
+        <div class="field" style="flex-wrap:wrap;gap:8px">
+          ${['green', 'blue', 'purple'].map((c) => `<span class="chip${S.accent === c ? ' ok' : ''}" data-act="accent" data-v="${c}" style="cursor:pointer">${{ green: '极核绿', blue: '科技蓝', purple: '材料紫' }[c]}</span>`).join('')}
+        </div>
+
+        <div class="card-title mt16">地图瓦片</div>
+        <div class="field" style="flex-wrap:wrap;gap:8px">
+          ${['osm', 'amap'].map((c) => `<span class="chip${S.tile === c ? ' ok' : ''}" data-act="tile" data-v="${c}" style="cursor:pointer">${c === 'osm' ? 'OpenStreetMap' : '高德（国内快）'}</span>`).join('')}
+        </div>
+        <div class="card-sub mt8">车坐标是 GCJ-02：选 OSM 时页面会自动转成 WGS-84，选高德则原样贴。</div>
+
+        <div class="card-title mt16">轮询</div>
+        <div class="field" style="flex-wrap:wrap;gap:8px">
+          ${[15000, 30000, 60000, 0].map((c) => `<span class="chip${S.pollMs === c ? ' ok' : ''}" data-act="poll" data-v="${c}" style="cursor:pointer">${c === 0 ? '关闭' : c / 1000 + ' 秒'}</span>`).join('')}
+        </div>
+
+        <div class="field mt16">
+          <button class="btn tonal block" data-act="rawlist">${U.icon('db', 18)}<span>看原始响应</span></button>
+        </div>
+        <div class="card-sub mt8">接口表在 js/endpoints.js，归一化在 js/model.js；本机服务在 server.mjs。</div>
+        <div style="height:8px"></div>`,
+    });
+  }
+
+  // ---------------- 事件 ----------------
+  function bind() {
+    phone().addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-act]');
+      if (!t) return;
+      const act = t.dataset.act;
+      switch (act) {
+        case 'tab':
+          S.tab = t.dataset.tab;
+          savePrefs();
+          render();
+          load();
+          break;
+        case 'refresh':
+          await load();
+          break;
+        case 'theme':
+          S.theme = S.theme === 'dark' ? 'light' : 'dark';
+          savePrefs();
+          render({ keepScroll: true });
+          break;
+        case 'debug':
+          await refreshServer();
+          debugSheet();
+          break;
+        case 'vehicles':
+          vehicleSheet();
+          break;
+        case 'pickvin':
+          S.vin = t.dataset.vin;
+          savePrefs();
+          U.closeSheet();
+          load();
+          break;
+        case 'action':
+          actionSheet(t.dataset.id);
+          break;
+        case 'setting':
+          settingSheet(t.dataset.code);
+          break;
+        case 'toggle':
+          e.stopPropagation();
+          toggleSheet(t.dataset.code);
+          break;
+        case 'dowrite':
+          doWrite(t.dataset.code);
+          break;
+        case 'closeSheet':
+          U.closeSheet();
+          break;
+        case 'reveal':
+          S.locShown = !S.locShown;
+          applyLocMask();
+          break;
+        case 'ride':
+          U.closeSheet();
+          setTimeout(() => openRide(S.month), 220);
+          break;
+        case 'rideback':
+          RIDE.day = null;
+          renderRideSheet();
+          break;
+        case 'month': {
+          const v = t.dataset.v;
+          if (!v || v > S.month) break;
+          RIDE.month = v;
+          RIDE.day = null;
+          renderRideSheet();
+          ensureMonth(v).then(() => { if (!RIDE.day) renderRideSheet(); });
+          break;
+        }
+        case 'day':
+          RIDE.day = t.dataset.date || '';
+          renderRideDay();
+          break;
+        case 'navigate': {
+          const loc = S.data.home?.loc;
+          if (!loc?.has) break;
+          // 高德 URI：坐标本来就是 GCJ-02，直接传；网页版用 h5 域名
+          window.open(`https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(S.data.home.name)}&src=zeeho-dashboard&coordinate=gaode&callnative=1`, '_blank');
+          break;
+        }
+        case 'rawlist':
+          U.closeSheet();
+          setTimeout(rawSheet, 240);
+          break;
+        case 'raw':
+          rawDetail(t.dataset.id);
+          break;
+        case 'opt':
+          if (t.dataset.k === 'source') {
+            await API.setSource(t.dataset.v);
+            S.source = t.dataset.v;
+            U.closeSheet();
+            setTimeout(load, 240);
+          }
+          break;
+        case 'accent':
+          S.accent = t.dataset.v;
+          savePrefs();
+          U.closeSheet();
+          setTimeout(() => render({ keepScroll: true }), 240);
+          break;
+        case 'tile':
+          S.tile = t.dataset.v;
+          savePrefs();
+          U.closeSheet();
+          setTimeout(() => render({ keepScroll: true }), 240);
+          break;
+        case 'poll':
+          S.pollMs = Number(t.dataset.v);
+          savePrefs();
+          startPoll();
+          U.closeSheet();
+          setTimeout(() => U.toast(phone(), S.pollMs ? `每 ${S.pollMs / 1000} 秒刷新` : '已关闭自动刷新'), 260);
+          break;
+        case 'savetoken': {
+          const input = $('tokenInput');
+          const v = (input?.value || '').trim();
+          if (!v) { U.toast(phone(), '先把 token 粘进来'); break; }
+          // 有本机服务就写服务端文件（token 不进浏览器存储）；没有就存 localStorage + 直连
+          const r = API.server
+            ? await fetch('/api/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: v }) }).then((x) => x.json()).catch(() => null)
+            : null;
+          if (API.server && !r?.ok) { U.toast(phone(), '保存失败：' + (r?.err || '本机服务没响应')); break; }
+          API.saveToken(v);
+          await refreshServer();
+          await API.setSource(r?.ok ? 'live' : 'direct');
+          U.closeSheet();
+          U.toast(phone(), r?.ok ? 'token 已保存到本机服务，切到真车数据' : 'token 已存在浏览器里，直连真车');
+          setTimeout(load, 240);
+          break;
+        }
+      }
+    });
+  }
+
+  // ---------------- 轮询 ----------------
+  let timer = null;
+  function startPoll() {
+    clearInterval(timer);
+    if (S.pollMs > 0) timer = setInterval(() => { if (!document.hidden) load({ silent: true }); }, S.pollMs);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load({ silent: true }); });
+
+  // ---------------- 启动 ----------------
+  async function init() {
+    loadPrefs();
+    applyTheme();
+    const d = new Date();
+    S.month = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+    await refreshServer();
+    await API.init();
+    S.source = API.source;
+    render();
+    const list = await API.call('vehicle_list');
+    S.vehicles = M.vehicles(list);
+    if (!S.vehicles.some((v) => v.vin === S.vin)) S.vin = S.vehicles[0]?.vin || '';
+    // user_info 用 uid=0（自己）；signin / 积分随手取一下，第三页要用
+    const extra = await API.all(['user_info', 'integral_total', 'signin_info'], { vin: S.vin, uid: '0', month: S.month });
+    S.data.user = M.user(extra.user_info, extra.integral_total);
+    S.data.signin = extra.signin_info;
+    const s = await API.all(SET_IDS, { vin: S.vin, uid: S.uid || '0', month: S.month });
+    if (s.vehicle_set_items) S.data.caps = s.vehicle_set_items;
+    if (s.vehicle_set_info) S.data.info = s.vehicle_set_info;
+    await load();
+    startPoll();
+    bind();
+  }
+
+  return { init, load, render, state: S, ACTIONS };
+})();
+
+document.addEventListener('DOMContentLoaded', () => window.APP.init());
+
+</script>
+</body>
+</html>
