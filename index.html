@@ -3,10 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#141218">
+<!-- 两个 theme-color：JS 没跑之前浏览器按系统偏好自己挑（跑起来后 applyTheme 会接管）。
+     系统深浅色，Android 用上面那条 meta 给状态栏/地址栏着色。 -->
+<meta name="theme-color" content="#fef7ff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
 <meta name="description" content="脱离极核 App 的车辆仪表盘：车况、骑行记录与设置">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
+<script>
+  // 首屏主题必须在样式之前定下来，否则深色手机上会先闪一下浅色底。
+  // 与 app.js 用同一个 localStorage 键；没存过（或存的是老版本的值）就跟随系统。
+  (function () {
+    try {
+      var t = JSON.parse(localStorage.getItem('zeeho.dash') || '{}').theme;
+      var sys = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.theme = (t === 'light' || t === 'dark') ? t : sys;
+    } catch (e) { /* 保持 <html data-theme> 上的默认值 */ }
+  })();
+</script>
 <style>
 /* ============================================================================
    极核仪表盘 · 样式
@@ -4152,6 +4166,7 @@ window.UI = (() => {
     refresh: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.2v5h-5"/>',
     gear: '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.4l2.1 1.2M17.7 15.4l2.1 1.2M4.2 16.6l2.1-1.2M17.7 8.6l2.1-1.2"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.4 5.4l1.4 1.4M17.2 17.2l1.4 1.4M18.6 5.4l-1.4 1.4M6.8 17.2l-1.4 1.4"/>',
+    auto: '<circle cx="12" cy="12" r="8.6"/><path d="M12 3.4v17.2"/><path d="M12 3.4a8.6 8.6 0 0 1 0 17.2z" fill="currentColor" stroke="none"/>',
     moon: '<path d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/>',
     down: '<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>',
     right: '<path d="m9.5 6.5 5.5 5.5-5.5 5.5"/>',
@@ -4590,7 +4605,7 @@ window.APP = (() => {
   const esc = M.esc;
 
   const S = {
-    theme: 'dark',
+    theme: 'system',   // system | light | dark（system = 跟随手机）
     accent: 'green',
     tile: 'amap',
     pollMs: 30000,
@@ -4644,10 +4659,16 @@ window.APP = (() => {
       const p = JSON.parse(localStorage.getItem('zeeho.dash') || '{}');
       Object.assign(S, {
         theme: p.theme, accent: p.accent, tile: p.tile, pollMs: p.pollMs, tab: p.tab, vin: p.vin,
-        profileUid: p.profileUid, openGroups: p.openGroups,
+        profileUid: p.profileUid, openGroups: p.openGroups, themeV: p.themeV,
       });
     } catch { /* 第一次打开 */ }
-    if (!S.theme) S.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    // 老版本没有"跟随系统"这个概念：存下来的是 light/dark，等于点了那次之后再也不会跟手机变。
+    // 这里一次性迁回 system（想要固定的用户点一下主题按钮就会重新钉死）。
+    if (!S.themeV || S.themeV < 2) {
+      S.theme = 'system';
+      S.themeV = 2;
+    }
+    if (S.theme !== 'light' && S.theme !== 'dark') S.theme = 'system';
     if (!S.accent) S.accent = 'green';
     // 地图固定用高德：车机给的就是 GCJ-02，高德瓦片也是 GCJ-02，不用转换也不会偏。
     // （老版本默认是 OSM，那条要先把 GCJ-02 转 WGS-84，且 OSM 政策不允许离线打包）
@@ -4661,17 +4682,34 @@ window.APP = (() => {
     try {
       localStorage.setItem('zeeho.dash', JSON.stringify({
         theme: S.theme, accent: S.accent, tile: S.tile, pollMs: S.pollMs, tab: S.tab, vin: S.vin,
-        profileUid: S.profileUid, openGroups: S.openGroups,
+        profileUid: S.profileUid, openGroups: S.openGroups, themeV: 2,
       }));
     } catch { /* 忽略 */ }
   };
 
-  function applyTheme() {
-    document.documentElement.dataset.theme = S.theme;
-    document.documentElement.dataset.accent = S.accent;
-    const meta = document.querySelector('meta[name=theme-color]');
-    if (meta) meta.setAttribute('content', S.theme === 'dark' ? '#141218' : '#fef7ff');
+  /** system 模式解析成当前系统偏好；light/dark 是用户钉死的 */
+  function resolvedTheme() {
+    if (S.theme === 'light' || S.theme === 'dark') return S.theme;
+    return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
+
+  function applyTheme() {
+    const t = resolvedTheme();
+    document.documentElement.dataset.theme = t;
+    document.documentElement.dataset.accent = S.accent;
+    // 两个 meta（带 media 的是首屏用、JS 没跑之前的兜底）：JS 接管后去掉 media，两边都写同一个值
+    document.querySelectorAll('meta[name=theme-color]').forEach((m) => {
+      m.removeAttribute('media');
+      m.setAttribute('content', t === 'dark' ? '#141218' : '#fef7ff');
+    });
+  }
+
+  // 手机切深浅色时跟着变（只在 system 模式下；钉死了就不动）
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (S.theme !== 'system') return;
+    applyTheme();
+    renderTop();
+  });
 
   // ---------------- 车控动作（接口待接入） ----------------
   // 这些按钮现在只负责说明"将来该打哪个接口"，真控制仍由宿主 App 执行。
@@ -4834,7 +4872,7 @@ window.APP = (() => {
       </button>
       <span class="spacer"></span>
       <button class="iconbtn${S.loading ? ' spin' : ''}" data-act="refresh" title="刷新">${U.icon('refresh', 22)}</button>
-      <button class="iconbtn" data-act="theme" title="深浅色">${U.icon(S.theme === 'dark' ? 'sun' : 'moon', 22)}</button>
+      <button class="iconbtn" data-act="theme" title="${S.theme === 'system' ? `跟随系统（现在是${resolvedTheme() === 'dark' ? '深色' : '浅色'}），点一下固定为${resolvedTheme() === 'dark' ? '浅色' : '深色'}` : `已固定为${S.theme === 'dark' ? '深色' : '浅色'}，点一下跟随系统`}">${U.icon(S.theme === 'system' ? 'auto' : (resolvedTheme() === 'dark' ? 'sun' : 'moon'), 22)}</button>
       <button class="iconbtn" data-act="debug" title="数据与调试">${U.icon('gear', 22)}</button>`;
     // 顶栏高度是内容撑出来的（车名一行还是两行、有没有安全区都会变），量完写回 CSS 变量，
     // 滚动区的上内边距按它算；写死数值会让第一张卡压在顶栏下面。
@@ -5981,11 +6019,15 @@ window.APP = (() => {
         case 'refresh':
           await load();
           break;
-        case 'theme':
-          S.theme = S.theme === 'dark' ? 'light' : 'dark';
+        case 'theme': {
+          // 三态循环：跟随系统 → 固定为"当前的反面" → 回到跟随系统
+          const cur = resolvedTheme();
+          S.theme = S.theme === 'system' ? (cur === 'dark' ? 'light' : 'dark') : 'system';
           savePrefs();
           render({ keepScroll: true });
+          U.toast(phone(), S.theme === 'system' ? '主题跟随系统' : `主题固定为${S.theme === 'dark' ? '深色' : '浅色'}`);
           break;
+        }
         case 'debug':
           await refreshServer();
           debugSheet();
