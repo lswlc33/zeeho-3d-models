@@ -88,6 +88,14 @@
   --el3: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 
   /* 视口没顶到屏幕边（浏览器标签页）→ 安全区清零，避免和浏览器自己的 UI 双份留白 */
+/* iOS 独立 PWA：视口会比屏幕矮掉状态栏那一条（WebKit bug），而**只要文档本身够高，
+   iOS 就会把完整视口给出来**（frappe/frappe-ui #1289 在 iPhone 17 Pro / iOS 26.2 实测）。
+   所以独立模式下给 html 一个高度下限；min() 卡上限，免得反过来多出一条可滚动区域。
+   （display-mode: standalone 只在"添加到主屏幕"后成立，浏览器里打开不受影响。） */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
+}
+
 html:not(.edge) { --sat: 0px; --sab: 0px; }
 
 /* ---------- 状态层 ---------- */
@@ -103,13 +111,10 @@ html:not(.edge) { --sat: 0px; --sab: 0px; }
   --dur-long: 500ms;
 
   /* ---------- 视口与安全区 ---------- */
-  /* --app-h：应用高度。JS 用 visualViewport.height 写进来（比 100dvh 靠谱：
-     iOS 独立 PWA 下 100dvh 会少算状态栏那一截，底部就空出一块）。
-     --sat/--sab：安全区。**只有视口真的顶到屏幕边时才吃**（app.js 按
+  /* --sat/--sab：安全区。**只有视口真的顶到屏幕边时才吃**（app.js 按
      visualViewport 高度 vs screen.height 判断后给 <html> 加 .edge）。
      iOS Safari/PWA 上视口本身就没到边，再叠一次 env() 会双份留白——
      顶部状态栏下面多一条、底部 tab 栏下面多一条。 */
-  --app-h: 100dvh;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
 
@@ -190,7 +195,9 @@ html:not(.edge) { --sat: 0px; --sab: 0px; }
 /* ============================ 基础 ============================ */
 * { box-sizing: border-box; }
 
-html, body { height: 100%; }
+/* 外层不做"文档滚动"：整个 App 是固定壳 + 内部滚动区，文档本身滚动只会带来问题
+   （iOS 橡皮筋、键盘/scrollIntoView 把绝对定位的顶栏顶出视口）。 */
+html, body { height: 100%; overflow: hidden; }
 
 body {
   margin: 0;
@@ -198,9 +205,20 @@ body {
   font-size: 14px;
   line-height: 20px;
   color: var(--md-sys-color-on-surface);
-  background: #0b0a0e;
+  /* 背景跟随主题，**不能写死深色**：iOS 独立模式下视口偶尔比屏幕矮一条（WebKit bug），
+     露出来的那条就是 body 背景——写死 #0b0a0e 时深色下是一条黑边，浅色下更刺眼。
+     跟随主题后，即使露出来也看不出接缝。 */
+  background: var(--md-sys-color-surface);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 桌面预览才有那块深色展台和光晕；手机上不画，免得万一露出底色时看到的是渐变而不是纯色 */
+@media (min-width: 720px) {
+  body { background: #0b0a0e; }
+}
+@media (max-width: 719px) {
+  body::before { display: none; }
 }
 
 /* 桌面预览：把页面放进一台"手机"里居中显示 */
@@ -215,7 +233,11 @@ body::before {
 }
 
 .stage {
-  height: 100%;
+  /* 贴初始包含块的四条边，**不用任何高度单位**：iOS 独立模式下 100vh/100dvh/dvh/svh、
+     window.innerHeight、-webkit-fill-available **全都会低报**（WebKit bug），
+     算高度这条路走不通；position:fixed + inset:0 是唯一稳的（cocktail-atlas #2 的做法）。 */
+  position: fixed;
+  inset: 0;
   display: grid;
   place-items: center;
   padding: 0;
@@ -227,7 +249,7 @@ body::before {
   flex-direction: column;
   width: 100%;
   max-width: 430px;
-  height: var(--app-h);
+  height: 100%;
   overflow: hidden;
   background: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
@@ -236,7 +258,7 @@ body::before {
 @media (min-width: 720px) {
   .stage { padding: 24px; }
   .phone {
-    height: min(920px, calc(100dvh - 48px));
+    height: min(920px, 100%);
     border-radius: 44px;
     box-shadow: 0 40px 80px -20px rgba(0, 0, 0, .65), 0 0 0 10px #17161b, 0 0 0 11px #34323a;
   }
@@ -854,7 +876,7 @@ body::before {
 /* 全屏弹层：骑行记录这种内容多的，半屏装不下 */
 .sheet.full {
   max-height: 100%;
-  height: var(--app-h);
+  height: 100%;
   border-radius: 0;
   padding-top: calc(10px + var(--sat));
 }
@@ -4652,21 +4674,22 @@ window.APP = (() => {
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /**
-   * 为什么不用纯 CSS：
-   *  · iOS 独立 PWA 下 `100dvh` 会少算状态栏那一截，底部就空出一块；
-   *  · iOS 上视口其实**没顶到屏幕边**（上下都被系统 UI 占掉了），却仍然报非零的
-   *    `env(safe-area-inset-*)`。再按安全区加一次 padding 就是**双份留白**：
-   *    顶部状态栏下面多一条、底部 tab 栏下面多一条（实测 iOS 上多出约「状态栏 + 小白条」那么多）。
-   * 所以：高度用 `visualViewport.height` 实测；安全区只在"视口≈整屏"（真·全屏）时才吃。
+   * 只判断"视口是不是真顶到屏幕边"，**不再算高度**。
+   *
+   * 高度交给 CSS 的 `position: fixed; inset: 0`（见 styles.css 的 .stage）：iOS 独立 PWA 下
+   * `100vh/100dvh/dvh/svh`、`window.innerHeight`、`-webkit-fill-available` 全都会低报
+   * （WebKit bug，见 frappe/frappe-ui #1289、cocktail-atlas #2），算出来反而会把壳做短、
+   * 底部露出 body 底色——那正是"iOS 底部一条黑边"的来源，用 JS 量高度治不好。
+   *
+   * 这里剩下的职责：iOS 上视口没顶到屏幕边时，`env(safe-area-inset-*)` 仍会报非零，
+   * 再按安全区加一次 padding 就是双份留白，所以只在"视口≈整屏"时才吃安全区。
    */
   function fitViewport() {
     const vv = window.visualViewport;
     const h = Math.round(vv ? vv.height : window.innerHeight);
-    const root = document.documentElement;
-    root.style.setProperty('--app-h', `${h}px`);
     // screen.height 拿不到就按"不是全屏"处理（宁可少留白，也别双份留白）
     const full = Math.round((window.screen && window.screen.height) || 0);
-    root.classList.toggle('edge', full > 0 && h >= full - 2);
+    document.documentElement.classList.toggle('edge', full > 0 && h >= full - 2);
   }
   fitViewport();
   window.addEventListener('resize', fitViewport);
@@ -6007,14 +6030,15 @@ window.APP = (() => {
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     const diag = [
+      ['运行模式', matchMedia('(display-mode: standalone)').matches ? '独立 PWA（桌面图标）' : '浏览器标签页'],
       ['innerHeight', `${window.innerHeight}`],
       ['visualViewport', vv ? `${Math.round(vv.height)}（offset ${Math.round(vv.offsetTop)}）` : '不支持'],
       ['screen.height', `${window.screen?.height ?? '?'}`],
+      ['html.clientHeight', `${root.clientHeight}`],
       ['DPR', `${window.devicePixelRatio}`],
-      ['--app-h', cs.getPropertyValue('--app-h').trim()],
-      ['安全区 top/bottom', `${cs.getPropertyValue('--sat').trim()} / ${cs.getPropertyValue('--sab').trim()}`],
+      ['安全区 top/bottom（原值）', `${window.getComputedStyle(root).getPropertyValue('--sat').trim()} / ${window.getComputedStyle(root).getPropertyValue('--sab').trim()}`],
       ['真全屏(.edge)', root.classList.contains('edge') ? '是（吃安全区）' : '否（安全区按 0）'],
-      ['.phone 实测高', `${Math.round(phone().getBoundingClientRect().height)}`],
+      ['.phone 实测高 / 视口差', `${Math.round(phone().getBoundingClientRect().height)} / ${Math.round(phone().getBoundingClientRect().height - (vv ? vv.height : window.innerHeight))}`],
     ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}</span></div>`).join('');
     U.sheet(phone(), {
       title: '数据与调试',
