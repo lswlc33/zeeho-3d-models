@@ -906,17 +906,10 @@ body::before {
 .hm-months span { position: absolute; top: 0; white-space: nowrap; }
 .hm-grid .c { aspect-ratio: 1; }
 
-/* 分格点阵（一格里一天/一小时）：格子是正方形，数字直接写在格子里 */
-.hm-line { display: grid; gap: 3px; }
-.hm-line .c { aspect-ratio: 1; position: relative; }
-.hm-line .c b {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  font-size: 10px; font-weight: 600; font-style: normal;
-  color: var(--md-sys-color-on-surface-variant);
-}
-/* 深色格子上换浅色数字，否则读不出来 */
-.hm-line .c.l2 b, .hm-line .c.l3 b, .hm-line .c.l4 b { color: var(--md-sys-color-on-primary); }
+/* 分格点阵（一格里一天/一小时）：格子固定大小、居中，圆角给足才像"点"而不是小方块 */
+.hm-row { --hm-cell: 20px; }
+.hm-line { display: grid; gap: 3px; justify-content: center; }
+.hm-line .c { border-radius: 35%; }
 .hm-legend {
   display: flex; align-items: center; justify-content: flex-end; gap: 3px;
   margin-top: 6px;
@@ -4518,19 +4511,20 @@ window.UI = (() => {
 
   /**
    * 分格点阵：一格里一天（月视图）或一小时（单日视图）。
-   *   items: [{ label, value, title }]；opts: { kind:'day'|'hour', rows }
-   * 排成 opts.rows 行（默认 1），**行优先、每行仍是从早到晚**：一行 31 格时每格只有 12px，
-   * 拆成 3 行后格子大得能直接把日期/小时数字写进格里，不用再单独一行刻度。
+   *   items: [{ label, value, title }]；opts: { kind:'day'|'hour', cols }
+   * 行优先、每行从左到右仍是时间顺序。格子**固定大小**（--hm-cell，不随容器拉伸）：
+   * 拉满宽度时 10 列会有 39px/格，太大；固定 20px 一排 10 个，块居中。
+   * 格子里不写数字——要精确值悬停看 title。
    */
   function heatRow(items, opts = {}) {
     const t = HEAT[opts.kind || 'day'] || HEAT.day;
-    const rows = Math.max(1, opts.rows || 1);
-    const cols = Math.ceil(items.length / rows);
+    const cols = Math.max(1, Math.min(opts.cols || items.length, items.length));
+    const rows = Math.ceil(items.length / cols);
     const cells = items
-      .map((it, i) => `<i class="c l${heatLvl(it.value, t)}" style="grid-area:${Math.floor(i / cols) + 1}/${(i % cols) + 1}" title="${esc(it.title || '')}"><b>${esc(it.label)}</b></i>`)
+      .map((it, i) => `<i class="c l${heatLvl(it.value, t)}" style="grid-area:${Math.floor(i / cols) + 1}/${(i % cols) + 1}" title="${esc(it.title || '')}"></i>`)
       .join('');
     return `<div class="hm hm-row">
-      <div class="hm-line" style="grid-template-columns:repeat(${cols},minmax(0,1fr));grid-template-rows:repeat(${rows},minmax(0,1fr))">${cells}</div>
+      <div class="hm-line" style="grid-template-columns:repeat(${cols},var(--hm-cell));grid-template-rows:repeat(${rows},var(--hm-cell))">${cells}</div>
       ${heatLegend()}
     </div>`;
   }
@@ -5388,7 +5382,7 @@ window.APP = (() => {
       const v = byDate[key] || 0;
       items.push({ label: String(d), value: v, title: `${mm} 月 ${d} 日${v > 0 ? ' · ' + v.toFixed(1) + ' km' : ' · 没骑'}` });
     }
-    return U.heatRow(items, { rows: 3 });
+    return U.heatRow(items, { cols: 10 });
   }
 
   /**
@@ -5429,7 +5423,7 @@ window.APP = (() => {
       value: v,
       title: `${i}:00–${i + 1}:00${v > 0 ? ' · ' + v.toFixed(1) + ' km' : ' · 没骑'}`,
     }));
-    return U.heatRow(items, { kind: 'hour', rows: 3 });
+    return U.heatRow(items, { kind: 'hour', cols: 12 });
   }
 
   function renderRideSheet() {
@@ -5451,8 +5445,7 @@ window.APP = (() => {
           ${tile('骑行时长', M.minutesShort(r.minutes))}
           ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
         </div>
-        <div class="section-title"><span>每天骑了多少</span><span class="line"></span></div>
-        ${monthRow(r.rows, m)}
+        <div class="mt12">${monthRow(r.rows, m)}</div>
         <div class="section-title"><span>逐日</span><span class="line"></span></div>` +
         (r.rows.length
           ? r.rows.map(recRow).join('')
@@ -5556,19 +5549,17 @@ window.APP = (() => {
           ${tile('时长', M.minutesShort(row.minutes))}
           ${tile('最高车速', row.maxSpeed, 'km/h')}
           ${tile('占本月', share, '%')}
+          <div class="grid3" style="grid-column:1/-1">
+            ${tile('急加速', row.accel, '次')}
+            ${tile('急刹车', row.brakes, '次')}
+            ${tile('压弯', row.bends, '次')}
+          </div>
         </div>
-        <div class="grid3">
-          ${tile('急加速', row.accel, '次')}
-          ${tile('急刹车', row.brakes, '次')}
-          ${tile('压弯', row.bends, '次')}
-        </div>
-        <div class="card-sub mt12">本月最高 ${model.maxSpeed ?? '—'} km/h · 本月里程 ${model.mile ?? '—'} km</div>
-        <div class="section-title"><span>几点骑的</span><span class="line"></span></div>
-        ${row.mile <= 0
-          ? `<div class="card-sub">这天没骑车。</div>`
+        <div class="mt16">${row.mile <= 0
+          ? ''
           : list && list.length
             ? hourRow(hourBuckets(list))
-            : '<div class="sk" style="height:44px;border-radius:12px"></div>'}
+            : '<div class="sk" style="height:70px;border-radius:12px"></div>'}</div>
         <div class="section-title"><span>行程${list?.length ? ` · ${list.length} 段` : ''}</span><span class="line"></span></div>
         ${tripBlock}
         <div style="height:8px"></div>`,
