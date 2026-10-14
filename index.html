@@ -14,7 +14,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 15:04">
+<meta name="build" content="2026-10-14 15:19">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -295,7 +295,30 @@ body::before {
   }
 }
 
-/* 滚动区：顶栏是绝对定位浮在上面的，所以这里要留出顶栏的高度 */
+/* 刷新加载条：贴在顶栏下沿的一条细线，任何一次刷新（轮询/手动/切页）都亮一下。
+   数据在悄悄变、页面却毫无动静，用户会以为没刷新（用户提的）。层级 5：压住内容里的浮层、
+   但不盖顶栏(6)和底栏(7)。 */
+.loadbar {
+  position: absolute; left: 0; right: 0; top: var(--topbar-h);
+  z-index: 5; height: 2px; overflow: hidden;
+  opacity: 0; transition: opacity var(--dur-short) var(--ease-standard);
+  pointer-events: none;
+}
+.loadbar.on { opacity: 1; }
+.loadbar::after {
+  content: "";
+  position: absolute; top: 0; bottom: 0; width: 42%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--md-sys-color-primary), transparent);
+  animation: loadslide 1.05s var(--ease-standard) infinite;
+}
+@keyframes loadslide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(340%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loadbar::after { animation: none; left: 0; right: 0; width: auto; background: var(--md-sys-color-primary); opacity: .6; }
+}
 /* 滚动区：顶栏是绝对定位浮在上面的，所以上边留出顶栏的高度；
    左右留白（--gutter）就加在这一层，卡片的左右边缘随之与顶栏对齐。
    滚动条一律不占位：它一占位右侧就比左侧多出十几像素，看着就是"没居中"。 */
@@ -810,6 +833,7 @@ body::before {
 
 /* ============================ 骑行记录（弹层里） ============================ */
 .monthbar {
+  position: relative;                 /* 刷新按钮绝对定位在右端：不参与 flex，月份标签才能保持居中 */
   display: flex; align-items: center; gap: 4px;
   padding: 2px 0 10px;
 }
@@ -817,6 +841,7 @@ body::before {
   flex: 1; text-align: center;
   font-size: 15px; font-weight: 600; letter-spacing: .2px;
 }
+.monthbar .iconbtn.refresh { position: absolute; right: 0; top: 0; }
 .monthbar .iconbtn[disabled] { opacity: .3; pointer-events: none; }
 
 .mstats {
@@ -1053,6 +1078,7 @@ body::before {
   <div class="stage">
     <div class="phone" id="phone">
       <header class="topbar" id="topbar"></header>
+      <div class="loadbar" id="loadbar"></div>
       <div class="scroll" id="scroll"></div>
       <nav class="tabbar" id="tabbar"></nav>
     </div>
@@ -4650,6 +4676,7 @@ window.UI = (() => {
       sheetEl.classList.add('show');
     });
     if (onMount) onMount(sheetEl);
+    animNums(sheetEl);          // 弹层里的数字同样滚动（重开同一张表时会看到变化）
   }
 
   function closeSheet() {
@@ -4660,6 +4687,55 @@ window.UI = (() => {
     setTimeout(() => {
       if (sheetEl && gen === sheetGen) sheetEl.innerHTML = '';
     }, 260);
+  }
+
+  // ---------------- 刷新反馈：加载条 + 数字滚动 ----------------
+  // 加载条：任何一次刷新（轮询 / 手动 / 切页）都在顶栏下沿亮一条，别让数据悄悄变。
+  // 太快完成会变成一闪，所以给个最短显示时间；另外挂个兜底定时器——万一哪次刷新中途抛异常、
+  // 没人来关它，也不至于一直挂着。
+  let barTimer = null;
+  let barShownAt = 0;
+  function loadBar(on) {
+    const el = document.getElementById('loadbar');
+    if (!el) return;
+    clearTimeout(barTimer);
+    if (on) {
+      barShownAt = Date.now();
+      el.classList.add('on');
+      barTimer = setTimeout(() => el.classList.remove('on'), 8000);
+      return;
+    }
+    const rest = Math.max(0, 260 - (Date.now() - barShownAt));
+    barTimer = setTimeout(() => el.classList.remove('on'), rest);
+  }
+
+  // 数字滚动：带 data-num（数值）+ data-key（稳定标识）的元素，值变了就从旧值滚到新值。
+  // 首屏不滚（没有上一次的值），系统开了"减少动态效果"也不滚。
+  // data-key 要能区分"不同的东西"——单日详情那种要带日期，否则换一天会从上一个日期的数字滚过来。
+  const LAST_NUM = new Map();
+  function animNums(scope) {
+    if (!scope) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    scope.querySelectorAll('[data-num]').forEach((el) => {
+      const raw = el.dataset.num;
+      const key = el.dataset.key;
+      if (!key || raw === '' || raw == null) return;
+      const to = Number(raw);
+      if (!Number.isFinite(to)) return;
+      const prev = LAST_NUM.get(key);
+      LAST_NUM.set(key, to);
+      if (prev === undefined || prev === to || reduce) return;
+      const dec = (String(raw).split('.')[1] || '').length;      // 保留目标值的小数位
+      const t0 = performance.now();
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / 480);
+        const v = prev + (to - prev) * (1 - Math.pow(1 - k, 3));  // easeOutCubic
+        el.textContent = v.toFixed(dec);
+        if (k < 1) requestAnimationFrame(step);
+        else el.textContent = to.toFixed(dec);
+      };
+      requestAnimationFrame(step);
+    });
   }
 
   let toastTimer = null;
@@ -4693,7 +4769,8 @@ window.UI = (() => {
 
   return {
     icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars, tireRing,
-    mapBox, mapBoxPath, mapPoints, heatmap, heatRow, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
+    mapBox, mapBoxPath, mapPoints, heatmap, heatRow, sheet, closeSheet, toast, copy,
+    loadBar, animNums, fallbackScooter, TILES, P,
   };
 })();
 
@@ -4734,6 +4811,11 @@ window.APP = (() => {
   const $ = (id) => document.getElementById(id);
   const phone = () => $('phone');
   const scroll = () => $('scroll');
+
+  // 网页版自己的版本号（爱车页最底部显示成 V4.02，不再显示 VIN——VIN 在车辆属性里有）。
+  // **每次提交推送前按这次改动的强度往上抬**：小修 +0.01（4.03）、成组的功能 +0.1（4.10）、
+  // 大改（换布局/加整页/改数据通道）进位到 5.00。别只在"想起来的时候"改——用户要能对着版本说话。
+  const APP_VER = '4.02';
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /** 是不是"装到桌面"的独立窗口：iOS 认 navigator.standalone，其它平台看 display-mode */
@@ -4979,6 +5061,9 @@ window.APP = (() => {
   }
 
   async function load({ silent } = {}) {
+    // 任何一次刷新（轮询/手动/切页）都在顶栏下沿亮一条加载条：数据在悄悄变而页面毫无动静，
+    // 用户会以为没刷新（用户提的）。轮询也亮——30 秒一次、每次三四百毫秒，不影响看数据。
+    U.loadBar(true);
     // 车辆列表必须跟当前数据源一致：切到直连/代理后，演示数据里那份打码 VIN 是查不到真车的，
     // 会一路返回空 → 定位为 null → 渲染崩。所以列表为空、或当前 VIN 不在列表里，都重拉一次。
     if (!S.vehicles.length || !S.vehicles.some((v) => v.vin === S.vin)) {
@@ -4992,6 +5077,7 @@ window.APP = (() => {
         S.lastErr = '没取到车辆列表' + (list.message ? '：' + list.message : '');
         S.loading = false;
         render();
+        U.loadBar(false);
         return;
       }
     }
@@ -5028,6 +5114,7 @@ window.APP = (() => {
     S.lastLoad = Date.now();
     savePrefs();
     render({ keepScroll: silent });
+    U.loadBar(false);
   }
 
   async function refreshServer() {
@@ -5122,19 +5209,18 @@ window.APP = (() => {
       `<div class="hero-top">${topChips}</div>
       <div class="hero-stage">
         <div class="bignum left">
-          <b class="tnum" style="color:${h.socColor.color}">${soc}<i>%</i></b>
+          <b class="tnum" style="color:${h.socColor.color}"><span data-num="${h.soc ?? ''}" data-key="soc">${soc}</span><i>%</i></b>
         </div>
         ${h.pic ? `<img src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter()">` : U.fallbackScooter()}
         <div class="bignum right">
-          <b class="tnum">${volt ?? '—'}<i>V</i></b>
+          <b class="tnum">${volt === null ? '—' : `<span data-num="${volt}" data-key="volt">${volt}</span>`}<i>V</i></b>
         </div>
         ${tireBubble('前轮', t?.wheels?.find((w) => w.pos === '前轮'), 'left')}
         ${tireBubble('后轮', t?.wheels?.find((w) => w.pos === '后轮'), 'right')}
       </div>
       ${U.socBar(soc, h.socColor.color, h.charge.charging)}
       <div class="hero-meta">
-        <span>总里程 ${h.totalMile ?? '—'} km</span><i class="sep"></i>
-        <span>本月 ${h.monthMile ?? '—'} km</span><i class="sep"></i>
+        <span>总里程 <span class="tnum" data-num="${h.totalMile ?? ''}" data-key="totalMile">${h.totalMile ?? '—'}</span> km</span><i class="sep"></i>
         ${h.signal.text ? `<span>信号 ${h.signal.text}</span><i class="sep"></i>` : ''}
         <span>${h.relRefresh ? '同步于 ' + h.relRefresh : '等车机上报'}</span>
       </div>`,
@@ -5145,9 +5231,9 @@ window.APP = (() => {
     const chargeCard = h.charge.charging || h.charge.full ? U.card(
       U.cardHead(h.charge.text, h.charge.left ? `预计 ${h.charge.left} 充满` : (h.charge.expect || ''), '', 'bolt') +
       `<div class="grid3">
-        ${tile('充电功率', b.power ?? h.charge.power ?? '—', 'W')}
-        ${tile('电池温度', b.temp ? b.temp : (h.temp || '—'), '℃')}
-        ${tile('充电电流', b.current ?? '—', 'A')}
+        ${tile('充电功率', b.power ?? h.charge.power ?? '—', 'W', '', 'chgPower')}
+        ${tile('电池温度', b.temp ? b.temp : (h.temp || '—'), '℃', '', 'chgTemp')}
+        ${tile('充电电流', b.current ?? '—', 'A', '', 'chgCurrent')}
       </div>`,
     ) : '';
 
@@ -5198,10 +5284,10 @@ window.APP = (() => {
       U.cardHead('最近骑行', '',
         `<button class="iconbtn${shared ? '' : ' sm'}" data-act="ride" title="全部记录">${U.icon('right', shared ? 20 : 18)}</button>`, 'route') +
       `<div class="grid2">
-        ${tile('今日', rh?.todayMile ?? '—', 'km')}
-        ${tile('本月', h.monthMile ?? '—', 'km')}
+        ${tile('今日', rh?.todayMile ?? '—', 'km', '', 'todayMile')}
+        ${tile('本月', h.monthMile ?? '—', 'km', '', 'monthMile')}
         ${tile('时长', M.minutesShort(h.monthMinutes))}
-        ${tile('均速', h.avgSpeed ?? '—', 'km/h')}
+        ${tile('均速', h.avgSpeed ?? '—', 'km/h', '', 'avgSpeed')}
       </div>` +
       (rm?.days?.length
         ? `<div class="mt8" data-act="ride" style="cursor:pointer" title="查看全部记录">${U.bars(rm.days)}</div>`
@@ -5236,16 +5322,21 @@ window.APP = (() => {
       ${shared ? locCard : `<div class="duo">${locCard}${rideCard}</div>`}
       ${moreCard}
       <div class="card-sub center">
-        ${API.source === 'demo' ? '演示样例' : '真车数据'} · VIN ${h.vin.slice(-6)} · ${new Date(S.lastLoad).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 更新
+        ${API.source === 'demo' ? '演示样例' : '真车数据'} · V${APP_VER} · ${new Date(S.lastLoad).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 更新
       </div>`;
   }
 
-  /** 紧凑小格：标签 + 大数字 + 单位 + 可选小字说明；值缺失时只显示「—」，不挂单位 */
-  function tile(k, v, unit = '', sub = '') {
+  /**
+   * 紧凑小格：标签 + 大数字 + 单位 + 可选小字说明；值缺失时只显示「—」，不挂单位。
+   * key 是给数字滚动用的稳定标识（见 UI.animNums）：同一个 key 的地方值变了就滚一下。
+   * 数字单独包一层 span——单位是 <small>，直接改 textContent 会把单位擦掉。
+   */
+  function tile(k, v, unit = '', sub = '', key = '') {
     const missing = v === null || v === undefined || v === '' || v === '—';
+    const anim = !missing && key && typeof v === 'number' ? ` data-num="${v}" data-key="${esc(key)}"` : '';
     return `<div class="tile">
       <span class="k">${esc(k)}</span>
-      <span class="v tnum">${missing ? '—' : esc(v)}${!missing && unit ? `<small>${esc(unit)}</small>` : ''}</span>
+      <span class="v tnum">${missing ? '—' : `<span${anim}>${esc(v)}</span>`}${!missing && unit ? `<small>${esc(unit)}</small>` : ''}</span>
       ${sub ? `<span class="s">${esc(sub)}</span>` : ''}
     </div>`;
   }
@@ -5421,13 +5512,18 @@ window.APP = (() => {
   // ---------------- 骑行记录：按月 → 按日 → 单次行程 ----------------
   // trips 按日期缓存那天的**分段行程**（ridetrack_v2）；pending 防重复请求，failed 让失败能显示出来
   // 而不是永远停在骨架上。
-  const RIDE = { month: '', day: null, trip: null, view: 'month', cache: {}, trips: {}, pending: {}, failed: {}, year: null };
+  const RIDE = { month: '', day: null, trip: null, view: 'month', cache: {}, trips: {}, pending: {}, failed: {}, year: null, refreshDay: '' };
 
-  /** 一个月的记录（月度汇总 + 逐日明细）取一次就缓存 */
-  async function ensureMonth(m) {
+  /**
+   * 一个月的记录（月度汇总 + 逐日明细）。
+   * force = 忽略缓存重取：**点开骑行记录时就该刷新**——人可能正在骑，半小时前的缓存放着不用会显示旧数。
+   * 重取时先把上一次的数据摆着（ready 不变），回来再换：不闪骨架屏，只在数字上滚一下。
+   */
+  async function ensureMonth(m, { force } = {}) {
     const hit = RIDE.cache[m];
-    if (hit && (hit.loading || hit.ready)) return hit;
-    RIDE.cache[m] = { loading: true };
+    if (hit?.loading) return hit;                     // 已经在拉了，别重复打
+    if (!force && hit?.ready) return hit;
+    RIDE.cache[m] = hit?.ready ? { ready: true, loading: true, model: hit.model } : { loading: true };
     const ctx = { vin: S.vin, month: m };
     const [rec, an] = await Promise.all([API.call('ride_month', ctx), API.call('analyse', ctx)]);
     RIDE.cache[m] = { ready: true, model: M.rideRecords(rec, an) };
@@ -5438,15 +5534,21 @@ window.APP = (() => {
     RIDE.month = m || S.month;
     RIDE.day = null;
     RIDE.trip = null;
+    RIDE.refreshDay = '';
     renderRideSheet();
-    const p = RIDE.view === 'year' ? ensureYear() : ensureMonth(RIDE.month);
+    // 点开就刷新：当月和年视图强制重取（人在骑车时这两处随时会变）；
+    // 翻老月份不用浪费请求——历史数据不会变。
+    const force = RIDE.view === 'year' || RIDE.month === S.month;
+    const p = RIDE.view === 'year' ? ensureYear({ force }) : ensureMonth(RIDE.month, { force });
     p.then(() => { if (!RIDE.day && !RIDE.trip) renderRideSheet(); });
   }
 
-  /** 近 12 个月的逐日里程（年视图用）。12 个请求并发打出去，结果缓存在 RIDE.year。 */
-  async function ensureYear() {
-    if (RIDE.year && (RIDE.year.loading || RIDE.year.ready)) return RIDE.year;
-    RIDE.year = { loading: true };
+  /** 近 12 个月的逐日里程（年视图用）。12 个请求并发打出去，结果缓存在 RIDE.year。force 同 ensureMonth。 */
+  async function ensureYear({ force } = {}) {
+    if (RIDE.year?.loading) return RIDE.year;
+    if (!force && RIDE.year?.ready) return RIDE.year;
+    const old = RIDE.year?.ready ? RIDE.year : null;
+    RIDE.year = { loading: true, ...(old || {}) };    // 重取时先留着旧数据，不闪
     const months = M.recentMonths(12, S.month);        // 由近到远
     try {
       const res = await Promise.all(months.map((mm) => API.call('ride_month', { vin: S.vin, month: mm })));
@@ -5465,7 +5567,7 @@ window.APP = (() => {
       });
       RIDE.year = { ready: true, days, per, total, ok: true };
     } catch {
-      RIDE.year = { ready: true, days: {}, per: [], total: 0, ok: false };
+      RIDE.year = old || { ready: true, days: {}, per: [], total: 0, ok: false };
     }
     return RIDE.year;
   }
@@ -5552,10 +5654,10 @@ window.APP = (() => {
     } else {
       const r = hit.model;
       body = `<div class="mstats">
-          ${tile('本月里程', r.mile ?? '—', 'km')}
-          ${tile('骑行天数', r.activeCount, '天')}
+          ${tile('本月里程', r.mile ?? '—', 'km', '', `ride-${m}-mile`)}
+          ${tile('骑行天数', r.activeCount, '天', '', `ride-${m}-days`)}
           ${tile('骑行时长', M.minutesShort(r.minutes))}
-          ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
+          ${tile('最高车速', r.maxSpeed ?? '—', 'km/h', '', `ride-${m}-max`)}
         </div>
         <div class="mt12">${monthRow(r.rows, m)}</div>
         <div class="section-title"><span>逐日</span><span class="line"></span></div>` +
@@ -5571,6 +5673,7 @@ window.APP = (() => {
           <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, -1)}" title="上个月">${U.icon('left', 20)}</button>
           <div class="monthlabel">${esc(M.monthLabel(m))}</div>
           <button class="iconbtn" data-act="month" data-v="${M.monthShift(m, 1)}" title="下个月"${m >= S.month ? ' disabled' : ''}>${U.icon('right', 20)}</button>
+          <button class="iconbtn refresh" data-act="riderefresh" title="刷新（点开时已经自动刷过一次）">${U.icon('refresh', 20)}</button>
         </div>${body}<div style="height:6px"></div>`,
     });
     applyLocMask();
@@ -5657,14 +5760,14 @@ window.APP = (() => {
       body: `
         <button class="rec-back" data-act="rideback">${U.icon('left', 16)}<span>返回 ${esc(M.monthLabel(m))}</span></button>
         <div class="mstats mt12">
-          ${tile('里程', row.mile, 'km')}
+          ${tile('里程', row.mile, 'km', '', `day-${RIDE.day}-mile`)}
           ${tile('时长', M.minutesShort(row.minutes))}
-          ${tile('最高车速', row.maxSpeed, 'km/h')}
-          ${tile('占本月', share, '%')}
+          ${tile('最高车速', row.maxSpeed, 'km/h', '', `day-${RIDE.day}-max`)}
+          ${tile('占本月', share, '%', '', `day-${RIDE.day}-share`)}
           <div class="grid3" style="grid-column:1/-1">
-            ${tile('急加速', row.accel, '次')}
-            ${tile('急刹车', row.brakes, '次')}
-            ${tile('压弯', row.bends, '次')}
+            ${tile('急加速', row.accel, '次', '', `day-${RIDE.day}-accel`)}
+            ${tile('急刹车', row.brakes, '次', '', `day-${RIDE.day}-brakes`)}
+            ${tile('压弯', row.bends, '次', '', `day-${RIDE.day}-bends`)}
           </div>
         </div>
         <div class="mt16">${row.mile <= 0
@@ -5678,16 +5781,22 @@ window.APP = (() => {
     });
     applyLocMask();
 
-    // 分段行程按天懒加载（一天一次，缓存住；这天没骑就别请求了）
+    // 分段行程：一天一次，缓存住；这天没骑就别请求了。
+    // 但点进来时**重取一次**（RIDE.refreshDay）——"今天"这一天随时会多出新的行程段；
+    // 重取期间旧列表照常显示，失败也不把已有数据删掉（只是不给它盖"取不到"的章）。
     const date = RIDE.day;
-    if (row.mile > 0 && !RIDE.trips[date] && !RIDE.pending[date] && !RIDE.failed[date]) {
+    if (row.mile > 0 && !RIDE.pending[date] && !RIDE.failed[date] && (RIDE.refreshDay === date || !RIDE.trips[date])) {
       RIDE.pending[date] = true;
       API.call('ride_track', { vin: S.vin, date, month: m })
         // API.call 从不抛异常，失败在返回值里（res.ok=false），所以两边都要判
-        .then((res) => { if (res?.ok) RIDE.trips[date] = M.trips(res); else RIDE.failed[date] = true; })
-        .catch(() => { RIDE.failed[date] = true; })
+        .then((res) => {
+          if (res?.ok) { RIDE.trips[date] = M.trips(res); RIDE.failed[date] = false; }
+          else if (!RIDE.trips[date]) RIDE.failed[date] = true;
+        })
+        .catch(() => { if (!RIDE.trips[date]) RIDE.failed[date] = true; })
         .finally(() => {
           RIDE.pending[date] = false;
+          if (RIDE.refreshDay === date) RIDE.refreshDay = '';
           if (RIDE.day === date && !RIDE.trip) renderRideDay();
         });
     }
@@ -5720,7 +5829,7 @@ window.APP = (() => {
         <div class="mstats mt12">
           ${tile('里程', t.mile.toFixed(1), 'km')}
           ${tile('时长', M.minutesShort(t.minutes))}
-          ${tile('最高车速', t.maxSpeed, 'km/h')}
+          ${tile('最高车速', t.maxSpeed, 'km/h', '', `trip-${t.id}-max`)}
           ${tile('均速', avg === null ? '—' : avg.toFixed(1), 'km/h')}
         </div>
         <div class="mt12">
@@ -5731,9 +5840,9 @@ window.APP = (() => {
           ${t.odo !== null ? `<div class="kv"><span class="k">累计总里程</span><span class="v tnum">${esc(t.odo)} km</span></div>` : ''}
         </div>
         <div class="grid3 mt12">
-          ${tile('急加速', t.accel, '次')}
-          ${tile('急刹车', t.brakes, '次')}
-          ${tile('压弯', t.bends, '次')}
+          ${tile('急加速', t.accel, '次', '', `trip-${t.id}-accel`)}
+          ${tile('急刹车', t.brakes, '次', '', `trip-${t.id}-brakes`)}
+          ${tile('压弯', t.bends, '次', '', `trip-${t.id}-bends`)}
         </div>
         <div class="section-title"><span>轨迹 · ${pts.length} 点</span><span class="line"></span></div>
         ${trackBlock}
@@ -6062,6 +6171,8 @@ window.APP = (() => {
     phone().scrollTop = 0;
     // 位置打码的状态要跟着每次重渲染走（轮询刷新后不能自己变回明文）
     if (S.tab === 'home') applyLocMask();
+    // 数字滚动：值变了（轮询刷到的）就滚一下，让"更新了"这件事看得见；首屏不滚
+    U.animNums(scroll());
   }
 
   // ---------------- 弹层 ----------------
@@ -6370,14 +6481,25 @@ window.APP = (() => {
           RIDE.day = null;
           RIDE.trip = null;
           renderRideSheet();
-          ensureMonth(v).then(() => { if (!RIDE.day) renderRideSheet(); });
+          // 翻回当月也强制重取一次（历史月份不变，没必要）
+          ensureMonth(v, { force: v === S.month }).then(() => { if (!RIDE.day) renderRideSheet(); });
           break;
         }
         case 'day':
           RIDE.day = t.dataset.date || '';
           RIDE.trip = null;
+          // 单日也重取一次：点的大概率是"今天"，行程段随时会多出来（旧的先摆着，见 renderRideDay）
+          RIDE.refreshDay = RIDE.day;
           renderRideDay();
           break;
+        case 'riderefresh': {
+          // 手动刷新当前视图（点开时已经自动刷过一遍，这是给"停在弹层里等数据"用的）
+          if (RIDE.day) { RIDE.refreshDay = RIDE.day; renderRideSheet(); }
+          else if (RIDE.view === 'year') ensureYear({ force: true }).then(() => { if (!RIDE.day) renderRideSheet(); });
+          else ensureMonth(RIDE.month, { force: true }).then(() => { if (!RIDE.day) renderRideSheet(); });
+          U.toast(phone(), '正在刷新…', 1200);
+          break;
+        }
         case 'trip':
           RIDE.trip = t.dataset.id || '';
           renderRideTrip();
