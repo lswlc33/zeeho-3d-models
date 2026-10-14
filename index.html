@@ -890,7 +890,8 @@ body::before {
 .hm-grid { display: grid; gap: 1px; }
 .hm .c {
   display: block; border-radius: 2px;
-  background: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
+  /* l0 = 那天完全没出门：只留一丝轮廓，好跟"骑了 0.1km"区分开（后者是 l1，明显有色） */
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 5%, transparent);
 }
 .hm .c.l1 { background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent); }
 .hm .c.l2 { background: color-mix(in srgb, var(--md-sys-color-primary) 52%, transparent); }
@@ -904,6 +905,18 @@ body::before {
 }
 .hm-months span { position: absolute; top: 0; white-space: nowrap; }
 .hm-grid .c { aspect-ratio: 1; }
+
+/* 分格点阵（一格里一天/一小时）：格子是正方形，数字直接写在格子里 */
+.hm-line { display: grid; gap: 3px; }
+.hm-line .c { aspect-ratio: 1; position: relative; }
+.hm-line .c b {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 600; font-style: normal;
+  color: var(--md-sys-color-on-surface-variant);
+}
+/* 深色格子上换浅色数字，否则读不出来 */
+.hm-line .c.l2 b, .hm-line .c.l3 b, .hm-line .c.l4 b { color: var(--md-sys-color-on-primary); }
 .hm-legend {
   display: flex; align-items: center; justify-content: flex-end; gap: 3px;
   margin-top: 6px;
@@ -3483,7 +3496,7 @@ window.MODEL = (() => {
     };
   }
 
-  /** 轨迹串 'lng,lat,车速,时间戳ms,本段距离m' 用 & 连接 → [{lng,lat,speed,ts}] */
+  /** 轨迹串 'lng,lat,车速,时间戳ms,本段距离m' 用 & 连接 → [{lng,lat,speed,ts,dist}] */
   function parseTrajectory(str) {
     const out = [];
     for (const seg of s(str).split('&')) {
@@ -3492,7 +3505,8 @@ window.MODEL = (() => {
       const lng = n(f[0]);
       const lat = n(f[1]);
       if (lng === null || lat === null) continue;
-      out.push({ lng, lat, speed: n(f[2]), ts: n(f[3]) });
+      // 第 5 个字段是"本段距离（米）"——按小时分档要用它，别丢
+      out.push({ lng, lat, speed: n(f[2]), ts: n(f[3]), dist: n(f[4]) });
     }
     return out;
   }
@@ -4491,13 +4505,39 @@ window.UI = (() => {
     </div>`;
   }
 
+  // ---------------- 骑行点阵（贡献图） ----------------
   /**
-   * 骑行贡献图（GitHub 那种日历点阵）。
-   *   get: (dateStr 'YYYY.MM.DD') => 当天里程 km（0/undefined = 那天没骑）
-   *   opts.end: 结束日期（默认今天）
-   * 固定"最近 365 天 / 53 列 × 7 行，周一为每周第一行"，列宽用 1fr 自适应容器宽度。
-   * 早先按月做过日历式（7 列 × 6 行、格子撑满宽度），每格 ~48px、整块占掉小半屏，太占位置，已撤。
-   * 分档按**非零值的四分位**，不按最大值——一年里跑一趟长途就会把其余全压成最浅色。
+   * 档位是**绝对里程**，不是相对分位：
+   *   · 0 和 0.1 的差别（今天到底出没出门）比 0.1 和 5 的差别重要得多，所以 0 = 完全不着色、>0 一定有色；
+   *   · 上限按"一天 150km / 一小时 50km"来定，跨月跨天才有可比性（相对分位会随当月最小值漂移）。
+   */
+  const HEAT = { day: [25, 50, 100], hour: [8, 20, 35] };
+  const heatLvl = (v, t) => (v <= 0 ? 0 : v <= t[0] ? 1 : v <= t[1] ? 2 : v <= t[2] ? 3 : 4);
+  const heatLegend = () =>
+    `<div class="hm-legend"><span>没骑</span>${[0, 1, 2, 3, 4].map((l) => `<i class="c l${l}"></i>`).join('')}<span>多</span></div>`;
+
+  /**
+   * 分格点阵：一格里一天（月视图）或一小时（单日视图）。
+   *   items: [{ label, value, title }]；opts: { kind:'day'|'hour', rows }
+   * 排成 opts.rows 行（默认 1），**行优先、每行仍是从早到晚**：一行 31 格时每格只有 12px，
+   * 拆成 3 行后格子大得能直接把日期/小时数字写进格里，不用再单独一行刻度。
+   */
+  function heatRow(items, opts = {}) {
+    const t = HEAT[opts.kind || 'day'] || HEAT.day;
+    const rows = Math.max(1, opts.rows || 1);
+    const cols = Math.ceil(items.length / rows);
+    const cells = items
+      .map((it, i) => `<i class="c l${heatLvl(it.value, t)}" style="grid-area:${Math.floor(i / cols) + 1}/${(i % cols) + 1}" title="${esc(it.title || '')}"><b>${esc(it.label)}</b></i>`)
+      .join('');
+    return `<div class="hm hm-row">
+      <div class="hm-line" style="grid-template-columns:repeat(${cols},minmax(0,1fr));grid-template-rows:repeat(${rows},minmax(0,1fr))">${cells}</div>
+      ${heatLegend()}
+    </div>`;
+  }
+
+  /**
+   * 年视图：最近 365 天，53 列 × 7 行（周一为每周第一行），顶上标月份。
+   *   get: (dateStr 'YYYY.MM.DD') => 当天里程 km
    */
   function heatmap(get, opts = {}) {
     const pad2 = (n) => String(n).padStart(2, '0');
@@ -4533,18 +4573,15 @@ window.UI = (() => {
       }
     }
 
-    const nz = cells.filter((c) => c.value > 0).map((c) => c.value).sort((a, b) => a - b);
-    const qt = (p) => (nz.length ? nz[Math.min(nz.length - 1, Math.max(0, Math.floor(p * nz.length) - 1))] : 0);
-    const t = [qt(0.25), qt(0.5), qt(0.75)];
-    const lvl = (v) => (v <= 0 ? 0 : v <= t[0] ? 1 : v <= t[1] ? 2 : v <= t[2] ? 3 : 4);
+    const t = opts.levels || HEAT.day;
     const grid = cells
-      .map((c) => `<i class="c l${lvl(c.value)}" style="grid-area:${c.row + 1}/${c.col + 1}" title="${esc(c.date)}${c.value > 0 ? ' · ' + c.value.toFixed(1) + ' km' : ' · 没有骑行'}"></i>`)
+      .map((c) => `<i class="c l${heatLvl(c.value, t)}" style="grid-area:${c.row + 1}/${c.col + 1}" title="${esc(c.date)}${c.value > 0 ? ' · ' + c.value.toFixed(1) + ' km' : ' · 没骑'}"></i>`)
       .join('');
 
-    return `<div class="hm">
+    return `<div class="hm hm-year">
       <div class="hm-months">${months.map((m) => `<span style="left:${((m.col / cols) * 100).toFixed(2)}%">${m.text}</span>`).join('')}</div>
       <div class="hm-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr));grid-template-rows:repeat(7,minmax(0,1fr))">${grid}</div>
-      <div class="hm-legend"><span>少</span>${[0, 1, 2, 3, 4].map((l) => `<i class="c l${l}"></i>`).join('')}<span>多</span></div>
+      ${heatLegend()}
     </div>`;
   }
 
@@ -4630,7 +4667,7 @@ window.UI = (() => {
 
   return {
     icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars, tireRing,
-    mapBox, mapBoxPath, mapPoints, heatmap, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
+    mapBox, mapBoxPath, mapPoints, heatmap, heatRow, sheet, closeSheet, toast, copy, fallbackScooter, TILES, P,
   };
 })();
 
@@ -5296,8 +5333,7 @@ window.APP = (() => {
     RIDE.day = null;
     RIDE.trip = null;
     renderRideSheet();
-    // 两个视图都要那条"最近一年"的点阵，所以年数据一起拉（12 个月并发，之后走缓存）
-    const p = RIDE.view === 'year' ? ensureYear() : Promise.all([ensureMonth(RIDE.month), ensureYear()]);
+    const p = RIDE.view === 'year' ? ensureYear() : ensureMonth(RIDE.month);
     p.then(() => { if (!RIDE.day && !RIDE.trip) renderRideSheet(); });
   }
 
@@ -5333,6 +5369,69 @@ window.APP = (() => {
     return `<div class="field" style="flex-wrap:wrap;gap:8px">${seg('month', '按月')}${seg('year', '近一年')}</div>`;
   }
 
+  const pad2s = (n) => String(n).padStart(2, '0');
+  /** '2026.10.11 16:12:52' → Date（服务端给的是本地时间，没有时区后缀，按本地构造） */
+  function parseTs(v) {
+    const r = /^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(String(v || ''));
+    return r ? new Date(+r[1], +r[2] - 1, +r[3], +r[4], +r[5], +r[6]) : null;
+  }
+
+  /** 当月逐日点阵（只画这个月）。0 = 没出门不着色，>0 一定有颜色；档位按 0~150km 绝对分档 */
+  function monthRow(rows, m) {
+    const [y, mm] = m.split('.').map(Number);
+    const days = new Date(y, mm, 0).getDate();
+    const byDate = {};
+    for (const r of rows || []) byDate[r.date] = r.mile;
+    const items = [];
+    for (let d = 1; d <= days; d++) {
+      const key = `${m}.${pad2s(d)}`;
+      const v = byDate[key] || 0;
+      items.push({ label: String(d), value: v, title: `${mm} 月 ${d} 日${v > 0 ? ' · ' + v.toFixed(1) + ' km' : ' · 没骑'}` });
+    }
+    return U.heatRow(items, { rows: 3 });
+  }
+
+  /**
+   * 一天里每个小时骑了多少（km）。
+   * **跨小时的行程怎么算**：轨迹串里每个点都带"时间戳 + 本段距离"，所以把每段距离记到
+   * **该段结束时刻所在的那个小时**里就行——一趟 15:52→16:35 的行程会自然摊到 15、16 点上，
+   * 不用猜怎么分（按轨迹点的时间戳切，比"按时长平均"准得多）。
+   * 没有轨迹点（接口没返回）时才退化成"按跨越的时长把整段里程平均摊到那几个小时"。
+   */
+  function hourBuckets(trips) {
+    const h = new Array(24).fill(0);
+    const spread = (a, b, km) => {
+      const ms = Math.max(1, b - a);
+      for (let i = 0; i < 24; i++) {
+        const hs = new Date(a);
+        hs.setHours(i, 0, 0, 0);
+        const ov = Math.min(hs.getTime() + 3600000, b) - Math.max(hs.getTime(), a);
+        if (ov > 0) h[i] += km * (ov / ms);
+      }
+    };
+    for (const t of trips || []) {
+      const pts = (t.points || []).filter((p) => p.ts && p.dist);
+      if (pts.length >= 2) {
+        for (const p of pts) h[new Date(p.ts).getHours()] += p.dist / 1000;   // 米 → km
+      } else if (t.mile > 0) {
+        const a = parseTs(t.start);
+        const b = parseTs(t.end);
+        if (a && b) spread(a, b, t.mile);
+      }
+    }
+    return h;
+  }
+
+  /** 24 小时点阵：一格一小时。上界按"一小时最多几十公里"定，和"一天 150km"是两套档位 */
+  function hourRow(h) {
+    const items = h.map((v, i) => ({
+      label: String(i),
+      value: v,
+      title: `${i}:00–${i + 1}:00${v > 0 ? ' · ' + v.toFixed(1) + ' km' : ' · 没骑'}`,
+    }));
+    return U.heatRow(items, { kind: 'hour', rows: 3 });
+  }
+
   function renderRideSheet() {
     if (RIDE.trip) return renderRideTrip();
     if (RIDE.day) return renderRideDay();
@@ -5352,8 +5451,8 @@ window.APP = (() => {
           ${tile('骑行时长', M.minutesShort(r.minutes))}
           ${tile('最高车速', r.maxSpeed ?? '—', 'km/h')}
         </div>
-        <div class="section-title"><span>最近一年每天骑了多少</span><span class="line"></span></div>
-        ${RIDE.year?.ready ? U.heatmap((d) => RIDE.year.days[d]) : '<div class="sk" style="height:70px;border-radius:12px"></div>'}
+        <div class="section-title"><span>每天骑了多少</span><span class="line"></span></div>
+        ${monthRow(r.rows, m)}
         <div class="section-title"><span>逐日</span><span class="line"></span></div>` +
         (r.rows.length
           ? r.rows.map(recRow).join('')
@@ -5464,6 +5563,12 @@ window.APP = (() => {
           ${tile('压弯', row.bends, '次')}
         </div>
         <div class="card-sub mt12">本月最高 ${model.maxSpeed ?? '—'} km/h · 本月里程 ${model.mile ?? '—'} km</div>
+        <div class="section-title"><span>几点骑的</span><span class="line"></span></div>
+        ${row.mile <= 0
+          ? `<div class="card-sub">这天没骑车。</div>`
+          : list && list.length
+            ? hourRow(hourBuckets(list))
+            : '<div class="sk" style="height:44px;border-radius:12px"></div>'}
         <div class="section-title"><span>行程${list?.length ? ` · ${list.length} 段` : ''}</span><span class="line"></span></div>
         ${tripBlock}
         <div style="height:8px"></div>`,
