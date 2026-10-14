@@ -14,7 +14,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 14:56">
+<meta name="build" content="2026-10-14 15:04">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -6224,41 +6224,31 @@ window.APP = (() => {
   }
 
   function debugSheet() {
-    // 纯静态网页只需要一件事：粘 token。数据源自动判断（有 token 直连、没有就演示），
+    // 纯静态网页只需要两件事：token 和账号 id。数据源自动判断（有 token 直连、没有就演示），
     // 地图瓦片/轮询这些不往这儿放。
-    // 副标题要分三种情况：浏览器里存了 token / 只有本机服务里有 token / 都没有。
-    // （live 模式下 token 在服务端文件里，浏览器 localStorage 是空的——只看 localStorage 会说"还没填"，
-    //   而页面明明正在显示真车数据，前后矛盾）
-    const saved = API.token || API.loadToken();
-    const sub = saved
+    // 两个输入框都要"有记忆"：本机存过的 token 直接填进去（默认遮起来，点眼睛看全文），
+    // 每次进来都不是空的，改账号 id 也不用重粘 token。
+    // （live 模式下 token 只在本机服务里、浏览器里没有，那种情况留空 = 不动它，副标题会说明）
+    const saved = API.token || API.loadToken() || '';
+    const sub = (saved
       ? `已保存 token：${saved.slice(0, 8)}…${saved.slice(-4)}`
-      : (API.server?.hasToken ? `本机服务里有 token（${API.server.token || ''}），正在看真车数据` : '还没填 token，填了就能看真车');
-    // 屏幕诊断：手机上"顶栏/底栏位置不对"这类问题（尤其 iOS）光看截图猜不准，直接把实测值列出来
-    const vv = window.visualViewport;
-    const root = document.documentElement;
-    const cs = getComputedStyle(root);
-    const diag = [
-      ['运行模式', isStandalone() ? '独立 PWA（桌面图标）' : '浏览器标签页'],
-      ['构建', isBuildId(BUILD) ? BUILD : '开发版'],
-      ['innerHeight', `${window.innerHeight}`],
-      ['visualViewport', vv ? `${Math.round(vv.height)}（offset ${Math.round(vv.offsetTop)}）` : '不支持'],
-      ['screen.height', `${window.screen?.height ?? '?'}`],
-      ['html.clientHeight / 撑高', `${root.clientHeight} / ${root.style.minHeight || '未设'}`],
-      ['DPR', `${window.devicePixelRatio}`],
-      ['安全区 原值 top/bottom', `${cs.getPropertyValue('--sat-raw').trim()} / ${cs.getPropertyValue('--sab-raw').trim()}`],
-      ['安全区 实际采用', `${cs.getPropertyValue('--sat').trim()} / ${cs.getPropertyValue('--sab').trim()}`],
-      ['判定', root.classList.contains('edge') ? '铺满整屏（上下都按 env 吃）' : '夹在浏览器 UI 里（不吃安全区）'],
-      ['.phone 实测高 / 视口差', `${Math.round(phone().getBoundingClientRect().height)} / ${Math.round(phone().getBoundingClientRect().height - (vv ? vv.height : window.innerHeight))}`],
-    ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}</span></div>`).join('');
+      : (API.server?.hasToken
+        ? `本机服务里有 token（${API.server.token || ''}），正在看真车数据 · 这里留空 = 不动它`
+        : '还没填 token，填了就能看真车'))
+      + (isBuildId(BUILD) ? ` · 构建 ${BUILD}` : '');
+    // 眼睛按钮：token 默认遮起来（是凭据，页面别处也提醒过"别在别人机器上留 token"），
+    // 账号 id 不是凭据、默认明文（要随时对得上昵称），两个都能点眼睛切换。
     U.sheet(phone(), {
       title: '数据与调试',
       sub,
       body: `
         <div class="field">
-          <input id="tokenInput" type="text" placeholder="粘贴 token" autocomplete="off" spellcheck="false">
+          <input id="tokenInput" type="password" placeholder="粘贴 token" autocomplete="off" spellcheck="false" value="${esc(saved)}">
+          <button class="iconbtn" data-act="eye" data-target="tokenInput" title="显示 token">${U.icon('eye', 20)}</button>
         </div>
-        <div class="field mt12">
+        <div class="field">
           <input id="uidInput" type="text" placeholder="账号 id（可选，用来显示昵称）" autocomplete="off" spellcheck="false" value="${esc(S.profileUid || '')}">
+          <button class="iconbtn" data-act="eye" data-target="uidInput" title="隐藏账号 id">${U.icon('eyeOff', 20)}</button>
         </div>
         <div class="field mt12">
           <button class="btn block" data-act="savetoken">保存</button>
@@ -6266,8 +6256,6 @@ window.APP = (() => {
         <div class="field mt12">
           <button class="btn text block" data-act="rawlist">看原始响应</button>
         </div>
-        <div class="section-title mt16"><span>屏幕诊断</span><span class="line"></span></div>
-        ${diag}
         <div style="height:8px"></div>`,
     });
   }
@@ -6439,13 +6427,18 @@ window.APP = (() => {
           setTimeout(() => U.toast(phone(), S.pollMs ? `每 ${S.pollMs / 1000} 秒刷新` : '已关闭自动刷新'), 260);
           break;
         case 'savetoken': {
-          const input = $('tokenInput');
-          const v = (input?.value || '').trim();
+          const v = ($('tokenInput')?.value || '').trim();
           const uidVal = ($('uidInput')?.value || '').trim();
+          const curToken = API.token || API.loadToken() || '';
+          // 输入框是预填的，所以"没动过"才是常态：只有真改了才走下面的换账号流程。
+          // 清空同样算改动——那表示"不再存这份 token"。
+          const tokenChanged = v !== curToken;
           // "把账号 id 清空"也是一种有效的修改（= 不显示昵称头像），所以不能只看 uidVal 非空
           const uidChanged = uidVal !== (S.profileUid || '');
-          if (!v && (uidVal || uidChanged)) {
-            // 只改账号 id：token 已经存过，重拉一次档案即可
+
+          // token 没动（填的就是本机存的那份，或服务端存着而这里留空）→ 只当改账号 id
+          if (!tokenChanged) {
+            if (!uidChanged) { U.closeSheet(); U.toast(phone(), '没有改动'); break; }
             S.profileUid = uidVal; savePrefs();
             U.closeSheet();
             await loadAccount();
@@ -6453,26 +6446,42 @@ window.APP = (() => {
             U.toast(phone(), S.data.user?.ok ? '昵称已更新' : (uidVal ? '这个 id 没查到档案' : '已隐藏昵称和头像'));
             break;
           }
-          if (!v) { U.toast(phone(), '先把 token 粘进来'); break; }
-          // 无条件赋值：把输入框清空就是"不显示昵称头像"，不能因为"填过就取消不掉"
-          S.profileUid = uidVal;
-          API.saveToken(v);
-          // 换 token 等于换账号：车辆列表 / VIN / 缓存全部作废重来。
+          // token 改了：等于换账号，车辆列表 / VIN / 缓存全部作废重来。
           // （不清的话会拿上一次（可能是演示数据里那份打码 VIN）去查真车，一路返回空、页面看着就是错的）
+          S.profileUid = uidVal;
+          API.saveToken(v);              // 空串 = 把本机那份删掉
           S.vehicles = []; S.vin = ''; S.data = {};
-          // 有本机服务就顺手写服务端文件；纯静态页只存浏览器里
-          const r = API.server
+          // 有本机服务就顺手写服务端文件；纯静态页只存浏览器里。
+          // 清空时不写服务端：那是本机存着的凭据，只能手删文件（服务端也会拒空值，两道都拦）
+          const r = API.server && v
             ? await fetch('/api/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: v }) }).then((x) => x.json()).catch(() => null)
             : null;
-          if (API.server && !r?.ok) { U.toast(phone(), '保存失败：' + (r?.err || '本机服务没响应')); break; }
+          if (API.server && v && !r?.ok) { U.toast(phone(), '保存失败：' + (r?.err || '本机服务没响应')); break; }
           await refreshServer();
-          await API.setSource(r?.ok ? 'live' : 'direct');
+          // 清空又没有本机服务 → 回演示数据；别留在"需要 token"的直连模式里干瞪眼。
+          // （本机服务里还有 token 的话照旧用它，只是浏览器里这份没了）
+          await API.setSource(r?.ok ? 'live' : (v ? 'direct' : (API.server?.hasToken ? 'live' : 'demo')));
           U.closeSheet();
+          if (!v) {
+            U.toast(phone(), API.server?.hasToken ? '已清除浏览器里存的 token（本机服务里的照旧）' : '已清除 token，回到演示数据');
+            render();
+            break;
+          }
           U.toast(phone(), '已保存，正在拉取车辆…');
           await load();
           await loadAccount();          // 账号信息不在首页那批请求里，单独拉一次
           render({ keepScroll: true });
           U.toast(phone(), '数据已更新');
+          break;
+        }
+        case 'eye': {
+          // 眼睛按钮：把对应的输入框在明文/遮起来之间切一下（按钮自己也换个图标和提示）
+          const inp = $(t.dataset.target);
+          if (!inp) break;
+          const show = inp.type === 'password';
+          inp.type = show ? 'text' : 'password';
+          t.innerHTML = U.icon(show ? 'eyeOff' : 'eye', 20);
+          t.title = show ? '隐藏' : '显示';
           break;
         }
       }
