@@ -32,6 +32,9 @@
 
 :root {
   color-scheme: light;
+  /* 瓦片滤镜：浅色是空串（拼在 blur 后面不会让整条 filter 失效；写 none 会让 filter 整条作废）。
+     深色见 [data-theme="dark"] —— 高德栅格瓦片没有夜间版，只能反相压暗。 */
+  --map-filter: ;
 
   /* ---------- 浅色 ---------- */
   --md-sys-color-surface: #fef7ff;
@@ -126,6 +129,10 @@ html:not(.edge) { --sat: 0px; --sab: 0px; }
 
 [data-theme="dark"] {
   color-scheme: dark;
+  /* 高德栅格瓦片只有白天样式：invert 反相 + hue-rotate(180) 把色相转回来，得到"深色底、浅色字"的地图，
+     再压一点亮度和饱和度，免得反相后太扎眼。只作用在 .tiles 上——
+     图钉、轨迹线、标记是我们自己画的，反相会把它们的颜色也带跑。 */
+  --map-filter: invert(1) hue-rotate(180deg) brightness(.88) contrast(.92) saturate(.7);
 
   --md-sys-color-surface: #141218;
   --md-sys-color-surface-dim: #141218;
@@ -662,7 +669,7 @@ body::before {
   color: var(--md-sys-color-on-surface);
   box-shadow: var(--el1);
 }
-.mapbox .tiles { position: absolute; inset: 0; }
+.mapbox .tiles { position: absolute; inset: 0; filter: var(--map-filter); }
 .mapbox .tiles img { position: absolute; width: 256px; height: 256px; user-select: none; }
 .mapbox .pin {
   position: absolute; left: 50%; top: 50%;
@@ -677,7 +684,7 @@ body::before {
 /* 位置默认打码：瓦片模糊 + 精确坐标用文字盖住，点地图（或卡头那只眼睛）才揭开。
    模糊只作用在瓦片层，署名和遮罩文字保持清晰。 */
 .mapbox { cursor: pointer; }
-.mapbox.masked .tiles { filter: blur(16px) saturate(.75); transform: scale(1.08); }
+.mapbox.masked .tiles { filter: blur(16px) saturate(.75) var(--map-filter); transform: scale(1.08); }
 .mapbox.masked .pin { opacity: 0; }
 .mapbox.masked .track { filter: blur(9px); opacity: .5; }
 .mapbox .track { transition: filter var(--dur-med) var(--ease-standard), opacity var(--dur-med) var(--ease-standard); }
