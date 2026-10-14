@@ -124,7 +124,9 @@ html:not(.edge) { --sat: 0px; --sab: 0px; }
      写死会让内容被顶栏压住）。滚动区的上内边距 = 它 + 10px 间隙。 */
   --topbar-h: 72px;
 
-  --font: system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  /* MiSans 放最前（index.html 里引了它的 Medium/Bold 两个 @font-face，族名就叫 MiSans）；
+     后面的系统字体是离线/CDN 不通时的兜底。 */
+  --font: MiSans, system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
 }
 
 [data-theme="dark"] {
@@ -527,7 +529,7 @@ body::before {
 .duo .card-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .duo .card-head { gap: 4px; margin-bottom: 8px; }
 .duo .card-head .iconbtn { width: 30px; height: 30px; margin: -6px -6px -6px 0; }
-.duo .mapbox.sm { height: 84px; }
+.duo .mapbox.sm { height: 96px; }
 .duo .kv { gap: 6px; padding: 6px 0; }
 .duo .kv .k, .duo .kv .v { font-size: 12px; }
 .duo .grid2 { gap: 6px 8px; }
@@ -535,7 +537,8 @@ body::before {
 .duo .tile .k { font-size: 10px; line-height: 1.2; }
 .duo .tile .v { font-size: 14px; line-height: 1.15; }
 .duo .tile .v small { font-size: 9px; }
-.duo .bars { height: 34px; gap: 4px; }
+.duo .bars { height: 58px; gap: 6px; }
+.duo .bars .b span { font-size: 10px; }
 .duo .card-sub.mt8 { display: none; }   /* 半宽下"最近 7 天里程"那行提示太挤，藏掉 */
 
 /* 位置卡的"更新时间 · 海拔"一行小字 */
@@ -549,6 +552,8 @@ body::before {
 .loc-meta-col > div { display: flex; flex-direction: column; gap: 2px; }
 .loc-meta-col span { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
 .loc-meta-col b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* 坐标那行比时间/海拔长，字号收一点、用等宽，免得右列被撑开或折行 */
+.loc-meta-col .wide b { font-size: 12px; font-weight: 500; }
 
 /* 共享车：位置卡整行，地图和信息并排 */
 .loc-row { display: grid; grid-template-columns: 42% 1fr; gap: 12px; align-items: start; }
@@ -901,9 +906,11 @@ body::before {
 
 /* 开关 */
 .switch { position: relative; width: 48px; height: 30px; flex: none; border-radius: 99px; background: var(--md-sys-color-surface-container-highest); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); transition: background var(--dur-short) var(--ease-standard); }
-.switch::after { content: ""; position: absolute; left: 4px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); border-radius: 99px; background: var(--md-sys-color-outline); transition: all var(--dur-med) var(--ease-decel); }
+/* 滑块两边留白要跟上下留白对称：关=20px 滑块(上下各 5px)所以 left 5；开=24px 滑块(上下各 3px)所以 left 21。
+   原来开态写 left:24 + 宽 24 = 48，正好等于轨道宽度，白滑块右边缘压在轨道边上（看着像被裁了一块）。 */
+.switch::after { content: ""; position: absolute; left: 5px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); border-radius: 99px; background: var(--md-sys-color-outline); transition: all var(--dur-med) var(--ease-decel); }
 .switch.on { background: var(--md-sys-color-primary); box-shadow: none; }
-.switch.on::after { left: 24px; width: 24px; height: 24px; background: var(--md-sys-color-on-primary); }
+.switch.on::after { left: 21px; width: 24px; height: 24px; background: var(--md-sys-color-on-primary); }
 .switch.disabled { opacity: .4; }
 /* 点得动的开关给个手型；不可写的（.ro）保持默认光标 */
 .switch[data-act="toggle"] { cursor: pointer; }
@@ -968,6 +975,12 @@ body::before {
 }
 
 </style>
+
+<!-- MiSans（小米开源，可商用）。CDN 上的这两个 CSS 把字重注册成 380(Medium)/630(Bold)，
+     不是常见的 500/700 —— 所以 CSS 里写 400~500 会落到 Medium、600+ 会落到 Bold，不用改调用方。
+     注意：这是本站唯一的外部资源（字体），离线时 SW 不缓存跨域，会回落到系统字体。 -->
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Medium.min.css">
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Bold.min.css">
 
 <!-- PWA：装到桌面 / 断网也能打开。图标由 make-icons.mjs 生成（图形与上面那个 favicon 一致）。 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -4992,13 +5005,24 @@ window.APP = (() => {
     const locHead = U.cardHead('车辆位置', '', eyeBtn + navBtn, 'pin');
     const locMeta = `<div class="loc-meta"><span>${esc(loc.time || '—')} 更新</span><span>海拔 ${alt}</span></div>`;
 
-    // 共享车（别人分享给我的）：只看位置，没有骑行数据也不给改设置，位置卡整行、内部再排成一行
+    // 共享车（别人分享给我的）：只看位置，没有骑行数据也不给改设置。
+    // 整行、地图与信息左右排；右边信息列把坐标也列出来——只放两行太单薄，右半边空着。
+    // 坐标跟着"眼睛"走（没揭开就是"已打码"），和首页那张图的规矩一致。
+    const hasCoord = loc.lat !== null && loc.lng !== null;
+    const coordReal = hasCoord ? `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}` : '';
+    const coordCell = hasCoord
+      ? `<div class="wide"><span>坐标</span><b class="mono" data-loc="coord" data-real="${esc(coordReal)}">${S.locShown ? esc(coordReal) : '已打码'}</b></div>`
+      : '';
     const locCard = shared
       ? U.card(
         locHead +
         `<div class="loc-row">
           <div>${locBody}</div>
-          <div class="loc-meta-col"><div><span>更新</span><b>${esc(loc.time || '—')}</b></div><div><span>海拔</span><b>${alt}</b></div></div>
+          <div class="loc-meta-col">
+            <div><span>更新</span><b>${esc(loc.time || '—')}</b></div>
+            <div><span>海拔</span><b>${alt}</b></div>
+            ${coordCell}
+          </div>
         </div>`,
       )
       : U.card(locHead + locBody + locMeta);
@@ -5104,6 +5128,10 @@ window.APP = (() => {
     phone().querySelectorAll('.mapbox[data-act="reveal"]').forEach((box) => {
       box.classList.toggle('masked', !S.locShown);
       box.querySelector('.unmask')?.classList.toggle('hidden', S.locShown);
+    });
+    // 坐标文案（共享车的位置卡）：跟着眼睛一起揭开/打码
+    phone().querySelectorAll('[data-loc="coord"]').forEach((el) => {
+      el.textContent = S.locShown ? el.dataset.real || '' : '已打码';
     });
     // 行程的起终点地址跟着一起打码（否则地图糊了、地址却把位置说出来了）
     phone().querySelectorAll('[data-loc="addr"]').forEach((el) => {
