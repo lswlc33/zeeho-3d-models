@@ -8,6 +8,10 @@
 <meta name="theme-color" content="#fef7ff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
 <meta name="description" content="脱离极核 App 的车辆仪表盘：车况、骑行记录与设置">
+<!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
+     独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
+     占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
+<meta name="build" content="2026-10-14 13:52">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -20,6 +24,13 @@
       document.documentElement.dataset.theme = (t === 'light' || t === 'dark') ? t : sys;
     } catch (e) { /* 保持 <html data-theme> 上的默认值 */ }
   })();
+  // 独立 PWA：先把文档撑到屏幕高，iOS 才会给出完整视口（否则底部留一条黑边、顶上顶栏钻到状态栏底下）。
+  // 放这里是为了赶在首屏绘制之前；app.js 起来后会写同一个值（那边是权威实现，见 fitViewport）。
+  try {
+    if ((navigator.standalone === true || matchMedia('(display-mode: standalone)').matches) && screen.height > window.innerHeight) {
+      document.documentElement.style.minHeight = screen.height + 'px';
+    }
+  } catch (e) { /* 忽略 */ }
 </script>
 <style>
 /* ============================================================================
@@ -87,13 +98,13 @@
   --el2: 0 1px 2px 0 rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
   --el3: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 
-  /* 视口没顶到屏幕边（浏览器标签页）→ 安全区清零，避免和浏览器自己的 UI 双份留白 */
-/* iOS 独立 PWA：视口会比屏幕矮掉状态栏那一条（WebKit bug），而**只要文档本身够高，
-   iOS 就会把完整视口给出来**（frappe/frappe-ui #1289 在 iPhone 17 Pro / iOS 26.2 实测）。
-   所以独立模式下给 html 一个高度下限；min() 卡上限，免得反过来多出一条可滚动区域。
+  /* iOS 独立 PWA：视口会比屏幕矮掉状态栏那一条（WebKit bug 301108），**只要文档本身够高，
+   iOS 就会把完整视口给出来**（frappe/frappe-ui #1289 的结论），固定壳才铺得到底边。
+   这里只是兜底（app.js:fitViewport 会按 screen.height 写死一个更准的值，行内样式优先级更高）：
+   用 `100% + 状态栏高度`——别写 min(100lvh, …)，实测那台 iOS 26 上 lvh 本身就低报，一卡等于没撑。
    （display-mode: standalone 只在"添加到主屏幕"后成立，浏览器里打开不受影响。） */
 @media (display-mode: standalone) {
-  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
+  html { min-height: calc(100% + env(safe-area-inset-top, 0px)); }
 }
 
 /* 注意：--sat/--sab 的最终值由 JS（app.js:fitViewport）按"页面哪条边顶到屏幕"分别写死，
@@ -113,10 +124,11 @@
   --dur-long: 500ms;
 
   /* ---------- 视口与安全区 ---------- */
-  /* --sat/--sab：安全区。**只有视口真的顶到屏幕边时才吃**（app.js 按
-     visualViewport 高度 vs screen.height 判断后给 <html> 加 .edge）。
-     iOS Safari/PWA 上视口本身就没到边，再叠一次 env() 会双份留白——
-     顶部状态栏下面多一条、底部 tab 栏下面多一条。 */
+  /* --sat/--sab：安全区。**独立 PWA 里全吃**（页面铺满整屏，不给就会出现"顶栏压到状态栏底下 /
+     tab 标签被 home indicator 压住"）；浏览器标签页里页面夹在地址栏和工具栏之间，
+     再按 env() 留白就是双份，所以只在视口真的顶到屏幕边时才吃（app.js:fitViewport 判断）。
+     另外 fitViewport 还要把文档撑到 screen.height——iOS 26 独立 PWA 不给完整视口，
+     底部会留一条底色，就是那个"黑边"。 */
   /* 原始值留着给 JS 判断用（--sat/--sab 是"最终要不要吃"的值，可能被 JS 清零） */
   --sat-raw: env(safe-area-inset-top, 0px);
   --sab-raw: env(safe-area-inset-bottom, 0px);
@@ -203,6 +215,11 @@
 /* 外层不做"文档滚动"：整个 App 是固定壳 + 内部滚动区，文档本身滚动只会带来问题
    （iOS 橡皮筋、键盘/scrollIntoView 把绝对定位的顶栏顶出视口）。 */
 html, body { height: 100%; overflow: hidden; }
+
+/* 根元素也铺主题底色：万一 iOS 还是少给了一条视口（撑高没生效、或撑高之前那一帧），
+   露出来的是页面主色而不是白/黑——"黑边"最刺眼的就是浅色主题下露深色。
+   （body 的底色会随之不再传播到画布，桌面预览那块深色展台仍由 body 自己的 background 负责。） */
+html { background-color: var(--md-sys-color-surface); }
 
 body {
   margin: 0;
@@ -4710,40 +4727,88 @@ window.APP = (() => {
   const scroll = () => $('scroll');
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
+  /** 是不是"装到桌面"的独立窗口：iOS 认 navigator.standalone，其它平台看 display-mode */
+  function isStandalone() {
+    if (navigator.standalone === true) return true;
+    return ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia(`(display-mode: ${m})`).matches);
+  }
+
   /**
-   * 只判断"上下两条边各要不要吃安全区"，**不算高度**。
+   * 两件事：把安全区算给 CSS，以及**把文档撑到屏幕高**。壳的高度不算（交给 CSS 的 position: fixed; inset: 0）。
    *
-   * 高度交给 CSS 的 `position: fixed; inset: 0`（见 styles.css 的 .stage）：iOS 独立 PWA 下
-   * `100vh/100dvh/dvh/svh`、`window.innerHeight`、`-webkit-fill-available` 全都会低报
-   * （WebKit bug，见 frappe/frappe-ui #1289、cocktail-atlas #2），算高度这条路走不通。
+   * iOS 独立 PWA 的视口比屏幕矮一条状态栏（WebKit bug 301108，iPhone 16 Pro / iOS 26 实测
+   * visualViewport 812、screen.height 874；参考 frappe/frappe-ui #1289、mlurz92/cocktail-atlas #2）。
+   * 关键是**固定定位的画布也止于那条短边**：tab 栏下面露出 62px 背景（"底部一条黑边"），
+   * 顶栏则从屏幕顶开始、钻进状态栏底下。触发条件是"文档比屏幕矮"——把文档撑到 screen.height，
+   * iOS 就把完整视口给出来，壳自己就到底了（frappe 那个 issue 的结论）。
+   * 撑高**必须问 screen.height**：别用 min(100lvh, calc(100% + env(...))) 那种写法，
+   * 实测那台设备上 lvh 本身就低报，min() 一卡等于没撑（这就是上一版没修好的原因）。
    *
-   * 安全区**必须按边分开判断**（实测 iPhone / iOS 26 独立 PWA：visualViewport 812、screen.height 874、
-   * 安全区 62/34 —— 少的 62px 正好等于状态栏高度，说明页面是从状态栏下面开始、底部顶到屏幕的）：
-   *   · 页面顶到屏幕顶 → 顶部要补状态栏那一条（否则内容钻到状态栏底下）；
-   *   · 页面顶到屏幕底 → 底部要补 home indicator 那一条（否则 home indicator 压在 tab 标签上）；
-   *   · 页面上下都没到边（普通浏览器，上面有地址栏下面有工具栏）→ 两条都不补。
-   * 一刀切"全吃或全不吃"会两种情况里各错一种。
+   * 安全区：独立 PWA 的前提就是"页面铺满整屏"，env() 报多少吃多少（顶部不给会把顶栏压在状态栏下，
+   * 底部不给 home indicator 会压住 tab 标签）；浏览器标签页里页面夹在地址栏和工具栏之间，
+   * 再按 env() 留白就是双份，所以只在视口真的顶到屏幕边时才吃。
    */
   function fitViewport() {
     const root = document.documentElement;
     const vv = window.visualViewport;
-    const h = Math.round(vv ? vv.height : window.innerHeight);
+    const h = Math.round(Math.max(vv ? vv.height : 0, window.innerHeight || 0));
     const full = Math.round((window.screen && window.screen.height) || 0);
     const cs = getComputedStyle(root);
     const satRaw = Math.round(parseFloat(cs.getPropertyValue('--sat-raw')) || 0);
     const sabRaw = Math.round(parseFloat(cs.getPropertyValue('--sab-raw')) || 0);
-    const gap = full > 0 ? full - h : 0;                       // 视口比屏幕矮多少
-    const atTop = full > 0 && h >= full - 2;                   // 视口≈整屏：上下都贴边
-    // 视口比屏幕矮的正好是"状态栏那一条" → 页面从状态栏下面开始，但底部是顶到屏幕的
-    const fromStatusBar = full > 0 && satRaw > 0 && Math.abs(gap - satRaw) <= 8;
-    root.style.setProperty('--sat', atTop ? `${satRaw}px` : '0px');
-    root.style.setProperty('--sab', (atTop || fromStatusBar) ? `${sabRaw}px` : '0px');
-    root.classList.toggle('edge', atTop);
+    const gap = full > 0 ? full - h : 0;                        // 视口比屏幕矮多少
+    const atTop = full > 0 && gap <= 2;                         // 视口≈整屏
+    // 视口比屏幕矮的正好是"状态栏那一条"（不是工具栏那种矮）→ 同样算铺满整屏，只是 WebKit 少给了一条
+    const shortByStatusBar = full > 0 && satRaw > 0 && Math.abs(gap - satRaw) <= 8;
+    const standalone = isStandalone();
+    const bleed = standalone || atTop || shortByStatusBar;
+
+    // 撑高文档。只在独立 PWA 里做：浏览器里屏幕比视口高一截，撑高会多出一片能滚的区域。
+    // 值不跟当前视口挂钩（别写 `full > h ? … : ''`）——视口一旦撑开两边就相等了，
+    // 条件失效会把文档缩回去，表现为底部黑边来回抖。
+    const want = standalone && full > 0 ? `${full}px` : '';
+    if (root.style.minHeight !== want) root.style.minHeight = want;
+    if (document.body && document.body.style.minHeight !== want) document.body.style.minHeight = want;
+
+    root.style.setProperty('--sat', bleed ? `${satRaw}px` : '0px');
+    root.style.setProperty('--sab', bleed ? `${sabRaw}px` : '0px');
+    root.classList.toggle('edge', bleed);
   }
   fitViewport();
   window.addEventListener('resize', fitViewport);
   window.addEventListener('orientationchange', fitViewport);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);
+
+  // ---------------- 版本检查 ----------------
+  // 独立 PWA 从后台回来是"恢复"，不是重新加载：iOS 把页面冻在内存里，改了什么都看不到，
+  // SW 的网络优先也救不了（根本没发生导航）——上一轮 iOS 改动"看起来没生效"多半就是这个。
+  // 每次页面重新可见时比一下 version.json 里的构建号（build-static.mjs 每次出包都写新的），
+  // 不一致就整页重载一次。
+  const BUILD = (document.querySelector('meta[name=build]')?.content || '').trim();
+  // 开发版（直接开 public/）meta 里是占位符而不是构建号：得是"2026-10-14 13:49"这种格式才算数
+  const isBuildId = (s) => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s);
+  let buildCheckedAt = 0;
+
+  async function checkBuild() {
+    if (!isBuildId(BUILD)) return;
+    if (Date.now() - buildCheckedAt < 5000) return;   // pageshow + visibilitychange 会连着来，防抖
+    buildCheckedAt = Date.now();
+    try {
+      const r = await fetch(`version.json?_=${Date.now()}`, { cache: 'no-store' });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (!j || !j.build || j.build === BUILD) return;
+      // 带 ?b= 重载：绕开 HTTP 缓存（GitHub Pages 的 index.html 有 10 分钟 max-age），
+      // SW 的缓存键也跟着 URL 变；同一个构建号只用重载一次，免得服务端还没跟上时来回刷。
+      if (sessionStorage.getItem('zeeho.build') === j.build) return;
+      sessionStorage.setItem('zeeho.build', j.build);
+      const u = new URL(location.href);
+      u.searchParams.set('b', String(Date.now()));
+      location.replace(u.toString());
+    } catch { /* 离线，或静态托管上没放 version.json：不当回事 */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBuild(); });
+  window.addEventListener('pageshow', checkBuild);
 
   // ---------------- 偏好持久化 ----------------
   function loadPrefs() {
@@ -6144,15 +6209,16 @@ window.APP = (() => {
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     const diag = [
-      ['运行模式', matchMedia('(display-mode: standalone)').matches ? '独立 PWA（桌面图标）' : '浏览器标签页'],
+      ['运行模式', isStandalone() ? '独立 PWA（桌面图标）' : '浏览器标签页'],
+      ['构建', isBuildId(BUILD) ? BUILD : '开发版'],
       ['innerHeight', `${window.innerHeight}`],
       ['visualViewport', vv ? `${Math.round(vv.height)}（offset ${Math.round(vv.offsetTop)}）` : '不支持'],
       ['screen.height', `${window.screen?.height ?? '?'}`],
-      ['html.clientHeight', `${root.clientHeight}`],
+      ['html.clientHeight / 撑高', `${root.clientHeight} / ${root.style.minHeight || '未设'}`],
       ['DPR', `${window.devicePixelRatio}`],
       ['安全区 原值 top/bottom', `${cs.getPropertyValue('--sat-raw').trim()} / ${cs.getPropertyValue('--sab-raw').trim()}`],
       ['安全区 实际采用', `${cs.getPropertyValue('--sat').trim()} / ${cs.getPropertyValue('--sab').trim()}`],
-      ['判定', root.classList.contains('edge') ? '视口≈整屏（两边都吃）' : (parseFloat(cs.getPropertyValue('--sab')) > 0 ? '从状态栏下开始、底部顶到屏幕（只吃底边）' : '上下都没到边（都不吃）')],
+      ['判定', root.classList.contains('edge') ? '铺满整屏（上下都按 env 吃）' : '夹在浏览器 UI 里（不吃安全区）'],
       ['.phone 实测高 / 视口差', `${Math.round(phone().getBoundingClientRect().height)} / ${Math.round(phone().getBoundingClientRect().height - (vv ? vv.height : window.innerHeight))}`],
     ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}</span></div>`).join('');
     U.sheet(phone(), {

@@ -7,7 +7,7 @@
 //
 // 改了缓存内容记得改 CACHE 版本号，否则老缓存不会被清掉。
 
-const CACHE = 'zeeho-dashboard-v1';
+const CACHE = 'zeeho-dashboard-v2';
 const PRECACHE = [
   './',
   './index.html',
