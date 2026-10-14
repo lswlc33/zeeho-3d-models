@@ -14,7 +14,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 15:19">
+<meta name="build" content="2026-10-14 15:49">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -698,10 +698,6 @@ body::before {
 .bars .b span { font-size: 9px; color: var(--md-sys-color-on-surface-variant); }
 
 /* 胎压 */
-.tire { display: flex; align-items: center; gap: 10px; }
-.tire .ring { width: 34px; height: 34px; flex: none; }
-.tire .txt b { font-size: 15px; }
-.tire .txt span { display: block; font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
 
 /* 地图 */
 .mapbox {
@@ -3172,14 +3168,30 @@ window.MODEL = (() => {
   const esc = (t) => s(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  /** 时间字符串 → Date。吃过三种格式：2026-10-13 12:09:11 / 10/13  11:23 / ISO 带 +0800 */
+  /**
+   * 时间字符串 → Date（认不出就 null）。实际会遇到的四种写法：
+   *   2026-10-13 12:09:11 / 2026.10.11 16:23:15（骑行数据就是点分隔）/ 10/13  11:23（没有年）/
+   *   2026-10-12T16:15:21.937+0800（带偏移，按偏移算，别当本地墙钟）
+   */
   function parseTime(v) {
     const t = s(v).trim();
     if (!t) return null;
-    let m = t.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    // 带 T 的 ISO（可能带 Z 或 +0800）：交给 Date 按偏移解析。+0800 这种没有冒号，先补上
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(t)) {
+      const d = new Date(t.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));
+      if (!isNaN(d.getTime())) return d;
+    }
+    // 本地墙钟：日期分隔符 - 或 . 都认（骑行接口给的是 2026.10.11 16:23:15）
+    const m = t.match(/^(\d{4})[-.](\d{1,2})[-.](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
     if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
-    m = t.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
-    if (m) return new Date(new Date().getFullYear(), +m[1] - 1, +m[2], +m[3], +m[4]);
+    // 只有月日：按当年补年；算出来是"明天以后"就说明是去年那条（跨年那两天别把它当成未来）
+    const md = t.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+    if (md) {
+      const now = new Date();
+      const mk = (y) => new Date(y, +md[1] - 1, +md[2], +md[3], +md[4]);
+      const d = mk(now.getFullYear());
+      return d - now > 86400000 ? mk(now.getFullYear() - 1) : d;
+    }
     const d = new Date(t);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -3234,9 +3246,14 @@ window.MODEL = (() => {
   }
 
   // ---------------- 电量分档 ----------------
-  // 阈值按行业惯例：≥50 健康 / 20–49 提醒 / <20 告急；充电中一律用充电色
+  // 阈值按行业惯例：≥50 健康 / 20–49 提醒 / <20 告急；充电中一律用充电色。
+  // **缺字段时给"电量未知"而不是 0**：车机休眠/少上报一个字段时，界面显示 0% + 红环 + "电量告急"
+  // 跟真的没电分不出来（踩过）。
   function socLevel(soc, charging) {
     if (charging) return { key: 'charge', color: 'var(--c-charge)', text: '充电中' };
+    if (soc === null || soc === undefined || soc === '') {
+      return { key: 'unknown', color: 'var(--md-sys-color-outline)', text: '电量未知' };
+    }
     const v = n(soc, 0);
     if (v >= 50) return { key: 'ok', color: 'var(--c-success)', text: '电量充足' };
     if (v >= 20) return { key: 'warn', color: 'var(--c-warning)', text: '建议补能' };
@@ -3364,7 +3381,7 @@ window.MODEL = (() => {
       tempState: s(d.batteryTempState),
       padding: true,
       charge,
-      socColor: socLevel(n(d.bmssoc, 0), charge.charging),
+      socColor: socLevel(n(d.bmssoc, null), charge.charging),
       headLock: on(d.headLockState),          // 龙头锁："1" = 已锁（真状态，仪表 BLE `Lock` 指令的目标）
       // 注意：iotProperties:VehicleLock_S（「整车锁定状态_GO」）**不是**车锁状态——实测两台不同车型恒为 0，
       // 与车实际锁没锁无关（配套的 supportUnlock 也是 0，那是"远程锁车"功能的开关）。这儿只解析出来备查，
@@ -3854,7 +3871,11 @@ window.MODEL = (() => {
     const binary = value === true || value === false || value === 1 || value === 0 || value === '1' || value === '0';
 
     let display = '';
-    if (spec.kind === 'switch') display = binary ? (on(value) ? '已开启' : '已关闭') : `档位 ${value}`;
+    // 值缺失时不能拼出「档位 undefined」：车机没上报这个键、或换车型少了这个字段都会走到这里
+    const empty = value === undefined || value === null || value === '';
+    if (spec.kind === 'switch') {
+      display = binary ? (on(value) ? '已开启' : '已关闭') : (empty ? '—' : `档位 ${value}`);
+    }
     else if (spec.kind === 'select') display = spec.options?.[String(value)] || (value === undefined || value === '' ? '—' : String(value));
     else if (spec.kind === 'value' || spec.kind === 'version') display = value === undefined || value === null || value === '' ? '—' : `${value}${spec.unit ? ' ' + spec.unit : ''}`;
     else display = '';
@@ -4080,10 +4101,20 @@ window.API = {
   lastRaw: {},         // id -> 最近一次原始响应（调试面板用）
   onSourceChange: null,
 
+  /**
+   * 带超时的 fetch。**不能不加**：连接假死（防火墙静默丢包、服务进程挂起）时 fetch 的 Promise
+   * 永不落定，load() 就卡在"加载中"、刷新图标一直转、轮询还每 30 秒再叠一个挂起的请求。
+   * AbortSignal.timeout 在 iOS 16+/Chrome 103+ 有；老引擎拿不到就当没有超时（老行为）。
+   */
+  async fetchT(url, opts = {}) {
+    const signal = AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined;
+    return fetch(url, { ...opts, signal });
+  },
+
   /** 启动：先探本机服务；没有服务就自动用直连（有 token）或演示数据 */
   async init(prefer) {
     try {
-      const r = await fetch('/api/status', { cache: 'no-store' });
+      const r = await this.fetchT('/api/status', { cache: 'no-store' });
       this.server = await r.json();
     } catch {
       this.server = null;                     // 没有后端：file:// 打开，或纯静态托管
@@ -4118,7 +4149,8 @@ window.API = {
     if (!ep) return null;
     const map = {
       '{vin}': ctx.vin || '',
-      // user_info 的 uid 必须传 "0"（服务端只认这个表示"自己"），bindingUserId 反而会被拒
+      // {uid} 用在 user_info（setting/other/{id}）上，必须是**内部用户 id**（用户手填的那个）。
+      // 别传 bindingUserId：它未必是当前登录账号；更别传 "0"——那是别人的档案（踩过）。
       '{uid}': ctx.uid === undefined || ctx.uid === null ? '' : String(ctx.uid),
       '{carUid}': ctx.carUid === undefined || ctx.carUid === null ? '' : String(ctx.carUid),
       '{month_dot}': ctx.month || '',
@@ -4150,7 +4182,7 @@ window.API = {
       const req = this.resolve(id, ctx);
       if (!req) return this.fail(id, `没有这个接口：${id}`);
       try {
-        const r = await fetch('/api/call', {
+        const r = await this.fetchT('/api/call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tag: req.tag, path: req.path, params: req.query, method, body }),
@@ -4165,7 +4197,7 @@ window.API = {
         if (out.err) return this.fail(id, out.err);
         return this.finish(id, out, t0, 'live');
       } catch (e) {
-        return this.fail(id, '请求转发失败：' + e.message);
+        return this.fail(id, e && e.name === 'TimeoutError' ? '转发超时（12s 没响应）' : '请求转发失败：' + e.message);
       }
     }
 
@@ -4176,14 +4208,15 @@ window.API = {
       try {
         const q = window.ZEEHO_SIGN.toQuery(req.query);
         const url = window.ZEEHO_SIGN.baseFor(req.tag) + req.path + (q ? `?${q}` : '');
-        const r = await fetch(url, {
+        const r = await this.fetchT(url, {
           method,
           headers: window.ZEEHO_SIGN.buildHeaders(req.tag, req.query, body, method, this.token),
           body: body || undefined,
         });
         const text = await r.text();
-        return this.finish(id, { http: r.status, body: text, ms: Date.now() - t0, url }, t0, 'direct');
+        return this.finish(id, { http: r.status, body: text, url }, t0, 'direct');
       } catch (e) {
+        if (e && e.name === 'TimeoutError') return this.fail(id, '直连超时（12s 没响应）');
         return this.fail(id, '直连失败：' + e.message + '（网络或 CORS）');
       }
     }
@@ -4216,12 +4249,18 @@ window.API = {
   finish(id, out, t0, source) {
     let j = null;
     try { j = JSON.parse(out.body); } catch { /* 服务端偶尔会回 XML 错误页 */ }
+    const httpOk = out.http >= 200 && out.http < 400;
+    // 解析不出 JSON 就不算成功——网关/维护页/拦截页常常是 200 + HTML，
+    // 以前这里会说"成功"，界面静默显示空数据（比报错更难查）。
+    const ok = httpOk && !!j && j.code === '10000';
     const res = {
-      ok: out.http >= 200 && out.http < 400 && (!j || j.code === '10000'),
+      ok,
       source,
       http: out.http,
       code: j ? j.code : null,
-      message: j ? j.message : (out.body || '').slice(0, 200),
+      message: j
+        ? j.message
+        : (httpOk ? `响应不是 JSON（网关或维护页？）：${(out.body || '').slice(0, 160)}` : (out.body || '').slice(0, 200)),
       data: j ? j.data : null,
       raw: j || out.body,
       ms: out.ms ?? Date.now() - t0,
@@ -4332,9 +4371,9 @@ window.UI = (() => {
   const stat = (k, v, unit = '') =>
     `<div class="stat"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ''}</span></div>`;
 
-  /** opts: { mono, raw, attrs, unsafe, pointer }——unsafe 表示 v 是一段自己拼好的 HTML（调用方负责转义动态部分） */
+  /** opts: { mono, raw, pointer }——值一律转义；不做"调用方自己拼 HTML"的后门（拼错了就是注入） */
   const kv = (k, v, opts = {}) =>
-    `<div class="kv${opts.pointer ? ' kv-act' : ''}"${opts.attrs ? ' ' + opts.attrs : ''}><span class="k">${esc(k)}</span><span class="v${opts.mono ? ' mono' : ''} tnum">${opts.unsafe ? v : esc(v)}${opts.raw ? `<span class="raw">${esc(opts.raw)}</span>` : ''}</span></div>`;
+    `<div class="kv${opts.pointer ? ' kv-act' : ''}"><span class="k">${esc(k)}</span><span class="v${opts.mono ? ' mono' : ''} tnum">${esc(v)}${opts.raw ? `<span class="raw">${esc(opts.raw)}</span>` : ''}</span></div>`;
 
   const card = (inner, cls = '') => `<section class="card ${cls}">${inner}</section>`;
 
@@ -4365,16 +4404,6 @@ window.UI = (() => {
   }
 
   /** 胎压小环：2.5 bar 视作满量程 */
-  function tireRing(bar, warn) {
-    const pct = window.MODEL.clamp((bar ?? 0) / 2.5, 0, 1);
-    const c = 2 * Math.PI * 13;
-    const color = warn ? 'var(--c-danger)' : pct < 0.6 ? 'var(--c-warning)' : 'var(--c-success)';
-    return `<svg class="ring" viewBox="0 0 34 34" width="34" height="34">
-      <circle cx="17" cy="17" r="13" fill="none" stroke="var(--md-sys-color-outline-variant)" stroke-width="3.4"/>
-      <circle cx="17" cy="17" r="13" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round"
-        stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" transform="rotate(-90 17 17)"/>
-    </svg>`;
-  }
 
   // ---------------- 地图瓦片 ----------------
   // 直接拼瓦片，不引 Leaflet：3×3 张 256px 图足够铺满一张卡片。
@@ -4394,6 +4423,48 @@ window.UI = (() => {
     },
   };
 
+  /**
+   * 选缩放级：经度、纬度两个方向都要装得进地图框（框是扁的，只看一个方向会把内容裁掉）。
+   * 每度经度 = 256*2^z/360 像素；纬度按墨卡托再乘 sec(φ)。
+   * **兜底必须是 minZ（缩得最小）**：一圈都没命中说明内容比 z9 还大，停在初始的 16 会把
+   * 折线/标记甩到画布外，整张图就废了（长途轨迹、人在外地查车都会撞上——踩过）。
+   */
+  function fitZoom(lngSpan, latSpan, cLat, boxW, boxH, pad, maxZ = 16, minZ = 9) {
+    const secLat = 1 / Math.cos((cLat * Math.PI) / 180);
+    for (let z = maxZ; z >= minZ; z--) {
+      const perLng = (256 * 2 ** z) / 360;
+      if (lngSpan * perLng <= boxW * pad && latSpan * perLng * secLat <= boxH * pad) return z;
+    }
+    return minZ;
+  }
+
+  /**
+   * 3×3 张瓦片（中心 ±1 格），三种地图共用——以前是三份抄来抄去的循环，同一个 bug 也抄了三份。
+   * onerror 里**先取 parentNode 再 remove**：反过来的话 remove 之后 parentNode 是 null，
+   * 后面那句会抛 TypeError 把整个处理器中断，"地图瓦片加载失败"永远不显示（踩过）。
+   * 计数记在 .tiles 自己的 dataset 上（跟着每次重渲染归零，不像以前那个全局变量会越攒越多）。
+   */
+  function tileImages(t, zoom, xf, yf, warn) {
+    const n = 2 ** zoom;
+    const cx = Math.floor(xf);
+    const cy = Math.floor(yf);
+    const onerr = warn
+      ? `var p=this.parentNode;this.remove();if(!p)return;var c=((+p.dataset.err)||0)+1;p.dataset.err=c;var b=p.parentNode;if(c>=5&&b&&!b.dataset.warn){b.dataset.warn=1;var d=document.createElement('div');d.className='mapload';d.textContent='地图瓦片加载失败';b.appendChild(d);}`
+      : 'this.remove()';
+    const out = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const tx = cx + dx;
+        const ty = cy + dy;
+        if (ty < 0 || ty >= n) continue;
+        const wrapped = ((tx % n) + n) % n;
+        out.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy" onerror="${onerr}"
+          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)">`);
+      }
+    }
+    return out.join('');
+  }
+
   function mapBox(lng, lat, opts = {}) {
     const t = TILES[opts.tile] || TILES.osm;
     const zoom = opts.zoom || 16;
@@ -4404,27 +4475,14 @@ window.UI = (() => {
     const rad = (y * Math.PI) / 180;
     const xf = ((x + 180) / 360) * n;
     const yf = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
-    const cx = Math.floor(xf);
-    const cy = Math.floor(yf);
-    const tiles = [];
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        const tx = cx + dx;
-        const ty = cy + dy;
-        if (ty < 0 || ty >= n) continue;
-        const wrapped = ((tx % n) + n) % n;
-        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
-          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)"
-          onerror="this.remove();window.__mapErr=(window.__mapErr||0)+1;var b=this.parentNode.parentNode;if(window.__mapErr>=9&&b&&!b.dataset.warn){b.dataset.warn=1;var d=document.createElement('div');d.className='mapload';d.textContent='地图瓦片加载失败';b.appendChild(d);}">`);
-      }
-    }
+    const tiles = tileImages(t, zoom, xf, yf, true);
     // 默认打码（opts.masked 缺省即打码）：瓦片模糊、定位针隐藏，点一下才揭开
     const masked = opts.masked !== false;
     // opts.act === false 时不挂 data-act：首页那张图外面套了 data-act="bigmap"，
     // 内层再挂 reveal 会先被 closest 命中，点地图就变成"切换显隐"而不是"开大地图"
     const act = opts.act === false ? '' : ' data-act="reveal"';
     return `<div class="mapbox${masked ? ' masked' : ''}${opts.sm ? ' sm' : ''}"${act} title="点击显示 / 隐藏精确位置">
-      <div class="tiles">${tiles.join('')}</div>
+      <div class="tiles">${tiles}</div>
       <div class="pin">${icon('pin', 30)}</div>
       <button class="unmask${masked ? '' : ' hidden'}" tabindex="-1">
         <span class="ico">${icon('eye', 20)}</span>
@@ -4443,19 +4501,13 @@ window.UI = (() => {
     const lats = pts.map((p) => p[1]);
     const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
     const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    // 选缩放级：整条轨迹要两个方向都装得进地图框。框是扁的（375×134），只看一个方向会把轨迹裁掉。
-    // 每度经度 = 256*2^z/360 像素；纬度按墨卡托再乘 sec(φ)。
     const boxW = opts.w || 375;
     const boxH = opts.h || (opts.tall ? 240 : 134);
-    const PAD = 0.84;
-    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-    const latSpan = Math.max(...lats) - Math.min(...lats);
-    const secLat = 1 / Math.cos((cLat * Math.PI) / 180);
-    let zoom = 16;
-    for (let z = 16; z >= 9; z--) {
-      const perLng = (256 * 2 ** z) / 360;
-      if (lngSpan * perLng <= boxW * PAD && latSpan * perLng * secLat <= boxH * PAD) { zoom = z; break; }
-    }
+    const zoom = fitZoom(
+      Math.max(...lngs) - Math.min(...lngs),
+      Math.max(...lats) - Math.min(...lats),
+      cLat, boxW, boxH, 0.84,
+    );
 
     const n = 2 ** zoom;
     const proj = (lng, lat) => {
@@ -4463,26 +4515,14 @@ window.UI = (() => {
       return [((lng + 180) / 360) * n, ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n];
     };
     const [xf, yf] = proj(cLng, cLat);
-    const cx = Math.floor(xf);
-    const cy = Math.floor(yf);
-    const tiles = [];
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        const tx = cx + dx;
-        const ty = cy + dy;
-        if (ty < 0 || ty >= n) continue;
-        const wrapped = ((tx % n) + n) % n;
-        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
-          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)">`);
-      }
-    }
+    const tiles = tileImages(t, zoom, xf, yf, false);
     const px = pts.map(([lng, lat]) => proj(lng, lat));
     const line = px.map(([x, y]) => `${Math.round((x - xf) * 256)},${Math.round((y - yf) * 256)}`).join(' ');
     const [sx, sy] = [Math.round((px[0][0] - xf) * 256), Math.round((px[0][1] - yf) * 256)];
     const [ex, ey] = [Math.round((px[px.length - 1][0] - xf) * 256), Math.round((px[px.length - 1][1] - yf) * 256)];
     const masked = opts.masked !== false;
     return `<div class="mapbox${masked ? ' masked' : ''}${opts.tall ? ' tall' : ''}" data-act="reveal" title="点击显示 / 隐藏精确位置">
-      <div class="tiles">${tiles.join('')}</div>
+      <div class="tiles">${tiles}</div>
       <svg class="track" width="2400" height="2400" viewBox="-1200 -1200 2400 2400"
            style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none">
         <polyline points="${line}" fill="none" stroke="var(--md-sys-color-primary)" stroke-width="4"
@@ -4512,15 +4552,9 @@ window.UI = (() => {
     const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
     const boxW = opts.w || 360;
     const boxH = opts.h || 420;
-    const PAD = 0.62;                     // 两个点之间留点余量，别顶到边
-    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-    const latSpan = Math.max(...lats) - Math.min(...lats);
-    const secLat = 1 / Math.cos((cLat * Math.PI) / 180);
-    let zoom = 16;
-    for (let z = 16; z >= 9; z--) {
-      const perLng = (256 * 2 ** z) / 360;
-      if (lngSpan * perLng <= boxW * PAD && latSpan * perLng * secLat <= boxH * PAD) { zoom = z; break; }
-    }
+    const zoom = pts.length > 1
+      ? fitZoom(Math.max(...lngs) - Math.min(...lngs), Math.max(...lats) - Math.min(...lats), cLat, boxW, boxH, 0.62)
+      : 16;
 
     const n = 2 ** zoom;
     const proj = (lng, lat) => {
@@ -4528,19 +4562,7 @@ window.UI = (() => {
       return [((lng + 180) / 360) * n, ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n];
     };
     const [xf, yf] = proj(cLng, cLat);
-    const cx = Math.floor(xf);
-    const cy = Math.floor(yf);
-    const tiles = [];
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        const tx = cx + dx;
-        const ty = cy + dy;
-        if (ty < 0 || ty >= n) continue;
-        const wrapped = ((tx % n) + n) % n;
-        tiles.push(`<img src="${t.url(zoom, wrapped, ty)}" alt="" loading="lazy"
-          style="left:50%;top:50%;transform:translate(${Math.round((tx - xf) * 256)}px, ${Math.round((ty - yf) * 256)}px)">`);
-      }
-    }
+    const tiles = tileImages(t, zoom, xf, yf, false);
     const marks = pts.map((p, i) => {
       const [x, y] = proj(p[0], p[1]);
       const dx = Math.round((x - xf) * 256);
@@ -4551,7 +4573,7 @@ window.UI = (() => {
     }).join('');
 
     return `<div class="mapbox big">
-      <div class="tiles">${tiles.join('')}</div>
+      <div class="tiles">${tiles}</div>
       ${marks}
     </div>`;
   }
@@ -4569,7 +4591,7 @@ window.UI = (() => {
 
   /**
    * 分格点阵：一格里一天（月视图）或一小时（单日视图）。
-   *   items: [{ label, value, title }]；opts: { kind:'day'|'hour', cols }
+   *   items: [{ value, title }]（label 不参与渲染，格子里不写字）；opts: { kind:'day'|'hour', cols }
    * 行优先、每行从左到右仍是时间顺序。格子**固定大小**（--hm-cell，不随容器拉伸）：
    * 拉满宽度时 10 列会有 39px/格，太大；固定 20px 一排 10 个，块居中。
    * 格子里不写数字——要精确值悬停看 title。
@@ -4715,6 +4737,8 @@ window.UI = (() => {
   const LAST_NUM = new Map();
   function animNums(scope) {
     if (!scope) return;
+    // 只写不删会跟着 trip-/day- 这些键一直涨（一天几十条、长途用久了也不小），过阈值直接清空重记
+    if (LAST_NUM.size > 400) LAST_NUM.clear();
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     scope.querySelectorAll('[data-num]').forEach((el) => {
       const raw = el.dataset.num;
@@ -4768,9 +4792,9 @@ window.UI = (() => {
   }
 
   return {
-    icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars, tireRing,
+    icon, chip, stat, kv, card, cardHead, sectionTitle, socBar, bars,
     mapBox, mapBoxPath, mapPoints, heatmap, heatRow, sheet, closeSheet, toast, copy,
-    loadBar, animNums, fallbackScooter, TILES, P,
+    loadBar, animNums, fallbackScooter,
   };
 })();
 
@@ -4812,10 +4836,10 @@ window.APP = (() => {
   const phone = () => $('phone');
   const scroll = () => $('scroll');
 
-  // 网页版自己的版本号（爱车页最底部显示成 V4.02，不再显示 VIN——VIN 在车辆属性里有）。
-  // **每次提交推送前按这次改动的强度往上抬**：小修 +0.01（4.03）、成组的功能 +0.1（4.10）、
+  // 网页版自己的版本号（爱车页最底部显示成 V4.10，不再显示 VIN——VIN 在车辆属性里有）。
+  // **每次提交推送前按这次改动的强度往上抬**：小修 +0.01、成组的功能/修复 +0.1、
   // 大改（换布局/加整页/改数据通道）进位到 5.00。别只在"想起来的时候"改——用户要能对着版本说话。
-  const APP_VER = '4.02';
+  const APP_VER = '4.10';
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /** 是不是"装到桌面"的独立窗口：iOS 认 navigator.standalone，其它平台看 display-mode */
@@ -4863,7 +4887,6 @@ window.APP = (() => {
 
     root.style.setProperty('--sat', bleed ? `${satRaw}px` : '0px');
     root.style.setProperty('--sab', bleed ? `${sabRaw}px` : '0px');
-    root.classList.toggle('edge', bleed);
     // 安全区一变顶栏高度就变，而 --topbar-h 只在 renderTop() 时量一次（滚动区的上内边距靠它）。
     // 这里补量：顶栏还没渲染过（空壳）就跳过，免得把空顶栏的量出来。
     if (lastBleed !== null && lastBleed !== bleed) {
@@ -5060,7 +5083,19 @@ window.APP = (() => {
     });
   }
 
+  // 轮询、手动刷新、切回前台三路都可能同时进 load()：并发跑会让 S.loading 被慢的那次拖着、
+  // 也可能用旧响应覆盖新数据。静默的那次直接复用进行中的那次；用户主动点的那次等它完再自己跑。
+  let loadInFlight = null;
   async function load({ silent } = {}) {
+    if (loadInFlight) {
+      if (silent) return loadInFlight;
+      await loadInFlight.catch(() => {});
+    }
+    loadInFlight = doLoad({ silent }).finally(() => { loadInFlight = null; });
+    return loadInFlight;
+  }
+
+  async function doLoad({ silent } = {}) {
     // 任何一次刷新（轮询/手动/切页）都在顶栏下沿亮一条加载条：数据在悄悄变而页面毫无动静，
     // 用户会以为没刷新（用户提的）。轮询也亮——30 秒一次、每次三四百毫秒，不影响看数据。
     U.loadBar(true);
@@ -5184,7 +5219,8 @@ window.APP = (() => {
     const rh = S.data.rideHome;
     const an = S.data.analyse;
     const svc = S.data.service?.serviceRechargeVehicleList?.[0];
-    const soc = h.soc ?? 0;
+    // 电量缺字段时是 null：显示「—」+ 灰环，别拿 0 冒充（0% 会和真的没电混在一起）
+    const soc = h.soc;
     // 快捷操作只留 4 个（一行）：寻车鸣笛 / 远程解锁 / 打开坐垫 / 更多；
     // 龙头锁、车锁的状态挪到上面的胶囊行，座垫锁/储物箱/闪灯收进「更多」面板
     const actions = PRIMARY_ACTIONS.map((id) => actionBtn(ACTIONS.find((a) => a.id === id), h)).join('');
@@ -5209,16 +5245,18 @@ window.APP = (() => {
       `<div class="hero-top">${topChips}</div>
       <div class="hero-stage">
         <div class="bignum left">
-          <b class="tnum" style="color:${h.socColor.color}"><span data-num="${h.soc ?? ''}" data-key="soc">${soc}</span><i>%</i></b>
+          <b class="tnum" style="color:${h.socColor.color}">${soc === null || soc === undefined
+            ? '<span>—</span>'
+            : `<span data-num="${soc}" data-key="soc">${soc}</span><i>%</i>`}</b>
         </div>
-        ${h.pic ? `<img src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter()">` : U.fallbackScooter()}
+        ${h.pic ? `<img class="hero-pic" src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter()">` : U.fallbackScooter()}
         <div class="bignum right">
           <b class="tnum">${volt === null ? '—' : `<span data-num="${volt}" data-key="volt">${volt}</span>`}<i>V</i></b>
         </div>
         ${tireBubble('前轮', t?.wheels?.find((w) => w.pos === '前轮'), 'left')}
         ${tireBubble('后轮', t?.wheels?.find((w) => w.pos === '后轮'), 'right')}
       </div>
-      ${U.socBar(soc, h.socColor.color, h.charge.charging)}
+      ${U.socBar(soc ?? 0, h.socColor.color, h.charge.charging)}
       <div class="hero-meta">
         <span>总里程 <span class="tnum" data-num="${h.totalMile ?? ''}" data-key="totalMile">${h.totalMile ?? '—'}</span> km</span><i class="sep"></i>
         ${h.signal.text ? `<span>信号 ${h.signal.text}</span><i class="sep"></i>` : ''}
@@ -5865,7 +5903,10 @@ window.APP = (() => {
   /** 点开关：先出确认弹层，说明写哪个接口、会变成什么 */
   function toggleSheet(code) {
     const row = allRows().find((r) => r.code === code);
-    if (!row || !row.binary) return;
+    if (!row) return;
+    // 不是 0/1 开关的项（档位、版本号、枚举）本来就不能"切换"：
+    // 直接把详情弹出来，别让用户点了毫无反应（踩过）
+    if (!row.binary) return settingSheet(code);
     const target = !row.value;
     const stateText = (v) => (v ? '开启' : '关闭');
 
@@ -6164,7 +6205,15 @@ window.APP = (() => {
       </div></div>`;
       console.error('render failed', e);
     }
+    // 车图是外链 PNG：整块换 innerHTML 会把 <img> 重建一遍，浏览器要重新解码，
+    // 启动那一两秒里连渲染两三次就是肉眼看到的"闪两下"（用户报的）。
+    // 做法：src 没变就把**旧的 DOM 节点**搬回来用——元素没被销毁时它的解码结果还在，不会白一下。
+    const oldPic = scroll().querySelector('img.hero-pic');
     scroll().innerHTML = `<div class="page">${view}</div>`;
+    const newPic = scroll().querySelector('img.hero-pic');
+    if (oldPic && newPic && oldPic.complete && oldPic.getAttribute('src') === newPic.getAttribute('src')) {
+      newPic.replaceWith(oldPic);
+    }
     // 必须显式回写：整块换 innerHTML 时 Chrome 的滚动锚定会把上一页的位置留下来
     scroll().scrollTop = y;
     // .phone 是 overflow:hidden 的滚动壳，scrollIntoView/聚焦会把它滚走、把顶栏顶出视口

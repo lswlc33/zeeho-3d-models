@@ -32,7 +32,9 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // 只清自己这一族（zeeho-dashboard-*）：GitHub Pages 用户站跟别的项目同源，
+      // 无条件删"非当前名"的缓存会把隔壁页面的缓存一起干掉。
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('zeeho-dashboard-') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
