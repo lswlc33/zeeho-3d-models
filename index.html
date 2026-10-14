@@ -14,7 +14,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 15:49">
+<meta name="build" content="2026-10-14 16:01">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -484,6 +484,11 @@ body::before {
   max-height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .38));
+}
+/* 车图入场动画：只有首屏那次渲染的元素带 .hero-in，之后的重渲染（切 tab、每 30 秒轮询）
+   都不带——因为"元素摘下来再插回去"会让 CSS 动画重新开始，切一下 tab 就是"车图动两次"（用户报的）。
+   类挂在元素上，后续渲染出来的新元素没有这个类，自然不会再播。 */
+.hero-stage .hero-in {
   animation: heroIn var(--dur-long) var(--ease-decel) both;
 }
 [data-theme="dark"] .hero-stage img { filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .55)) drop-shadow(0 0 1px rgba(255, 255, 255, .22)); }
@@ -4351,8 +4356,9 @@ window.UI = (() => {
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[name] || P.info}</svg>`;
 
   /** 车辆图加载失败时的兜底：一台极简电摩侧视剪影 */
-  function fallbackScooter() {
-    return `<svg class="fallback" viewBox="0 0 320 180" width="320" height="180" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--md-sys-color-on-surface-variant);opacity:.9">
+  /** 没车图时画的占位小车。anim=true 时带上入场动画类（只有"进入爱车页的第一次渲染"要） */
+  function fallbackScooter(anim) {
+    return `<svg class="fallback${anim ? ' hero-in' : ''}" viewBox="0 0 320 180" width="320" height="180" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--md-sys-color-on-surface-variant);opacity:.9">
       <circle cx="66" cy="132" r="26"/><circle cx="66" cy="132" r="9"/>
       <circle cx="252" cy="132" r="26"/><circle cx="252" cy="132" r="9"/>
       <path d="M92 132h134"/>
@@ -4836,10 +4842,10 @@ window.APP = (() => {
   const phone = () => $('phone');
   const scroll = () => $('scroll');
 
-  // 网页版自己的版本号（爱车页最底部显示成 V4.10，不再显示 VIN——VIN 在车辆属性里有）。
+  // 网页版自己的版本号（爱车页最底部显示成 V4.11，不再显示 VIN——VIN 在车辆属性里有）。
   // **每次提交推送前按这次改动的强度往上抬**：小修 +0.01、成组的功能/修复 +0.1、
   // 大改（换布局/加整页/改数据通道）进位到 5.00。别只在"想起来的时候"改——用户要能对着版本说话。
-  const APP_VER = '4.10';
+  const APP_VER = '4.11';
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /** 是不是"装到桌面"的独立窗口：iOS 认 navigator.standalone，其它平台看 display-mode */
@@ -5241,6 +5247,11 @@ window.APP = (() => {
       U.chip(`坐垫锁 ${h.seatLock ? '已锁' : '未锁'}`, h.seatLock ? '' : 'warn'),
     ].filter(Boolean).join('');
 
+    // 车图入场动画：只有首屏那次渲染挂 .hero-in（切 tab、轮询都会再渲染，重播就是"动两下"）。
+    // flag 在这里消费掉。
+    const heroAnim = heroFresh;
+    heroFresh = false;
+
     const heroCard = U.card(
       `<div class="hero-top">${topChips}</div>
       <div class="hero-stage">
@@ -5249,7 +5260,7 @@ window.APP = (() => {
             ? '<span>—</span>'
             : `<span data-num="${soc}" data-key="soc">${soc}</span><i>%</i>`}</b>
         </div>
-        ${h.pic ? `<img class="hero-pic" src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter()">` : U.fallbackScooter()}
+        ${h.pic ? `<img class="hero-pic${heroAnim ? ' hero-in' : ''}" src="${esc(h.scalePic || h.pic)}" alt="${esc(h.name)}" onerror="this.outerHTML=window.UI.fallbackScooter(${heroAnim ? 'true' : ''})">` : U.fallbackScooter(heroAnim)}
         <div class="bignum right">
           <b class="tnum">${volt === null ? '—' : `<span data-num="${volt}" data-key="volt">${volt}</span>`}<i>V</i></b>
         </div>
@@ -6186,6 +6197,11 @@ window.APP = (() => {
   }
 
   // ---------------- 渲染 ----------------
+  // 车图入场动画的一次性标记：**整页只播一次**（首屏那次），切 tab / 轮询都不再播。
+  // 为什么不做成"每次回爱车页播一次"：换 innerHTML 会把 <img> 摘下来再插回去，
+  // 而"摘掉再插入"会让 CSS 动画重新开始——于是切一下 tab 就看到车图动两次（用户报的）。
+  let heroFresh = true;
+
   function render({ keepScroll } = {}) {
     applyTheme();
     // 共享车没有「车辆设置」页：切到共享车时如果正停在那页，会落到一个不存在的 tab 上，直接回首页
@@ -6205,13 +6221,14 @@ window.APP = (() => {
       </div></div>`;
       console.error('render failed', e);
     }
-    // 车图是外链 PNG：整块换 innerHTML 会把 <img> 重建一遍，浏览器要重新解码，
-    // 启动那一两秒里连渲染两三次就是肉眼看到的"闪两下"（用户报的）。
-    // 做法：src 没变就把**旧的 DOM 节点**搬回来用——元素没被销毁时它的解码结果还在，不会白一下。
+    // 车图是外链 PNG：整块换 innerHTML 会把 <img> 重建一遍，浏览器要重新解码（会白一下），
+    // 而且重新插回 DOM 会让 CSS 入场动画重播。做法：src 没变就把**旧的 DOM 节点**搬回来用——
+    // 元素没被销毁时它的解码结果还在；动画类由 viewHome() 按 heroFresh 决定，不在这里管。
     const oldPic = scroll().querySelector('img.hero-pic');
     scroll().innerHTML = `<div class="page">${view}</div>`;
     const newPic = scroll().querySelector('img.hero-pic');
     if (oldPic && newPic && oldPic.complete && oldPic.getAttribute('src') === newPic.getAttribute('src')) {
+      oldPic.classList.remove('hero-in');    // 旧的已经入场过了：重新插回 DOM 会让 CSS 动画重头播，先摘掉
       newPic.replaceWith(oldPic);
     }
     // 必须显式回写：整块换 innerHTML 时 Chrome 的滚动锚定会把上一页的位置留下来
