@@ -96,7 +96,9 @@
   html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
 }
 
-html:not(.edge) { --sat: 0px; --sab: 0px; }
+/* 注意：--sat/--sab 的最终值由 JS（app.js:fitViewport）按"页面哪条边顶到屏幕"分别写死，
+   写在 <html> 的行内样式上；这里不再用 .edge 之类的选择器去覆盖，免得两套机制打架。
+   JS 没跑起来时就用 :root 里的原始 env() 值。 */
 
 /* ---------- 状态层 ---------- */
   --hover: .08;
@@ -115,8 +117,11 @@ html:not(.edge) { --sat: 0px; --sab: 0px; }
      visualViewport 高度 vs screen.height 判断后给 <html> 加 .edge）。
      iOS Safari/PWA 上视口本身就没到边，再叠一次 env() 会双份留白——
      顶部状态栏下面多一条、底部 tab 栏下面多一条。 */
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
+  /* 原始值留着给 JS 判断用（--sat/--sab 是"最终要不要吃"的值，可能被 JS 清零） */
+  --sat-raw: env(safe-area-inset-top, 0px);
+  --sab-raw: env(safe-area-inset-bottom, 0px);
+  --sat: var(--sat-raw);
+  --sab: var(--sab-raw);
 
   /* ---------- 版式基准 ---------- */
   /* 页面左右留白：滚动区与顶栏都用它，保证卡片边缘和车名/头像在同一条竖线上。
@@ -4706,22 +4711,34 @@ window.APP = (() => {
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /**
-   * 只判断"视口是不是真顶到屏幕边"，**不再算高度**。
+   * 只判断"上下两条边各要不要吃安全区"，**不算高度**。
    *
    * 高度交给 CSS 的 `position: fixed; inset: 0`（见 styles.css 的 .stage）：iOS 独立 PWA 下
    * `100vh/100dvh/dvh/svh`、`window.innerHeight`、`-webkit-fill-available` 全都会低报
-   * （WebKit bug，见 frappe/frappe-ui #1289、cocktail-atlas #2），算出来反而会把壳做短、
-   * 底部露出 body 底色——那正是"iOS 底部一条黑边"的来源，用 JS 量高度治不好。
+   * （WebKit bug，见 frappe/frappe-ui #1289、cocktail-atlas #2），算高度这条路走不通。
    *
-   * 这里剩下的职责：iOS 上视口没顶到屏幕边时，`env(safe-area-inset-*)` 仍会报非零，
-   * 再按安全区加一次 padding 就是双份留白，所以只在"视口≈整屏"时才吃安全区。
+   * 安全区**必须按边分开判断**（实测 iPhone / iOS 26 独立 PWA：visualViewport 812、screen.height 874、
+   * 安全区 62/34 —— 少的 62px 正好等于状态栏高度，说明页面是从状态栏下面开始、底部顶到屏幕的）：
+   *   · 页面顶到屏幕顶 → 顶部要补状态栏那一条（否则内容钻到状态栏底下）；
+   *   · 页面顶到屏幕底 → 底部要补 home indicator 那一条（否则 home indicator 压在 tab 标签上）；
+   *   · 页面上下都没到边（普通浏览器，上面有地址栏下面有工具栏）→ 两条都不补。
+   * 一刀切"全吃或全不吃"会两种情况里各错一种。
    */
   function fitViewport() {
+    const root = document.documentElement;
     const vv = window.visualViewport;
     const h = Math.round(vv ? vv.height : window.innerHeight);
-    // screen.height 拿不到就按"不是全屏"处理（宁可少留白，也别双份留白）
     const full = Math.round((window.screen && window.screen.height) || 0);
-    document.documentElement.classList.toggle('edge', full > 0 && h >= full - 2);
+    const cs = getComputedStyle(root);
+    const satRaw = Math.round(parseFloat(cs.getPropertyValue('--sat-raw')) || 0);
+    const sabRaw = Math.round(parseFloat(cs.getPropertyValue('--sab-raw')) || 0);
+    const gap = full > 0 ? full - h : 0;                       // 视口比屏幕矮多少
+    const atTop = full > 0 && h >= full - 2;                   // 视口≈整屏：上下都贴边
+    // 视口比屏幕矮的正好是"状态栏那一条" → 页面从状态栏下面开始，但底部是顶到屏幕的
+    const fromStatusBar = full > 0 && satRaw > 0 && Math.abs(gap - satRaw) <= 8;
+    root.style.setProperty('--sat', atTop ? `${satRaw}px` : '0px');
+    root.style.setProperty('--sab', (atTop || fromStatusBar) ? `${sabRaw}px` : '0px');
+    root.classList.toggle('edge', atTop);
   }
   fitViewport();
   window.addEventListener('resize', fitViewport);
@@ -6133,8 +6150,9 @@ window.APP = (() => {
       ['screen.height', `${window.screen?.height ?? '?'}`],
       ['html.clientHeight', `${root.clientHeight}`],
       ['DPR', `${window.devicePixelRatio}`],
-      ['安全区 top/bottom（原值）', `${window.getComputedStyle(root).getPropertyValue('--sat').trim()} / ${window.getComputedStyle(root).getPropertyValue('--sab').trim()}`],
-      ['真全屏(.edge)', root.classList.contains('edge') ? '是（吃安全区）' : '否（安全区按 0）'],
+      ['安全区 原值 top/bottom', `${cs.getPropertyValue('--sat-raw').trim()} / ${cs.getPropertyValue('--sab-raw').trim()}`],
+      ['安全区 实际采用', `${cs.getPropertyValue('--sat').trim()} / ${cs.getPropertyValue('--sab').trim()}`],
+      ['判定', root.classList.contains('edge') ? '视口≈整屏（两边都吃）' : (parseFloat(cs.getPropertyValue('--sab')) > 0 ? '从状态栏下开始、底部顶到屏幕（只吃底边）' : '上下都没到边（都不吃）')],
       ['.phone 实测高 / 视口差', `${Math.round(phone().getBoundingClientRect().height)} / ${Math.round(phone().getBoundingClientRect().height - (vv ? vv.height : window.innerHeight))}`],
     ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v tnum">${esc(v)}</span></div>`).join('');
     U.sheet(phone(), {
