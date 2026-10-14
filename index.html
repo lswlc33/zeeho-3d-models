@@ -14,7 +14,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 18:26">
+<meta name="build" content="2026-10-14 18:50">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -4858,7 +4858,7 @@ window.APP = (() => {
   // 网页版自己的版本号（爱车页最底部显示成 V4.11，不再显示 VIN——VIN 在车辆属性里有）。
   // **每次提交推送前按这次改动的强度往上抬**：小修 +0.01、成组的功能/修复 +0.1、
   // 大改（换布局/加整页/改数据通道）进位到 5.00。别只在"想起来的时候"改——用户要能对着版本说话。
-  const APP_VER = '4.12';
+  const APP_VER = '4.13';
 
   // ---------------- 视口 / 安全区（沉浸） ----------------
   /** 是不是"装到桌面"的独立窗口：iOS 认 navigator.standalone，其它平台看 display-mode */
@@ -6504,6 +6504,10 @@ window.APP = (() => {
         case 'closeSheet':
           U.closeSheet();
           break;
+        case 'reload':
+          // 「配置成功，请刷新」里那个按钮：此时地址已经抹掉参数，刷新即回到无参数网址
+          location.reload();
+          break;
         case 'reveal':
           S.locShown = !S.locShown;
           applyLocMask();                                        // 弹层里的地图/地址就地更新
@@ -6716,9 +6720,68 @@ window.APP = (() => {
       .catch(() => { /* 忽略 */ });
   }
 
+  // ---------------- URL 参数下发（模块 App 的「全新仪表」按钮） ----------------
+  //
+  // 模块 App 点「全新仪表」会用 ?token=xxx&uid=yyy 打开本页（地址见 Prefs.WEB_DASHBOARD_URL）。
+  // 收到参数就填进设置、拿 token 真打一条接口验证，然后弹窗提示刷新，并把参数从地址栏抹掉
+  // —— 用户点刷新回到的就是无参数网址。
+  //
+  // 账号 id 允许 uid / userId / user_id 三种写法：调用方写错一个不至于失效。
+  function readUrlCreds() {
+    let q;
+    try {
+      q = new URLSearchParams(location.search || '');
+    } catch {
+      return null;    // 老引擎没有 URLSearchParams：当没带参数
+    }
+    const token = (q.get('token') || '').trim().replace(/^bearer\s+/i, '');
+    const uid = (q.get('uid') || q.get('userId') || q.get('user_id') || '').trim();
+    if (!token && !uid) return null;
+    return { token, uid };
+  }
+
+  /** 去掉 query 的本页地址（刷新后回到无参数网址）。 */
+  const cleanHref = () => location.origin + location.pathname;
+
+  /**
+   * 应用 URL 带来的凭据：验证 → 弹窗 → 清参数。返回是否验证通过。
+   *
+   * 验证就是拿这个 token 真打一条带登录态的接口（vehicle_list）：只有 code=10000 才算通，
+   * 其余（401 / 网关维护页 / 超时）都把原始信息显示出来，别让人对着空页面猜。
+   */
+  async function applyUrlCreds(creds) {
+    const r = creds.token ? await API.call('vehicle_list') : { ok: true };
+    // 无论成败都先把参数从地址里抹掉：这样"刷新"本身就是回到无参数网址，
+    // 不用依赖用户点哪个按钮。
+    try { history.replaceState(null, '', cleanHref()); } catch { /* 老引擎忽略 */ }
+    if (r.ok) {
+      U.sheet(phone(), {
+        title: '配置成功，请刷新',
+        sub: creds.token
+          ? `已写入 token${creds.uid ? ' 与账号 ID' : ''}，刷新后即可看到真车数据`
+          : '已写入账号 ID，刷新后生效',
+        body: `<div class="field mt12"><button class="btn block" data-act="reload">刷新</button></div>
+               <div style="height:8px"></div>`,
+      });
+      return true;
+    }
+    U.sheet(phone(), {
+      title: '配置失败',
+      sub: [r.http ? `HTTP ${r.http}` : '', r.code ? `code ${r.code}` : ''].filter(Boolean).join(' · '),
+      body: `<div class="field">${esc(r.message || r.err || 'token 可能已过期，重新登录极核后再点一次「全新仪表」')}</div>
+             <div class="field mt12"><button class="btn text block" data-act="closeSheet">知道了</button></div>
+             <div style="height:8px"></div>`,
+    });
+    return false;
+  }
+
   // ---------------- 启动 ----------------
   async function init() {
     loadPrefs();
+    // 模块 App 带参数打开时先落盘：API.init() 正是靠 localStorage 里这份 token 决定走直连的
+    const creds = readUrlCreds();
+    if (creds?.token) API.saveToken(creds.token);
+    if (creds?.uid) { S.profileUid = creds.uid; savePrefs(); }
     applyTheme();
     registerSw();
     const d = new Date();
@@ -6735,9 +6798,15 @@ window.APP = (() => {
     const s = await API.all(SET_IDS, { vin: S.vin, uid: S.profileUid || '', month: S.month });
     if (s.vehicle_set_items) S.data.caps = s.vehicle_set_items;
     if (s.vehicle_set_info) S.data.info = s.vehicle_set_info;
+    bind();     // 事件先挂上：下面的"配置成功"弹窗里那个刷新按钮要靠它才点得动
+    if (creds) {
+      // 带参数进来只做"配置"这一件事：验证通了就停在提示刷新这一步，
+      // 不接着拉数据（半截数据看着像坏的，而且马上要刷新一次，白拉）。
+      const ok = await applyUrlCreds(creds);
+      if (ok) return;
+    }
     await load();
     startPoll();
-    bind();
   }
 
   return { init, load, render, state: S, ACTIONS };
