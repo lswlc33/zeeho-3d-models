@@ -5190,10 +5190,10 @@ window.APP = (() => {
       title: '地图',
       sub,
       body: `
-        <div class="field" style="flex-wrap:wrap;gap:8px">
+        <div class="field" style="flex-wrap:wrap;gap:10px">
           ${chip('car', '车辆位置')}${chip('me', '我的位置')}${chip('both', '两个都看')}
         </div>
-        ${body}
+        <div class="mt12">${body}</div>
         ${car && me ? `<div class="card-sub mt12">${U.icon('info', 14)} 直线距离是两点之间的，不是骑行路线距离。</div>` : ''}
         <div style="height:8px"></div>`,
     });
