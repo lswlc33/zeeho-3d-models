@@ -11,7 +11,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 13:55">
+<meta name="build" content="2026-10-14 14:21">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -220,6 +220,12 @@ html, body { height: 100%; overflow: hidden; }
    露出来的是页面主色而不是白/黑——"黑边"最刺眼的就是浅色主题下露深色。
    （body 的底色会随之不再传播到画布，桌面预览那块深色展台仍由 body 自己的 background 负责。） */
 html { background-color: var(--md-sys-color-surface); }
+
+/* 整屏固定壳没有"放大看看"的余地：iOS 上双击会把视口放大，壳被裁掉一截、还容易回不来（用户实测踩到）。
+   manipulation = 保留拖动 + 双指缩放，只干掉双击放大（MDN：disables additional non-standard gestures
+   such as double-tap to zoom）。浏览器会把被摸元素与祖先的 touch-action 取交集，所以写在根上就覆盖全部子元素。
+   双指缩放故意留着：真要看细节还能自己放大。 */
+html, body { touch-action: manipulation; }
 
 body {
   margin: 0;
