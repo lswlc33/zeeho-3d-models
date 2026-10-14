@@ -11,7 +11,7 @@
 <!-- 构建号：build-static.mjs 出包时把 content 里的占位符换成时间戳，同一份值另写一份进 version.json。
      独立 PWA 从后台恢复不会重新加载页面，app.js 拿它比对后自动整页重载（见 app.js 的 checkBuild）。
      占位符别写成 __BUILD__ 那类下划线串：页面里的 JS 也要整文件替换一遍，会把代码里的字面量一起改掉（踩过）。 -->
-<meta name="build" content="2026-10-14 13:52">
+<meta name="build" content="2026-10-14 13:55">
 <title>极核仪表盘 · 网页版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23426b00'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23c3f18c'/%3E%3C/svg%3E">
 <script>
@@ -4773,7 +4773,17 @@ window.APP = (() => {
     root.style.setProperty('--sat', bleed ? `${satRaw}px` : '0px');
     root.style.setProperty('--sab', bleed ? `${sabRaw}px` : '0px');
     root.classList.toggle('edge', bleed);
+    // 安全区一变顶栏高度就变，而 --topbar-h 只在 renderTop() 时量一次（滚动区的上内边距靠它）。
+    // 这里补量：顶栏还没渲染过（空壳）就跳过，免得把空顶栏的量出来。
+    if (lastBleed !== null && lastBleed !== bleed) {
+      requestAnimationFrame(() => {
+        const tb = $('topbar');
+        if (tb && tb.firstElementChild) root.style.setProperty('--topbar-h', `${tb.offsetHeight}px`);
+      });
+    }
+    lastBleed = bleed;
   }
+  let lastBleed = null;   // 上一次的判定：用来发现"安全区变了"（见 fitViewport 末尾的补量）
   fitViewport();
   window.addEventListener('resize', fitViewport);
   window.addEventListener('orientationchange', fitViewport);
