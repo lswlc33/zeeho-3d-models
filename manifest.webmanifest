@@ -1,7 +1,7 @@
 {
-  "name": "极核仪表盘",
-  "short_name": "极核仪表盘",
-  "description": "脱离极核 App 的车辆仪表盘：车况、骑行记录与设置",
+  "name": "极核面板",
+  "short_name": "极核面板",
+  "description": "脱离极核 App 的车辆面板：车况、骑行记录与设置",
   "lang": "zh-CN",
   "dir": "ltr",
   "start_url": "./",
