@@ -165,6 +165,7 @@ public final class MainActivity extends Activity {
         root.requestApplyInsets();
 
         cache.promotePendingAtStartup();
+        cache.ensureOptionalAssetsAsync();
         if (cache.hasActive()) {
             loadPage();
         } else {

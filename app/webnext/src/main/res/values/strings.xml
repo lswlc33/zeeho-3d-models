@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">极核面板</string>
+    <string name="app_name">几何面板</string>
 
     <string name="init_preparing">正在准备首次启动…</string>
     <string name="init_downloading">正在缓存网页资源…</string>
     <string name="init_opening">正在打开…</string>
-    <string name="init_hint">首次打开需要下载约 0.7 MB，之后从本地秒开</string>
+    <string name="init_hint">首次打开需要下载页面资源（约 0.2 MB，压缩传输）</string>
     <string name="init_bytes">%1$s / %2$s MB</string>
     <string name="init_failed">初始化失败：%1$s</string>
     <string name="init_retry">重试</string>

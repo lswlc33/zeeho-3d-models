@@ -1,4 +1,4 @@
-# 极核面板 Android 壳（zeehowebnext）
+# 几何面板 Android 壳（zeehowebnext）
 
 纯**系统 WebView** 壳：APK 内不打包任何网页静态资源，也不内置 WebView 引擎，只打开
 
@@ -16,7 +16,7 @@ https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk
 ```
 
 - 包名：`io.github.lswlc33.zeehowebnext`
-- 显示名：极核面板
+- 显示名：**几何面板**（网页本身仍叫「极核面板」，两者是同一套页面）
 - 版本：`gradle.properties` 里的 `webnext.versionCode` / `webnext.versionName`
 - 签名：复用私有模块仓库的 `zeeho-unlocker.jks`；**密钥文件不提交到本仓库**
 
@@ -88,10 +88,10 @@ cp keystore.properties.example keystore.properties
 首次启动（无快照）
   原生遮罩 + 进度条
   -> GET version.json?_=ts 拿 build
-  -> 下载 index.html?build=...（校验标题 + <meta name="build"> 与 version.json 一致）
-  -> 下载 manifest + 4 个图标（失败可跳过）
+  -> 下载 index.html?build=...（gzip；校验标题 + <meta name="build"> 与 version.json 一致）
   -> 写 meta.json，临时目录 rename 成正式快照
-  -> loadUrl(BASE_URL)，onPageCommitVisible 时淡出遮罩
+  -> 立即 loadUrl(BASE_URL)，onPageCommitVisible 时淡出遮罩
+  -> manifest + 4 个图标**不挡首屏**，在同一个 worker 里接着补（写 .part 再改名）
 
 后续启动
   1. 若有上次下载好的 pending，先提为 active
@@ -117,7 +117,13 @@ files/webcache/.tmp-<build-id>/
 ```
 
 只缓存页面壳，**不缓存**接口数据、车辆图片、地图瓦片；字体是外部非阻塞资源，离线时
-回退系统字体。首次安装必须联网下载约 0.7 MB，之后才是本地秒开。
+回退系统字体。页面 HTML 用 **gzip** 传输（约 639KB → 约 200KB），首次安装必须联网下载
+约 0.2 MB，之后才是本地秒开。
+
+页面侧也配合做了三件事（改 `public/js/app.js` 时别退回去）：`init()` 先把车况接口发出去
+再画骨架；车辆列表和 VIN 落 localStorage，冷启动不再串行等 `vehicle/list`；账号档案与
+车辆设置只在后台补，不挡爱车页。MuMu + 本机测试服实测：进程冷启动约 0.65 秒到首帧、
+约 1.1 秒数据上屏；同一 WebView 里重载页面数据约 0.36 秒（接口热连接）。
 
 ## 壳与网页的约定
 
@@ -138,7 +144,7 @@ files/webcache/.tmp-<build-id>/
 - `applyTheme()` 调 `ZeehoShell.setDark()`。
 - `checkBuild()` 在壳内直接 return（更新由原生接管，页面绝不整页重载）。
 - `registerSw()` 在壳内直接 return（SW 网络优先且绕过 `shouldInterceptRequest`）。
-- 「我的」页的「安卓客户端 / 下载 App」卡片只在 `!inShell()` 时渲染。
+- 「我的」页的「几何面板 / 下载 App」卡片只在 `!inShell()` 时渲染。
 
 壳的 `WebViewClient.shouldInterceptRequest` 对同源路径的处理：
 
@@ -191,8 +197,9 @@ debug manifest 允许 cleartext，release 是 `usesCleartextTraffic=false`。
 
 ### 验收点
 
-- 首启有进度条；`files/webcache/snapshots/<id>` 文件齐全。
-- 二次启动从快照加载（实测 MuMu 约 0.6–1.0 秒到首帧）。
+- 首启有进度条；`files/webcache/snapshots/<id>` 里 `index.html`/`version.json`/`meta.json`
+  先齐，manifest 和图标随后在后台补齐。
+- 二次启动从快照加载（MuMu 实测约 0.65 秒到首帧；页面内重载数据约 0.36 秒）。
 - 停掉测试服/断网后冷启动仍能显示页面壳（API 数据失败是预期的）。
 - 新 build 下载后旧页不变；空闲 5 秒或下次启动才切新页。
 - 有弹层/输入框聚焦时推迟空闲刷新。

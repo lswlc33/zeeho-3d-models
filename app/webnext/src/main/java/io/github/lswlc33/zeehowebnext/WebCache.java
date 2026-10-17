@@ -15,9 +15,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PushbackInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 /**
  * 网页静态快照缓存。
@@ -169,12 +172,16 @@ final class WebCache {
                 String versionJson = fetchText(versionUrl(), 4096);
                 String build = parseBuild(versionJson);
                 if (build == null) throw new IOException("version.json 没有 build");
-                Snapshot s = downloadSnapshot(build, versionJson, progress);
+                // 首启只等 index.html：manifest/图标不是页面渲染的前置条件，等它们
+                // 会让首屏白等 4~5 个 RTT。先把页面放出来，资源在同一个 worker 里继续补。
+                Snapshot s = downloadSnapshot(build, versionJson, progress, false);
                 active = s;
                 pending = null;
                 prefs.edit().putString(K_ACTIVE, safeId(build)).remove(K_PENDING).apply();
                 cleanupOld();
                 cb.onSuccess();
+                downloadOptionalAssets(s.dir, build, null);
+                Log.i(TAG, "optional assets ready: " + build);
             } catch (Exception e) {
                 Log.w(TAG, "initialize failed", e);
                 cb.onError(readable(e));
@@ -203,7 +210,7 @@ final class WebCache {
                     cb.onUpdateReady(build);
                     return;
                 }
-                Snapshot s = downloadSnapshot(build, versionJson, null);
+                Snapshot s = downloadSnapshot(build, versionJson, null, true);
                 // 下载期间 active 可能被空闲刷新换掉，落地前再判一次
                 if (active != null && build.equals(active.build)) {
                     deleteTree(s.dir);
@@ -220,6 +227,24 @@ final class WebCache {
                 Log.w(TAG, "update check failed", e);
                 cb.onError(readable(e));
             }
+        });
+    }
+
+    /**
+     * 后台补齐 active 快照缺的 manifest/图标。首启时这些资源不挡页面，进程可能没等它们下完
+     * 就被杀；下次启动补一次，避免离线时一直缺图标（页面本身不依赖它们）。
+     */
+    void ensureOptionalAssetsAsync() {
+        Snapshot a = active;
+        if (a == null) return;
+        boolean missing = !new File(a.dir, MANIFEST).isFile();
+        for (String icon : ICONS) {
+            if (!new File(a.dir, icon).isFile()) missing = true;
+        }
+        if (!missing) return;
+        worker.execute(() -> {
+            downloadOptionalAssets(a.dir, a.build, null);
+            Log.i(TAG, "optional assets repaired: " + a.build);
         });
     }
 
@@ -301,7 +326,8 @@ final class WebCache {
 
     // ---------------- 下载 / 校验 ----------------
 
-    private Snapshot downloadSnapshot(String build, String versionJson, Progress progress) throws IOException {
+    private Snapshot downloadSnapshot(String build, String versionJson, Progress progress,
+                                      boolean withOptional) throws IOException {
         cleanupTmp();
         String id = safeId(build);
         File tmp = new File(root, ".tmp-" + id);
@@ -312,13 +338,16 @@ final class WebCache {
             deleteTree(finalDir);
 
             long indexBytes = 0;
+            // 首启（withOptional=false）不下载可选资源，进度条按 100% 算；
+            // 更新路径仍按 92% 留给后面的 manifest/图标。
+            int indexSpan = withOptional ? 92 : 100;
             String indexUrl = baseUrl + "index.html?build=" + Uri.encode(build);
             for (int attempt = 0; attempt < 2; attempt++) {
                 File out = new File(tmp, INDEX);
                 long[] total = new long[1];
                 downloadTo(indexUrl + (attempt == 0 ? "" : "&r=" + (attempt + 1)), out, (done, len) -> {
                     total[0] = len;
-                    if (progress != null) progress.onProgress(percent(done, len, 0, 92), done, len);
+                    if (progress != null) progress.onProgress(percent(done, len, 0, indexSpan), done, len);
                 });
                 indexBytes = total[0];
                 String html = readAll(out);
@@ -331,15 +360,7 @@ final class WebCache {
                 if (attempt == 1) throw new IOException("页面校验失败（build 不一致或内容异常）");
             }
 
-            // manifest / 图标是可选资源；失败不影响页面本身
-            downloadOptional(tmp, MANIFEST,
-                "manifest.webmanifest?build=" + Uri.encode(build), progress, 92, 94);
-            int step = Math.max(1, 6 / ICONS.length);
-            for (int i = 0; i < ICONS.length; i++) {
-                int base = 94 + i * step;
-                downloadOptional(tmp, ICONS[i],
-                    ICONS[i] + "?build=" + Uri.encode(build), progress, base, Math.min(100, base + step));
-            }
+            if (withOptional) downloadOptionalAssets(tmp, build, progress);
 
             try (OutputStream os = new FileOutputStream(new File(tmp, VERSION))) {
                 os.write(versionJson.getBytes(StandardCharsets.UTF_8));
@@ -352,7 +373,9 @@ final class WebCache {
             }
 
             if (!tmp.renameTo(finalDir)) throw new IOException("缓存目录改名失败");
-            Log.i(TAG, "snapshot ready: " + build + " indexBytes=" + indexBytes);
+            Log.i(TAG, "snapshot ready: " + build
+                + " wireBytes=" + indexBytes
+                + " htmlBytes=" + new File(finalDir, INDEX).length());
             return new Snapshot(finalDir, build);
         } catch (Exception e) {
             deleteTree(tmp);
@@ -361,15 +384,32 @@ final class WebCache {
         }
     }
 
+    private void downloadOptionalAssets(File dir, String build, Progress progress) {
+        // manifest / 图标是可选资源；失败不影响页面本身
+        String q = "?build=" + Uri.encode(build);
+        downloadOptional(dir, MANIFEST, MANIFEST + q, progress, 92, 94);
+        int step = Math.max(1, 6 / ICONS.length);
+        for (int i = 0; i < ICONS.length; i++) {
+            int base = 94 + i * step;
+            downloadOptional(dir, ICONS[i], ICONS[i] + q, progress, base, Math.min(100, base + step));
+        }
+    }
+
     private void downloadOptional(File dir, String rel, String url, Progress progress, int base, int span) {
         File out = new File(dir, rel);
         File parent = out.getParentFile();
         if (parent != null) parent.mkdirs();
+        // 先写 .part 再改名：首启路径里页面已经在读这个快照目录了，
+        // 直接写目标文件会让 WebView 读到半张 PNG。
+        File part = new File(out.getPath() + ".part");
         try {
-            downloadTo(baseUrl + url, out, (done, len) -> {
+            downloadTo(baseUrl + url, part, (done, len) -> {
                 if (progress != null) progress.onProgress(percent(done, len, base, span), done, len);
             });
+            out.delete();
+            if (!part.renameTo(out)) throw new IOException("改名失败: " + rel);
         } catch (Exception e) {
+            part.delete();
             out.delete();
             Log.w(TAG, "optional asset failed: " + rel, e);
         }
@@ -382,31 +422,74 @@ final class WebCache {
             c.setConnectTimeout(15000);
             c.setReadTimeout(30000);
             c.setInstanceFollowRedirects(true);
-            c.setRequestProperty("Accept-Encoding", "identity");
+            // 页面 642KB，gzip 后约 203KB；慢网下这是首启最大的一笔优化。
+            // 手动设 Accept-Encoding 时 Android 不会自动解压，但不同实现有差异，
+            // 所以下面按 gzip 魔数判断，而不是只信响应头。
+            c.setRequestProperty("Accept-Encoding", "gzip");
             c.setRequestProperty("Cache-Control", "no-cache");
             c.setRequestProperty("User-Agent", "ZeehoWebNext");
             int code = c.getResponseCode();
             if (code != 200) throw new IOException("HTTP " + code);
             long len = c.getContentLengthLong();
-            try (InputStream in = new BufferedInputStream(c.getInputStream());
-                 OutputStream os = new FileOutputStream(out)) {
+            CountingInputStream counting = new CountingInputStream(
+                new BufferedInputStream(c.getInputStream()));
+            PushbackInputStream pb = new PushbackInputStream(counting, 2);
+            byte[] magic = new byte[2];
+            int m = pb.read(magic);
+            if (m > 0) pb.unread(magic, 0, m);
+            boolean gz = m == 2 && (magic[0] & 0xff) == 0x1f && (magic[1] & 0xff) == 0x8b;
+            InputStream in = gz ? new GZIPInputStream(pb) : pb;
+            try (InputStream src = in; OutputStream os = new FileOutputStream(out)) {
                 byte[] buf = new byte[64 * 1024];
-                long done = 0;
                 int n;
                 long last = 0;
-                while ((n = in.read(buf)) > 0) {
+                while ((n = src.read(buf)) > 0) {
                     os.write(buf, 0, n);
-                    done += n;
+                    long done = counting.getCount();
                     long now = System.currentTimeMillis();
-                    if (fn != null && (now - last >= 80 || done == len)) {
+                    if (fn != null && (now - last >= 80 || (len > 0 && done >= len))) {
                         last = now;
                         fn.onBytes(done, len);
                     }
                 }
-                if (fn != null) fn.onBytes(done, len);
+                if (fn != null) fn.onBytes(counting.getCount(), len);
             }
         } finally {
             if (c != null) c.disconnect();
+        }
+    }
+
+    /** 统计从网络实际读到的字节（gzip 时是压缩后的传输量，用来显示进度）。 */
+    private static final class CountingInputStream extends FilterInputStream {
+        private long count;
+
+        CountingInputStream(InputStream in) {
+            super(in);
+        }
+
+        long getCount() {
+            return count;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = super.read();
+            if (b >= 0) count++;
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int n = super.read(b, off, len);
+            if (n > 0) count += n;
+            return n;
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            long s = super.skip(n);
+            if (s > 0) count += s;
+            return s;
         }
     }
 
