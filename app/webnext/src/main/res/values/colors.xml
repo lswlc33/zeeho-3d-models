@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与网页端 bg-page / 强调色同一套，启动遮罩和系统栏跟页面不打架 -->
+    <color name="page_dark">#FF141218</color>
+    <color name="page_light">#FFF3EDF7</color>
+    <color name="text_dark">#FFE6E0E9</color>
+    <color name="text_light">#FF1D1B20</color>
+    <color name="muted_dark">#FFCAC4D0</color>
+    <color name="muted_light">#FF49454F</color>
+    <color name="accent_dark">#FFCFBDF7</color>
+    <color name="accent_light">#FF7457B8</color>
+    <color name="brand_purple">#FF7457B8</color>
+    <color name="ic_launcher_background">#FF7457B8</color>
+</resources>

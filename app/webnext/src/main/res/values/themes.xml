@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 浅色系统：启动屏/窗口底色跟网页浅色主题一致 -->
+    <style name="Theme.ZeehoWebNext" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/page_light</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:colorAccent">@color/brand_purple</item>
+    </style>
+</resources>

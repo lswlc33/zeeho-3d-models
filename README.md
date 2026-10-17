@@ -4,6 +4,19 @@ Zeeho Unlocker 的 3D 车模库：存放从极核 App 抓取的官方车模（gl
 模型，供模块内「编辑 3D 车模 → 高级 → 从车模库选择」下载使用——让没有下发 3D 模型的
 车型（如 AE5i Pro）也能挂上别的车型的 3D 车模。
 
+## 极核面板 / Android App
+
+这个仓库的 GitHub Pages 根路径同时托管「极核面板」网页和它的安卓壳：
+
+- 网页：<https://lswlc33.github.io/zeeho-3d-models/>
+- 安卓 App：<https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk>
+- App 工程：`app/`（纯系统 WebView 壳，APK 内不含网页静态资源；构建、签名、更新机制见
+  [`app/README.md`](app/README.md)）
+
+网页源码在主仓库 `tools/dashboard/`，发布时用 `build-static.mjs --obfuscate` 输出到本仓库根的
+`index.html`、`manifest.webmanifest`、`sw.js`、`version.json`、`icons/`。`models/` 和 `index.json`
+仍是车模库，两者互不影响。
+
 ## 结构
 
 ```
