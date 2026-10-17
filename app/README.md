@@ -136,6 +136,12 @@ files/webcache/.tmp-<build-id>/
 | `insets()` | 返回 `{"top":24,"bottom":0,"left":0,"right":0}`（CSS px）。WebView 的 `env(safe-area-inset-*)` 不报系统栏高度，页面 `fitViewport()` 在壳模式必须用它。 |
 | `setDark(boolean)` | 页面主题变化时同步状态栏/导航栏图标明暗。 |
 | `appVersion()` | 当前壳版本，调试用。 |
+| `syncSession(token, uid, vin, name)` | 页面每次加载后把登录态推给原生；换 token/车辆会清旧摘要。token 为空会停后台。 |
+| `syncStatus(json)` | 页面每轮刷新后的车辆摘要（电量/充电/锁/坐垫/在线/功率/消息未读）。原生只读它做通知和小组件，不反向改页面。 |
+| `autoTask()` / `setAutoTask(json)` | 读写 App 专属自动任务（开关、执行时间、发帖文案、间隔、上次结果）。 |
+| `background()` / `setBackground(on)` | 读写后台同步开关；关闭会停前台服务、取消 15 分钟兜底任务并清通知。 |
+| `requestNotifications()` | 请求 Android 13+ 通知权限（已问过就不再弹）。 |
+| `openSettings(kind)` | 打开通知/自启动/应用详情设置（HyperOS 的自启动入口失败时退回应用详情）。 |
 
 页面侧必须保留这些分支（改 `app.js` 时别删）：
 
@@ -145,6 +151,8 @@ files/webcache/.tmp-<build-id>/
 - `checkBuild()` 在壳内直接 return（更新由原生接管，页面绝不整页重载）。
 - `registerSw()` 在壳内直接 return（SW 网络优先且绕过 `shouldInterceptRequest`）。
 - 「我的」页的「几何面板 / 下载 App」卡片只在 `!inShell()` 时渲染。
+- `syncNative()` 在每次 `doLoad` 末尾把登录态与车辆摘要推给原生；**别删**，否则通知/小组件/
+  自动任务拿不到数据。
 
 壳的 `WebViewClient.shouldInterceptRequest` 对同源路径的处理：
 
@@ -159,6 +167,64 @@ files/webcache/.tmp-<build-id>/
 顶层导航只允许面板根路径/`index.html`（可带 query/hash）。外部 http(s) 网页直接拦截，
 页面留在面板；`intent://` / `androidamap://` 等地图 scheme 交给系统 App，失败时用
 `browser_fallback_url` 开浏览器。
+
+## 通知、后台与自动化（1.2）
+
+### 通知
+
+| 渠道 ID | 用途 | 何时出现 |
+|---|---|---|
+| `service` | 后台同步前台服务（低优先级、常驻） | 登录后开启后台同步时 |
+| `messages` | 未读车辆消息 | 后台收到新的未读消息（或未读数增加） |
+| `charging` | 充电开始 / 充电进度 / 已充满 | 后台检测到充电状态变化；进度通知优先预计充满时间，没有就用 `ChargeLog` 线性外推，再退回已充时长 |
+| `tasks` | 自动任务执行结果 | 每日自动任务跑完 |
+| `actions` | 快捷方式/小组件车控结果 | 解锁/锁车/鸣笛/开坐垫执行后 |
+| `auth` | 登录态失效 | 后台接口返回 401 |
+
+- 消息通知依赖页面同步的**内部用户 id**（`S.profileUid`，即「数据与调试」里手填的账号 id）。
+  没填账号 id 时页面自己都查不了消息，原生也不会推；这不是壳的缺陷。
+- Android 13+ 首次登录/开启自动任务时请求 `POST_NOTIFICATIONS`；拒绝后只能去系统设置开。
+- 前台不弹消息通知：页面里已经能看到红点和充电卡；退回后台时才补通知。
+
+### 后台
+
+- `MonitorService` 是 `dataSync` 类型前台服务，登录后启动，60 秒轮询车况/电池/消息。
+- 被杀或重启后由 `MonitorJobService`（JobScheduler，15 分钟周期）兜底；两者都受系统省电策略影响。
+- `ACCESS_NETWORK_STATE` 是 Job 网络约束的硬前提：少了它 `JobScheduler.schedule()` 直接抛
+  `SecurityException`，而且以前被 `catch` 吞掉，表现就是"任务永远不跑"。**别删这个权限**。
+- 充电记录 `ChargeLog` 按 VIN 存 JSON 采样，只在后台采样；用于没有预计充满时间时的外推。
+- 「后台同步」开关关闭时：停服务、取消周期任务、清掉充电/消息通知；自动任务不受它影响。
+
+### 自动任务（App 专属）
+
+- 任务面板只在 `window.ZeehoShell` 存在时渲染「App 专属 · 后台增强」块；普通浏览器网页端不显示。
+- 开关 + 每日执行时间（默认 `09:00`）+ 保活提示；时间改动会立刻重排 JobScheduler 2102。
+- Job 用 `setMinimumLatency` 排到下一个执行时刻，`setPersisted(true)` 跨重启保留；执行完
+  `AutoTaskJobService` 写 `auto_last_result` 并排下一天。
+- 执行内容：h5 签到、积分任务（发帖/点赞/分享，按接口返回的 `completeFlag` 判断），发帖后按设置删除动态。
+  自动任务**绝不能**改走原生 `signin`（见模块仓库 AGENTS：有效 token 也会 401 并触发全局登录失效）。
+- 保活：允许自启动/后台运行、加桌面小组件；HyperOS 等系统仍可能延迟到下次唤醒。
+
+### 桌面小组件
+
+- 三种：2×2（电量/充电/功率/更新时间）、4×2（加锁/坐垫/在线/刷新）、4×4（再加解锁/锁车/鸣笛/坐垫按钮）。
+- 数据只读 `NativeStore` 缓存；刷新按钮触发一次 `MonitorService` 轮询，不直接发网络。
+- 尺寸用 `targetCellWidth/Height` + 标准 `minWidth/minHeight`；部分第三方桌面（如 MuMu 的 Lawnchair）
+  忽略 target 属性，初始格数可能不是精确的 2×2/4×2/4×4，可手动拉伸。HyperOS 桌面按 target 走。
+- 小组件按钮的 Intent 带本机随机 secret，`ActionActivity` 校验后才发车控；错误 secret 只回主界面。
+
+### App Shortcuts
+
+- 动态注册四个：解锁车辆 / 锁定车辆 / 寻车鸣笛 / 打开坐垫。
+- 每个 Intent 带 `NativeStore.shortcutSecret()` 生成的随机 secret；`ActionActivity` 是 exported，
+  没有 secret 或 secret 不匹配时直接回主界面，**不会发任何请求**。
+- secret 存在应用私有 prefs 和桌面保存的 shortcut intent 里；卸载重装会换新 secret，桌面旧快捷方式失效。
+
+### 图标
+
+- 自适应图标：`drawable-nodpi/ic_launcher_foreground.png`（原图裁切后的 Z 字标）+
+  `ic_launcher_monochrome.png`（单色层），背景 `drawable/ic_launcher_background.xml`。
+- 源图与裁切中间产物在 `app/icon-work/`；改图标时从这里重新导出，别直接改 PNG 后忘了 monochrome。
 
 ## 测试
 
@@ -207,6 +273,13 @@ debug manifest 允许 cleartext，release 是 `usesCleartextTraffic=false`。
 - 返回键：先退弹层，再回爱车，最后双击退出。
 - 外部网页被拦截；地图 intent 放行。
 - 壳内「我的」没有下载入口；普通浏览器有。
+- 登录后后台出现 `service` 常驻通知；按 Home 后 60 秒内 `last_poll`/电量会更新；充电时出现
+  「充电中 · xx%」进度通知，充满后出现「已充满」。
+- 任务面板出现「App 专属 · 后台增强」；开关/时间改动后 `cmd jobscheduler get-job-state <pkg> 2102`
+  返回 `waiting`；普通浏览器任务面板没有这块。
+- 三个小组件能在微件列表预览并拖到桌面；4×4 的四个按钮可点（错误 secret 不发请求）。
+- 长按桌面图标能看到四个动态快捷方式（部分桌面只显示前两个，`dumpsys shortcut` 里应有四个）。
+- 图标为新的 Z 字标自适应图标，单色层在主题图标模式下可用。
 
 ## 已知边界
 

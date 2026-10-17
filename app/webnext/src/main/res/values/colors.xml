@@ -10,5 +10,14 @@
     <color name="accent_dark">#FFCFBDF7</color>
     <color name="accent_light">#FF7457B8</color>
     <color name="brand_purple">#FF7457B8</color>
-    <color name="ic_launcher_background">#FF7457B8</color>
+    <color name="brand_blue">#FF2F7BF6</color>
+    <color name="ic_launcher_background">#FF0A0A0C</color>
+
+    <!-- 小组件 / 通知的品牌色（与图标蓝一致） -->
+    <color name="widget_bg">#FF0F1116</color>
+    <color name="widget_btn">#FF1B1E24</color>
+    <color name="widget_text">#FFF5F5F7</color>
+    <color name="widget_muted">#FF9AA0A6</color>
+    <color name="widget_accent">#FF2F7BF6</color>
+    <color name="widget_good">#FF8CE99A</color>
 </resources>

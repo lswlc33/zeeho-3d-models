@@ -3,8 +3,15 @@ package io.github.lswlc33.zeehowebnext;
 import android.webkit.JavascriptInterface;
 
 /**
- * 注入给网页的原生桥。只提供 insets / 主题 / 版本三件事，没有任何文件、Intent、
- * 网络或凭据能力——即使页面未来被注入脚本，能拿到的也只有这些。
+ * 注入给网页的原生桥。
+ *
+ * 页面是我们自己的构建（线上快照与仓库产物同一份），桥只暴露这几件事：
+ *   - 安全区/主题/版本（原有）；
+ *   - 把登录态和车辆摘要推给原生，供通知/小组件/自动任务使用；
+ *   - App 专属的自动任务与后台同步设置；
+ *   - 请求通知权限、打开系统设置。
+ *
+ * 不提供任意文件、任意 Intent、任意 URL 能力；同步下来的 token 只写应用私有 SharedPreferences。
  */
 final class ShellBridge {
 
@@ -29,5 +36,71 @@ final class ShellBridge {
     @JavascriptInterface
     public String appVersion() {
         return activity.appVersionName();
+    }
+
+    /**
+     * 网页每次 load 后同步登录态。token/vin 任一为空都会让后台服务停下；
+     * 换 token（重新登录）时 NativeStore 会清掉旧车的摘要和登录失效标记。
+     */
+    @JavascriptInterface
+    public void syncSession(String token, String uid, String vin, String name) {
+        String t = safe(token), u = safe(uid), v = safe(vin), n = safe(name);
+        NativeStore.updateSession(activity, t, u, v, n);
+        final boolean configured = !t.isEmpty() && !v.isEmpty();
+        activity.runOnUiThread(() -> {
+            if (configured) {
+                MonitorScheduler.ensure(activity);
+                MonitorService.start(activity);
+                activity.postRequestNotifications();
+                ShortcutHelper.ensure(activity);
+            } else {
+                MonitorScheduler.cancel(activity);
+                MonitorService.stop(activity);
+                Notify.cancelAll(activity);
+            }
+            WidgetProviders.updateAll(activity);
+        });
+    }
+
+    /** 网页每轮刷新后的车辆摘要（JSON）。原生只做展示/通知，不反向改页面。 */
+    @JavascriptInterface
+    public void syncStatus(String json) {
+        if (!NativeStore.isConfigured(activity)) return;
+        NativeStore.setLastPageSync(activity);
+        StatusFeed.pageAsync(activity, json);
+    }
+
+    @JavascriptInterface
+    public String autoTask() {
+        return NativeStore.autoJson(activity);
+    }
+
+    @JavascriptInterface
+    public void setAutoTask(String json) {
+        activity.postSetAutoTask(json);
+    }
+
+    @JavascriptInterface
+    public boolean background() {
+        return NativeStore.backgroundEnabled(activity);
+    }
+
+    @JavascriptInterface
+    public void setBackground(boolean on) {
+        activity.postSetBackground(on);
+    }
+
+    @JavascriptInterface
+    public void requestNotifications() {
+        activity.postRequestNotifications();
+    }
+
+    @JavascriptInterface
+    public void openSettings(String kind) {
+        activity.postOpenSettings(kind);
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s.trim();
     }
 }

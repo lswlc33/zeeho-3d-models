@@ -16,4 +16,77 @@
     <string name="updated">已更新到新版本</string>
     <string name="back_again">再按一次退出</string>
     <string name="webview_unavailable">系统 WebView 不可用，请先更新 Android System WebView</string>
+
+    <!-- 通知渠道 -->
+    <string name="channel_service">后台同步</string>
+    <string name="channel_service_desc">保持车辆消息与充电状态更新</string>
+    <string name="channel_messages">车辆消息</string>
+    <string name="channel_messages_desc">有新的车辆消息时提醒</string>
+    <string name="channel_charging">充电状态</string>
+    <string name="channel_charging_desc">开始充电、充电进度与充满提醒</string>
+    <string name="channel_tasks">自动任务</string>
+    <string name="channel_tasks_desc">每日自动任务的执行结果</string>
+    <string name="channel_actions">快捷操作</string>
+    <string name="channel_actions_desc">桌面快捷方式与小组件的执行结果</string>
+
+    <!-- 后台服务 -->
+    <string name="monitor_running">几何面板正在后台同步</string>
+    <string name="monitor_running_text">车辆消息与充电状态更新中</string>
+
+    <!-- 消息 -->
+    <string name="notify_message_title">新车辆消息</string>
+    <string name="notify_message_text">%1$d 条未读 · %2$s</string>
+    <string name="notify_auth_title">登录态已失效</string>
+    <string name="notify_auth_text">请打开几何面板重新登录</string>
+
+    <!-- 充电 -->
+    <string name="notify_charge_start_title">开始充电</string>
+    <string name="notify_charge_start_text">当前电量 %1$d%%</string>
+    <string name="notify_charge_start_text_unknown">充电器已连接</string>
+    <string name="notify_charge_title">充电中 · %1$d%%</string>
+    <string name="notify_charge_title_unknown">充电中</string>
+    <string name="notify_charge_unknown">正在充电</string>
+    <string name="notify_charge_full_title">已充满</string>
+    <string name="notify_charge_full_text">当前电量 %1$d%%，可以拔枪了</string>
+    <string name="notify_charge_full_text_unknown">可以拔枪了</string>
+
+    <!-- 自动任务 -->
+    <string name="notify_task_ok_title">自动任务完成</string>
+    <string name="notify_task_fail_title">自动任务失败</string>
+
+    <!-- 快捷操作 -->
+    <string name="action_sending">正在发送…</string>
+    <string name="action_sent">指令已发送</string>
+    <string name="action_failed">发送失败：%1$s</string>
+    <string name="action_need_login">请先打开几何面板并登录</string>
+    <string name="shortcut_lock">锁定车辆</string>
+    <string name="shortcut_unlock">解锁车辆</string>
+    <string name="shortcut_horn">寻车鸣笛</string>
+    <string name="shortcut_seat">打开坐垫</string>
+
+    <!-- 小组件 -->
+    <string name="widget_2x2_label">几何面板 · 2×2</string>
+    <string name="widget_4x2_label">几何面板 · 4×2</string>
+    <string name="widget_4x4_label">几何面板 · 4×4</string>
+    <string name="widget_title">几何面板</string>
+    <string name="widget_no_data">打开 App 同步</string>
+    <string name="widget_open">打开 App</string>
+    <string name="widget_charging">充电中</string>
+    <string name="widget_full">已充满</string>
+    <string name="widget_idle">未充电</string>
+    <string name="widget_locked">已锁车</string>
+    <string name="widget_unlocked">未锁车</string>
+    <string name="widget_seat_locked">坐垫已锁</string>
+    <string name="widget_seat_unlocked">坐垫未锁</string>
+    <string name="widget_online">在线</string>
+    <string name="widget_offline">离线</string>
+    <string name="widget_soc_unknown">--</string>
+    <string name="widget_updated">%1$s 更新</string>
+    <string name="widget_eta">预计 %1$s 充满</string>
+    <string name="widget_charged">已充 %1$s</string>
+    <string name="widget_refresh">刷新</string>
+    <string name="widget_action_unlock">解锁</string>
+    <string name="widget_action_lock">锁车</string>
+    <string name="widget_action_horn">鸣笛</string>
+    <string name="widget_action_seat">坐垫</string>
 </resources>

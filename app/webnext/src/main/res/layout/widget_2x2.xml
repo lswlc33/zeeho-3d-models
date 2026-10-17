@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_card">
+
+    <TextView
+        android:id="@+id/w_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:text="@string/widget_title"
+        android:textColor="@color/widget_muted"
+        android:textSize="9sp" />
+
+    <TextView
+        android:id="@+id/w_soc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="@string/widget_soc_unknown"
+        android:textColor="@color/widget_text"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/w_charge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_no_data"
+        android:textColor="@color/widget_accent"
+        android:textSize="10sp" />
+
+    <ProgressBar
+        android:id="@+id/w_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="5dp"
+        android:progressBackgroundTint="#22FFFFFF"
+        android:progressTint="@color/widget_accent" />
+
+    <TextView
+        android:id="@+id/w_sub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:text="@string/widget_open"
+        android:textColor="@color/widget_muted"
+        android:textSize="8sp" />
+
+    <TextView
+        android:id="@+id/w_updated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:singleLine="true"
+        android:text=""
+        android:textColor="@color/widget_muted"
+        android:textSize="8sp" />
+</LinearLayout>

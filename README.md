@@ -13,6 +13,11 @@ Zeeho Unlocker 的 3D 车模库：存放从极核 App 抓取的官方车模（gl
 - App 工程：`app/`（纯系统 WebView 壳，APK 内不含网页静态资源；构建、签名、更新机制见
   [`app/README.md`](app/README.md)）
 
+App 1.2 起在壳内做了网页做不到的事：未读消息/充电开始/充电进度/充满通知、后台 60 秒同步
+（15 分钟 JobScheduler 兜底）、2×2 / 4×2 / 4×4 桌面小组件、App 专属的每日自动任务
+（默认 09:00，普通浏览器任务面板不显示这一块），以及解锁/锁车/鸣笛/打开坐垫四个 App Shortcuts。
+消息通知需要在网页「数据与调试」里填内部账号 ID（页面查消息本来就依赖它）。
+
 网页源码在主仓库 `tools/dashboard/`，发布时用 `build-static.mjs --obfuscate` 输出到本仓库根的
 `index.html`、`manifest.webmanifest`、`sw.js`、`version.json`、`icons/`。`models/` 和 `index.json`
 仍是车模库，两者互不影响。

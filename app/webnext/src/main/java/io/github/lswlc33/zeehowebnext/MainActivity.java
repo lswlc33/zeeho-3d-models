@@ -1,9 +1,12 @@
 package io.github.lswlc33.zeehowebnext;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -46,6 +49,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONObject;
 
 import java.util.Locale;
 
@@ -181,14 +186,22 @@ public final class MainActivity extends Activity {
         main.removeCallbacks(idleTick);
         main.post(idleTick);
         applyBarAppearance(dark);
+        AppState.foreground = true;
+        ShortcutHelper.ensure(this);
+        MonitorScheduler.ensure(this);
+        AutoTaskScheduler.ensure(this);
+        MonitorService.start(this);
         if (pageLoaded) scheduleUpdateCheck(1500);
     }
 
     @Override
     protected void onPause() {
         resumed = false;
+        AppState.foreground = false;
         main.removeCallbacks(idleTick);
         super.onPause();
+        // 页面刚同步过状态：退到后台立刻把充电进度/未读通知补上，不用等下一轮网络。
+        StatusFeed.reconcileBackground(this);
     }
 
     @Override
@@ -254,6 +267,91 @@ public final class MainActivity extends Activity {
         if (root != null) root.setBackgroundColor(bgColor());
         if (webView != null) webView.setBackgroundColor(bgColor());
         applyBarAppearance(dark);
+    }
+
+    // ---------------- 网页桥触发的原生动作 ----------------
+
+    void postRequestNotifications() {
+        main.post(this::requestNotificationsOnce);
+    }
+
+    private void requestNotificationsOnce() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        if (sp.getBoolean("notify_asked", false)) return;
+        sp.edit().putBoolean("notify_asked", true).apply();
+        try {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** 网页任务面板的 App 专属设置：自动执行开关/时间/任务参数。 */
+    void postSetAutoTask(String json) {
+        main.post(() -> {
+            try {
+                JSONObject j = new JSONObject(json);
+                boolean enabled = j.optBoolean("enabled", false);
+                String time = j.optString("time", "09:00");
+                String content = j.optString("postContent", "开心的一天");
+                boolean delete = j.optBoolean("deleteAfterPost", true);
+                int gap = j.optInt("gapMs", 2000);
+                NativeStore.setAuto(this, enabled, time, content, delete, gap,
+                    NativeStore.autoLastResult(this));
+                if (enabled) {
+                    AutoTaskScheduler.schedule(this);
+                    requestNotificationsOnce();
+                } else {
+                    AutoTaskScheduler.cancel(this);
+                }
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    /** 网页任务面板的后台同步开关。 */
+    void postSetBackground(boolean on) {
+        main.post(() -> {
+            NativeStore.setBackgroundEnabled(this, on);
+            if (on) {
+                MonitorScheduler.ensure(this);
+                MonitorService.start(this);
+                requestNotificationsOnce();
+            } else {
+                MonitorScheduler.cancel(this);
+                MonitorService.stop(this);
+                Notify.cancelAll(this);
+            }
+        });
+    }
+
+    /** 打开通知/电池/自启动设置。HyperOS 的自启动入口不是标准 API，失败就退回应用详情。 */
+    void postOpenSettings(String kind) {
+        main.post(() -> {
+            Intent i;
+            if ("autostart".equals(kind)) {
+                i = new Intent("miui.intent.action.OP_AUTO_START")
+                    .putExtra("extra_pkgname", getPackageName());
+            } else if ("notifications".equals(kind) && Build.VERSION.SDK_INT >= 26) {
+                i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+            } else {
+                i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + getPackageName()));
+            }
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(i);
+            } catch (Exception e) {
+                try {
+                    startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + getPackageName()))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception ignored) {
+                }
+            }
+        });
     }
 
     // ---------------- 提供给 ShellBridge ----------------
