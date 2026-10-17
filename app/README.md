@@ -158,15 +158,16 @@ files/webcache/.tmp-<build-id>/
 
 ### 本机测试服 + debug 包
 
-正式包只认固定 URL；debug 包可以用 intent extra 覆盖 base URL：
+正式包只认固定 URL；debug 包可以用 intent extra 覆盖 base URL。网页源码在主仓库
+`zeeho-unlocker`，下面的第 1 步在主仓库根目录执行；第 2 步起在本仓库根目录执行：
 
 ```bash
-# 1) 出两版网页到临时目录（非混淆即可）
+# 1) 出两版网页到临时目录（非混淆即可；在 zeeho-unlocker 根目录）
 node tools/dashboard/build-static.mjs <tmp>/v1/index.html
 node tools/dashboard/build-static.mjs <tmp>/v2/index.html
 
-# 2) 起本机静态服务（tools 里没有内置，可用任意静态服务器；注意 version.json 与 no-store）
-node <tmp>/server.mjs <tmp>/v1 8787
+# 2) 起本机静态服务（本仓库自带的 devserver；THROTTLE=40000 可限速看首启进度条）
+node app/tools/devserver.mjs <tmp>/v1 8787
 
 # 3) 让模拟器/真机的 localhost:8787 指向 PC
 adb reverse tcp:8787 tcp:8787
