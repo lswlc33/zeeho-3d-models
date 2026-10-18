@@ -89,6 +89,7 @@ public final class MonitorService extends Service {
     public void onDestroy() {
         main.removeCallbacks(tick);
         if (io != null) io.shutdownNow();
+        BatteryHistory.flush(this);
         Notify.cancelService(this);
         super.onDestroy();
     }

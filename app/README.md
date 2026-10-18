@@ -33,9 +33,12 @@ app/
     build.gradle.kts
     src/main/AndroidManifest.xml
     src/main/java/io/github/lswlc33/zeehowebnext/
-      MainActivity.java         # WebView 宿主、edge-to-edge、返回键、更新调度
+      MainActivity.java         # WebView 宿主、edge-to-edge、返回键、页面更新调度
       WebCache.java             # 快照下载/校验/激活/拦截
-      ShellBridge.java          # @JavascriptInterface: insets()/setDark()/appVersion()
+      ShellBridge.java          # @JavascriptInterface: insets()/setDark()/appVersion()/batteryHistory()
+      UpdateChecker.java        # APK 自更新：清单检查、下载、包名/签名校验、安装
+      UpdateProvider.java       # 只读更新 APK 的 content:// 出口
+      BatteryHistory.java       # 电量历史：采样、Deflate+AES-GCM、31 天、统计
       UrlPolicy.java             # 只允许面板页面；外部网页拦截，地图 intent 放行
     src/main/res/...            # 主题、图标、原生文案
     src/debug/AndroidManifest.xml # 仅 debug 允许 cleartext（本机测试服）
@@ -120,6 +123,56 @@ files/webcache/.tmp-<build-id>/
 回退系统字体。页面 HTML 用 **gzip** 传输（约 639KB → 约 200KB），首次安装必须联网下载
 约 0.2 MB，之后才是本地秒开。
 
+### APK 自更新（1.4.0）
+
+APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`，APK 用固定路径
+`app/version.json`：
+
+```json
+{
+  "versionCode": 6,
+  "versionName": "1.4.0",
+  "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
+  "notes": "更新说明"
+}
+```
+
+- 启动后页面首帧再检查（冷启动/回前台有防抖）；远端 `versionCode` 大于当前才弹窗，
+  不会因为 `versionName` 字符串比较误判。
+- 点「立即更新」后下载到 `cache/update/`，先验证**包名、versionCode、签名证书集合**与当前
+  安装包一致；不一致直接删包报错，不把任意 APK 递给安装器。
+- 安装走 `UpdateProvider`（只读 `content://<applicationId>.update/…`，工程没有 AndroidX，
+  不用 FileProvider）；Android 8+ 没允许「安装未知应用」时先跳系统设置，回来后继续安装。
+- 发版顺序：先 `exportApk` 产出新 APK，再把 `app/version.json` 的 `versionCode/versionName`
+  改成这次的值，二者一起提交推送。线上 `version.json` 是更新弹窗的唯一开关。
+- debug 包可用 `adb shell am start … --es update_manifest http://127.0.0.1:8899/version.json`
+  指向本机清单测试；release 忽略该 extra，只认固定 HTTPS 地址。
+
+### 电量历史（1.4.0，App 专属）
+
+后台 `StatusFeed` 每处理一份车况就调 `BatteryHistory.record()`，**50 秒去重**，所以页面
+每 30 秒同步、后台每 60 秒轮询时都最多一分钟一条。保留 31 天，按 VIN 分文件：
+`files/battery/hist-<sha256(vin) 前 16 位>.bin`（文件名不含 VIN）。
+
+存储格式（不是明文 JSON）：
+
+```
+[magic "ZBAT"][version]
+每个 chunk：[plainLen][compLen][ivLen][iv 12B][AES-GCM 密文]
+chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电流×10
+           / byte soc / byte 温度(未知 -128) / byte 充电状态 / byte flags）
+```
+
+- **压缩**：每个 chunk 先 `Deflater.BEST_SPEED`；**加密**：AES-256-GCM，密钥在 Android
+  Keystore（不可导出），IV 由 Keystore 随机生成；每 8 条一个 chunk，最多丢 8 分钟。
+- 读取时只把最近区间降采样到约 18~360 个点交给页面（24h 5 分钟一桶 / 3d 15 分钟 /
+  7d 30 分钟 / 30d 2 小时），整月原始记录不会过 JS 桥。
+- 页面通过 `ZeehoShell.batteryHistory(range)` 取 JSON：`points` + `summary` +
+  `lastCharge` + `lastDischarge`。充电=`state>0`；放电=未充电且 `|current| ≥ 0.3A`。
+  统计里的能量按采样间隔积分（单段最多按 5 分钟算），是趋势值不是电表读数。
+- 这块**只在 `inShell()` 时渲染**；浏览器没有桥，整块不出现。页面侧的卡片在「我的」页
+  骑行分析下方，范围切换只重新拉数据，不整页刷新。
+
 页面侧也配合做了三件事（改 `public/js/app.js` 时别退回去）：`init()` 先把车况接口发出去
 再画骨架；车辆列表和 VIN 落 localStorage，冷启动不再串行等 `vehicle/list`；账号档案与
 车辆设置只在后台补，不挡爱车页。MuMu + 本机测试服实测：进程冷启动约 0.65 秒到首帧、
@@ -135,7 +188,8 @@ files/webcache/.tmp-<build-id>/
 |---|---|
 | `insets()` | 返回 `{"top":24,"bottom":0,"left":0,"right":0}`（CSS px）。WebView 的 `env(safe-area-inset-*)` 不报系统栏高度，页面 `fitViewport()` 在壳模式必须用它。 |
 | `setDark(boolean)` | 页面主题变化时同步状态栏/导航栏图标明暗。 |
-| `appVersion()` | 当前壳版本，调试用。 |
+| `appVersion()` | 当前壳版本，形如 `1.4.0 (6)`；页面「数据与调试 → 软件版本」用，浏览器不显示。 |
+| `batteryHistory(range)` | App 专属电量历史，`range` = `24h`/`3d`/`7d`/`30d`；返回降采样 JSON（见下节）。浏览器没有这个桥。 |
 | `syncSession(token, uid, vin, name)` | 页面每次加载后把登录态推给原生；换 token/车辆会清旧摘要。token 为空会停后台。 |
 | `syncStatus(json)` | 页面每轮刷新后的车辆摘要（电量/充电/锁/坐垫/在线/功率/消息未读）。原生只读它做通知和小组件，不反向改页面。 |
 | `autoTask()` / `setAutoTask(json)` | 读写 App 专属自动任务（开关、执行时间、发帖文案、间隔、上次结果）。 |

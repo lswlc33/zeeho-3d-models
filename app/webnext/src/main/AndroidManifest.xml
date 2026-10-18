@@ -11,6 +11,8 @@
     <!-- 开机/覆盖安装后恢复周期任务 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 自更新：把缓存里的新 APK 交给系统安装器 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".WebNextApp"
@@ -22,6 +24,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ZeehoWebNext"
         android:usesCleartextTraffic="false">
+
+        <!-- 自更新 APK 的只读出口；不给任意路径，安装器拿到的是 content:// -->
+        <provider
+            android:name=".UpdateProvider"
+            android:authorities="${applicationId}.update"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <activity
             android:name=".MainActivity"

@@ -39,6 +39,15 @@ final class ShellBridge {
     }
 
     /**
+     * App 专属电量历史。返回降采样后的 JSON（不会把整月原始记录塞进 JS）；
+     * 浏览器没有这个桥，页面整块不渲染。range: 24h / 3d / 7d / 30d。
+     */
+    @JavascriptInterface
+    public String batteryHistory(String range) {
+        return BatteryHistory.report(activity, NativeStore.vin(activity), range);
+    }
+
+    /**
      * 网页每次 load 后同步登录态。token/vin 任一为空都会让后台服务停下；
      * 换 token（重新登录）时 NativeStore 会清掉旧车的摘要和登录失效标记。
      */

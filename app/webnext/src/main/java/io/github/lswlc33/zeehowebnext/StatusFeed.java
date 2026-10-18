@@ -51,6 +51,8 @@ final class StatusFeed {
             else if (s.charge == 0 && old.charge == 1) s.charge = 2;
         }
         NativeStore.saveStatus(c, s);
+        // App 专属电量历史：页面同步与后台轮询都走这里，内部按 50 秒去重。
+        BatteryHistory.record(c, s, j);
 
         if (s.noRead >= 0) {
             if (foreground) {

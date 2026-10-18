@@ -21,6 +21,10 @@ App 1.2 起在壳内做了网页做不到的事：未读消息/充电开始/充�
 1.3 的小组件补上了电压、车图、锁/坐垫/在线状态和浅/深色两套配色（不显示续航和定位）；
 检测到桌面微件存在时，持续性的充电进度通知会自动隐藏，只保留「已充满 / 充电已停止」这类一次性事件。
 
+1.4 增加 APK 自更新（`app/version.json`，本地 versionCode 低于远端时弹窗）与 App 专属电量历史
+（最近 24 小时 / 3 天 / 7 天 / 1 个月，以及上一次充电/放电；本机 Keystore 加密 + 压缩存储）。
+「数据与调试」显示软件版本和面板版本，账号 ID 与 token 一样只露前几位。
+
 网页源码在主仓库 `tools/dashboard/`，发布时用 `build-static.mjs --obfuscate` 输出到本仓库根的
 `index.html`、`manifest.webmanifest`、`sw.js`、`version.json`、`icons/`。`models/` 和 `index.json`
 仍是车模库，两者互不影响。

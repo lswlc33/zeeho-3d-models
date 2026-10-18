@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
     private ShellBridge bridge;
     private String baseUrl = PROD_BASE;
     private String versionName = "1.0";
+    private int versionCode;
     private boolean debugBuild;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -191,6 +192,8 @@ public final class MainActivity extends Activity {
         MonitorScheduler.ensure(this);
         AutoTaskScheduler.ensure(this);
         MonitorService.start(this);
+        UpdateChecker.onResume(this);
+        if (pageLoaded) main.postDelayed(() -> UpdateChecker.check(this), 1200);
         if (pageLoaded) scheduleUpdateCheck(1500);
     }
 
@@ -202,6 +205,8 @@ public final class MainActivity extends Activity {
         super.onPause();
         // 页面刚同步过状态：退到后台立刻把充电进度/未读通知补上，不用等下一轮网络。
         StatusFeed.reconcileBackground(this);
+        // 电量历史缓存里可能还有不足 8 条的尾块，退后台时落盘，进程被杀也不会丢。
+        BatteryHistory.flush(this);
     }
 
     @Override
@@ -362,7 +367,7 @@ public final class MainActivity extends Activity {
     }
 
     String appVersionName() {
-        return versionName;
+        return versionCode > 0 ? versionName + " (" + versionCode + ")" : versionName;
     }
 
     void postSetDark(boolean d) {
@@ -828,7 +833,10 @@ public final class MainActivity extends Activity {
 
     private String readVersionName() {
         try {
-            String v = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            android.content.pm.PackageInfo pi = getPackageManager()
+                .getPackageInfo(getPackageName(), 0);
+            versionCode = pi.versionCode;
+            String v = pi.versionName;
             return v == null ? "1.0" : v;
         } catch (Exception e) {
             return "1.0";
@@ -886,6 +894,7 @@ public final class MainActivity extends Activity {
             Log.i(TAG, "page commit in " + (lastInteractionAt - startAt) + "ms");
             hideOverlay();
             scheduleUpdateCheck(3000);
+            main.postDelayed(() -> UpdateChecker.check(MainActivity.this), 3000);
         }
 
         @Override

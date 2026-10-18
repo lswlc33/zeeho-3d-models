@@ -1,0 +1,6 @@
+{
+  "versionCode": 6,
+  "versionName": "1.4.0",
+  "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
+  "notes": "新增：检查 APK 更新、App 专属电量历史（最近/上次充电/上次放电）、软件版本与面板版本；账号 ID 改为省略号展示。"
+}
