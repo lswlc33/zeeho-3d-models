@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "1.4.0",
+  "versionCode": 7,
+  "versionName": "1.4.1",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "新增：检查 APK 更新、App 专属电量历史（最近/上次充电/上次放电）、软件版本与面板版本；账号 ID 改为省略号展示。"
+  "notes": "1.4.1：去掉未使用的 Kotlin 标准库（安装包约 755KB → 123KB）；修复真车账号 ID 为数字时「我的」页渲染报错；更新包安装后自动清理；WebView HTTP 缓存上限 32MB；页面快照只保留 active/pending。"
 }

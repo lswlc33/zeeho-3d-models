@@ -25,6 +25,9 @@ App 1.2 起在壳内做了网页做不到的事：未读消息/充电开始/充�
 （最近 24 小时 / 3 天 / 7 天 / 1 个月，以及上一次充电/放电；本机 Keystore 加密 + 压缩存储）。
 「数据与调试」显示软件版本和面板版本，账号 ID 与 token 一样只露前几位。
 
+1.4.1 去掉了 AGP 自动带进来的 Kotlin 标准库（APK 约 755KB → 123KB），并修复真车账号 ID 为数字时
+「我的」页渲染报错；更新包安装后清理、页面快照只留 active/pending、WebView HTTP 缓存上限 32MB。
+
 网页源码在主仓库 `tools/dashboard/`，发布时用 `build-static.mjs --obfuscate` 输出到本仓库根的
 `index.html`、`manifest.webmanifest`、`sw.js`、`version.json`、`icons/`。`models/` 和 `index.json`
 仍是车模库，两者互不影响。

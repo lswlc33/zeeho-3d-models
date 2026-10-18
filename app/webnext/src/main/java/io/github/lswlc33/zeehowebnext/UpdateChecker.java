@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -74,6 +75,8 @@ final class UpdateChecker {
     static void check(Activity activity) {
         if (checked) return;
         checked = true;
+        // 上次下载的 APK 在安装/取消后都不再需要；等未知来源授权的那份要保留。
+        if (!downloading && pendingApk == null) cleanupCache(activity);
         final boolean debug = (activity.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         final String manifest = manifestUrl(activity, debug);
         final String currentName = versionName(activity);
@@ -245,6 +248,16 @@ final class UpdateChecker {
         } catch (Exception e) {
             Log.w(TAG, "update verify failed", e);
             return activity.getString(R.string.update_verify_failed);
+        }
+    }
+
+    private static void cleanupCache(Context context) {
+        File dir = new File(context.getCacheDir(), "update");
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            // 只删本目录；不递归跟随外部路径。pendingApk 的情况已经在调用方排除。
+            if (f.isFile()) f.delete();
         }
     }
 

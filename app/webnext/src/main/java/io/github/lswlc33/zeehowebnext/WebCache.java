@@ -23,9 +23,7 @@ import java.io.PushbackInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -144,11 +142,13 @@ final class WebCache {
         if (active != null && p.build.equals(active.build)) {
             prefs.edit().remove(K_PENDING).apply();
             pending = null;
+            cleanupOld();
             return false;
         }
         active = p;
         pending = null;
         prefs.edit().putString(K_ACTIVE, safeId(p.build)).remove(K_PENDING).apply();
+        cleanupOld();
         Log.i(TAG, "promote pending at startup: " + p.build);
         return true;
     }
@@ -582,21 +582,16 @@ final class WebCache {
         for (File f : fs) if (f.getName().startsWith(".tmp-")) deleteTree(f);
     }
 
-    /** 只保留 active/pending + 最新一个旧快照，避免目录无限增长。 */
+    /** 只保留 active/pending；旧快照不再留一份回退，省约 0.7MB（用户 2026-10-18 定的取舍）。 */
     private void cleanupOld() {
         File[] fs = snapshots.listFiles();
         if (fs == null) return;
         String a = active == null ? "" : safeId(active.build);
         String p = pending == null ? "" : safeId(pending.build);
-        List<File> old = new ArrayList<>();
         for (File f : fs) {
             if (!f.isDirectory()) continue;
             if (f.getName().equals(a) || f.getName().equals(p)) continue;
-            old.add(f);
-        }
-        old.sort((x, y) -> Long.compare(y.lastModified(), x.lastModified()));
-        for (int i = 0; i < old.size(); i++) {
-            if (i >= 1) deleteTree(old.get(i));
+            deleteTree(f);
         }
     }
 

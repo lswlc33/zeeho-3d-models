@@ -24,6 +24,14 @@ val keystoreProps: Map<String, String> = if (keystorePropsFile.exists()) {
 val hasReleaseKey = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
     .all { !keystoreProps[it].isNullOrBlank() }
 
+// 纯 Java 工程：AGP 9 的内置 Kotlin 支持仍会往 runtime classpath 挂 kotlin-stdlib，
+// 产物里 90% 的 dex 都是这里来的（2026-10-18 实测 755KB APK 中有约 691KB 是它）。
+// 只排除 runtime classpath，不动 lint 自己的 Kotlin 依赖；没有 Kotlin 源码/库，排除后
+// assembleRelease 与 lintVital 都能通过，APK 约 123KB。
+configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+}
+
 android {
     namespace = "io.github.lswlc33.zeehowebnext"
     compileSdk {

@@ -39,6 +39,7 @@ app/
       UpdateChecker.java        # APK 自更新：清单检查、下载、包名/签名校验、安装
       UpdateProvider.java       # 只读更新 APK 的 content:// 出口
       BatteryHistory.java       # 电量历史：采样、Deflate+AES-GCM、31 天、统计
+      WebViewCache.java         # WebView HTTP Cache 超 32MB 时在进程启动前清理
       UrlPolicy.java             # 只允许面板页面；外部网页拦截，地图 intent 放行
     src/main/res/...            # 主题、图标、原生文案
     src/debug/AndroidManifest.xml # 仅 debug 允许 cleartext（本机测试服）
@@ -121,7 +122,23 @@ files/webcache/.tmp-<build-id>/
 
 只缓存页面壳，**不缓存**接口数据、车辆图片、地图瓦片；字体是外部非阻塞资源，离线时
 回退系统字体。页面 HTML 用 **gzip** 传输（约 639KB → 约 200KB），首次安装必须联网下载
-约 0.2 MB，之后才是本地秒开。
+约 0.2 MB，之后才是本地秒开。快照目录只保留 **active + pending**，旧版本在切换完成后删除
+（2026-10-18 起不再保留一份旧快照回退，省约 0.7MB；代价是 active 损坏时只能重新下载）。
+
+### APK 体积（1.4.1）
+
+AGP 9 的内置 Kotlin 支持会给纯 Java 工程自动挂 `kotlin-stdlib`，旧版 APK 里 90% 的 dex
+都是它（755KB APK / 2.2MB dex）。`webnext/build.gradle.kts` 只对 `RuntimeClasspath`
+排除 `org.jetbrains.kotlin:kotlin-stdlib`，不动 lint 自己的 Kotlin 依赖：
+
+```kotlin
+configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+}
+```
+
+1.4.1 实测 APK **755KB → 123KB**，dex **2.23MB → 155KB**，lint 通过。以后若真的写
+Kotlin 代码，必须删掉这个排除，否则运行时会缺 kotlin 类。
 
 ### APK 自更新（1.4.0）
 
@@ -130,8 +147,8 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
 
 ```json
 {
-  "versionCode": 6,
-  "versionName": "1.4.0",
+  "versionCode": 7,
+  "versionName": "1.4.1",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
   "notes": "更新说明"
 }
@@ -143,10 +160,20 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
   安装包一致；不一致直接删包报错，不把任意 APK 递给安装器。
 - 安装走 `UpdateProvider`（只读 `content://<applicationId>.update/…`，工程没有 AndroidX，
   不用 FileProvider）；Android 8+ 没允许「安装未知应用」时先跳系统设置，回来后继续安装。
+- 下载的 APK 在**下次进程启动检查更新时**清掉 `cache/update`；等待未知来源授权的那一份会保留，
+  避免点完设置回来文件没了。正常安装会替换 APK 并重启进程，所以不会长期占着 0.75MB。
 - 发版顺序：先 `exportApk` 产出新 APK，再把 `app/version.json` 的 `versionCode/versionName`
   改成这次的值，二者一起提交推送。线上 `version.json` 是更新弹窗的唯一开关。
 - debug 包可用 `adb shell am start … --es update_manifest http://127.0.0.1:8899/version.json`
   指向本机清单测试；release 忽略该 extra，只认固定 HTTPS 地址。
+
+### WebView HTTP 缓存上限（1.4.1）
+
+WebView 没有公开的缓存大小 API。`WebViewCache.trim()` 在 `Application.onCreate`（还没创建
+WebView 时）统计 `cache/WebView/**/HTTP Cache`，**超过 32MB 才整块删除**，不是每次启动清空；
+否则地图瓦片/车图/字体每次都要重新下载。页面快照在 `files/webcache`，不受影响。
+安装后真正占空间的大头是 WebView 自己预分配的 4MB `app_webview/BrowserMetrics-spare.pma`
+（Chromium 固定开销，应用无法控制）和 HTTP Cache；APK 本身优化后只有约 123KB。
 
 ### 电量历史（1.4.0，App 专属）
 
