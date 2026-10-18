@@ -88,7 +88,7 @@
     <string name="widget_soc_unknown">--</string>
     <string name="widget_updated">%1$s 更新</string>
     <string name="widget_eta">预计 %1$s 充满</string>
-    <string name="widget_range">续航 %1$d km</string>
+    <string name="widget_voltage">电压 %1$s V</string>
     <string name="widget_charged">已充 %1$s</string>
     <string name="widget_refresh">刷新</string>
     <string name="widget_action_unlock">解锁</string>

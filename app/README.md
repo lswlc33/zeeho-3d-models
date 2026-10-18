@@ -213,15 +213,15 @@ files/webcache/.tmp-<build-id>/
 
 ### 桌面小组件
 
-- 三种：2×2（车名/电量/续航/充电状态/功率/时间/锁车/更新时间）、4×2（加车图、坐垫锁、在线、刷新、
-  解锁/鸣笛按钮）、4×4（再加锁车/坐垫按钮和更大的车图）。
-- 信息来自 `NativeStore` 缓存。续航取 `hmiRidableMile`；地点取接口地址或后台反地理编码（`Geo`，
-  MuMu 等无 Geocoder 环境自动隐藏）；车图取 `vehiclePicUrl`，由 `WidgetCar` 在后台缩图缓存到
-  `filesDir`，URL 变化才重新下载。
+- 三种：2×2（车名/电量/电压/充电状态/功率/时间/锁车/更新时间）、4×2（加车图、坐垫锁、在线、刷新、
+  解锁/鸣笛图标）、4×4（再加锁车/坐垫按钮和更大的车图）。
+- 信息来自 `NativeStore` 缓存。电压取接口的 `voltage`（保留一位小数）；**不再显示续航和定位**；
+  车图取 `vehiclePicUrl`，由 `WidgetCar` 在后台缩图缓存到 `filesDir`，URL 变化才重新下载。
 - 颜色是**浅/深色两套**（`values/colors.xml` + `values-night/colors.xml`）：浅色模式白卡片、深色模式
   近黑卡片，强调色跟随系统。小组件布局用 RemoteViews 支持的控件，不用自定义 View。
-- 尺寸用 `targetCellWidth/Height` + 标准 `minWidth/minHeight`；部分第三方桌面（如 MuMu 的 Lawnchair）
-  忽略 target 属性，初始格数可能不是精确的 2×2/4×2/4×4，可手动拉伸。HyperOS 桌面按 target 走。
+- 尺寸用 `targetCellWidth/Height` + `minWidth/minHeight`。HyperOS 这类桌面会按 minHeight 决定行数：
+  2×2 / 4×2 的 minHeight 提到 180dp，避免被放成 2×1 / 4×1 导致内容裁切；4×4 用 300dp 保证
+  能在微件列表里出现。部分第三方桌面（如 MuMu 的 Lawnchair）换算不同，可手动拉伸。
 - 刷新按钮触发一次 `MonitorService` 轮询，不直接发网络；动作按钮的 Intent 带本机随机 secret，
   `ActionActivity` 校验后才发车控，错误 secret 只回主界面。
 - 检测到任意微件存在时，持续性充电进度通知自动隐藏（见上节）；事件通知保留。

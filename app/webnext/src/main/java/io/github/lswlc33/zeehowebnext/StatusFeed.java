@@ -44,10 +44,6 @@ final class StatusFeed {
         boolean charging = NativeStore.chargingEnabled(c);
         boolean widget = WidgetProviders.anyBound(c);
 
-        // 页面同步和后台轮询偶尔会一前一后给出不一致的状态：98% 且有正向电流，页面却报未充电。
-        // 用电流兜一下，避免微件/通知短暂闪成"未充电"。
-        if (s.charge == 0 && s.current > 0 && s.soc >= 0 && s.soc < 100) s.charge = 1;
-
         // 车机/接口在 100% 时经常还会短暂报 charging=1；只要到 100% 就按"已充满"处理，
         // 否则进度通知会一直挂着。掉到 100% 且刚断开（old=1）也归到充满，而不是"中途停止"。
         if (s.soc >= 100) {

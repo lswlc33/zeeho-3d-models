@@ -59,9 +59,9 @@ abstract class BaseWidget extends AppWidgetProvider {
                 : s.charge == 1 ? R.color.widget_accent
                 : s.charge == 2 ? R.color.widget_good : R.color.widget_text_secondary));
         rv.setTextViewText(R.id.w_updated, hasData ? updated(c, s) : "");
-        String range = s.range >= 0 ? c.getString(R.string.widget_range, s.range) : "";
-        rv.setTextViewText(R.id.w_range, range);
-        rv.setViewVisibility(R.id.w_range, range.isEmpty() ? View.GONE : View.VISIBLE);
+        String voltage = voltage(c, s);
+        rv.setTextViewText(R.id.w_voltage, voltage);
+        rv.setViewVisibility(R.id.w_voltage, voltage.isEmpty() ? View.GONE : View.VISIBLE);
 
         rv.setTextViewText(R.id.w_lock, two ? lock(c, s) : lockLine(c, s));
         if (s.soc >= 0) {
@@ -75,13 +75,9 @@ abstract class BaseWidget extends AppWidgetProvider {
             rv.setTextViewText(R.id.w_sub, sub(c, s, hasData));
         } else {
             rv.setTextViewText(R.id.w_seat, seat(c, s));
-            rv.setTextViewText(R.id.w_power, s.charge == 1 ? power(s) : "");
-            rv.setTextViewText(R.id.w_time, s.charge == 1 ? time(c, s) : "");
+            rv.setTextViewText(R.id.w_power, s.charge == 1 && s.online != 0 ? power(s) : "");
+            rv.setTextViewText(R.id.w_time, s.charge == 1 && s.online != 0 ? time(c, s) : "");
             rv.setOnClickPendingIntent(R.id.w_refresh, refresh(c));
-
-            String loc = s.location == null ? "" : s.location.trim();
-            rv.setTextViewText(R.id.w_location, loc);
-            rv.setViewVisibility(R.id.w_location, loc.isEmpty() ? View.GONE : View.VISIBLE);
 
             Bitmap car = WidgetCar.load(c, NativeStore.vin(c));
             if (car != null) {
@@ -113,6 +109,7 @@ abstract class BaseWidget extends AppWidgetProvider {
 
     private static String state(Context c, NativeStore.Status s, boolean hasData) {
         if (!hasData) return c.getString(R.string.widget_no_data);
+        if (s.online == 0) return c.getString(R.string.widget_offline);
         if (s.charge == 1) return c.getString(R.string.widget_charging);
         if (s.charge == 2) return c.getString(R.string.widget_full);
         return c.getString(R.string.widget_idle);
@@ -120,6 +117,7 @@ abstract class BaseWidget extends AppWidgetProvider {
 
     private static String sub(Context c, NativeStore.Status s, boolean hasData) {
         if (!hasData) return c.getString(R.string.widget_open);
+        if (s.online == 0) return c.getString(R.string.widget_offline);
         if (s.charge == 1) {
             StringBuilder sb = new StringBuilder();
             String p = power(s);
@@ -138,7 +136,14 @@ abstract class BaseWidget extends AppWidgetProvider {
     private static String lockLine(Context c, NativeStore.Status s) {
         String lk = lock(c, s);
         if (s.online == 1) return lk + " · " + c.getString(R.string.widget_online);
+        if (s.online == 0) return lk + " · " + c.getString(R.string.widget_offline);
         return lk;
+    }
+
+    private static String voltage(Context c, NativeStore.Status s) {
+        String v = s.voltageText == null ? "" : s.voltageText.trim();
+        if (v.isEmpty() && s.voltage >= 0) v = String.valueOf(s.voltage);
+        return v.isEmpty() ? "" : c.getString(R.string.widget_voltage, v);
     }
 
     private static String lock(Context c, NativeStore.Status s) {

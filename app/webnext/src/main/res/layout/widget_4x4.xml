@@ -84,7 +84,7 @@
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="13sp" />
                 <TextView
-                    android:id="@+id/w_range"
+                    android:id="@+id/w_voltage"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="5dp"
@@ -177,20 +177,7 @@
                     android:textColor="@color/widget_text_primary"
                     android:textSize="9sp" />
 </LinearLayout>
-
-            <TextView
-                android:id="@+id/w_location"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:drawableStart="@drawable/ic_widget_pin"
-                android:drawablePadding="4dp"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:text=""
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="9sp" />
-        </LinearLayout>
+</LinearLayout>
 
         <FrameLayout
             android:id="@+id/w_car_box"

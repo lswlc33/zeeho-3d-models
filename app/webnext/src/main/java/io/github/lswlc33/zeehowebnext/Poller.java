@@ -57,11 +57,11 @@ final class Poller {
             int voltage = -1;
             int current = -1;
             int charge = 0;
+            boolean chargeKnown = false;
             int lock = -1;
             int seat = -1;
             int online = -1;
-            int range = -1;
-            String location = "";
+            String voltageText = "";
             String eta = "";
             int fullMin = -1;
             String charged = "";
@@ -70,8 +70,11 @@ final class Poller {
             if (h != null) {
                 soc = ApiClient.intOr(h, "bmssoc", -1);
                 String code = ApiClient.text(h, "chargeState");
+                chargeKnown = h.has("chargeState") || h.has("whetherChargeState");
                 if ("2".equals(code)) charge = 2;
-                else if ("1".equals(code) || "3".equals(code) || ApiClient.on(h.opt("whetherChargeState"))) charge = 1;
+                else if ("1".equals(code) || "3".equals(code)) charge = 1;
+                else if (code.isEmpty() && ApiClient.on(h.opt("whetherChargeState"))) charge = 1;
+                else charge = 0;
                 lock = ApiClient.on(h.opt("headLockState")) ? 1 : 0;
                 seat = ApiClient.on(h.opt("seatLockState")) ? 1 : 0;
                 String os = ApiClient.text(h, "onlineStatus");
@@ -80,31 +83,18 @@ final class Poller {
                 fullMin = ApiClient.fullMinutes(h);
                 charged = ApiClient.text(h, "chargeTimeString");
                 chargedMin = ApiClient.chargedMinutes(charged);
-
-                range = ApiClient.intOr(h, "hmiRidableMile", -1);
-                if (range < 0) range = ApiClient.intOr(h, "hmiRidableMileAbnormalShow", -1);
-                location = ApiClient.text(h, "address");
-                double lat = Double.NaN, lng = Double.NaN;
-                JSONObject loc = h.optJSONObject("location");
-                if (loc != null) {
-                    if (location.isEmpty()) location = ApiClient.text(loc, "address");
-                    if (location.isEmpty()) location = ApiClient.text(loc, "addressName");
-                    lat = loc.optDouble("latitude", Double.NaN);
-                    lng = loc.optDouble("longitude", Double.NaN);
-                }
+                voltageText = ApiClient.text(h, "voltage");
+                voltage = ApiClient.intOr(h, "voltage", ApiClient.intOr(h, "bmsVoltage", -1));
                 String pic = ApiClient.text(h, "vehiclePicUrl");
                 if (!pic.isEmpty()) WidgetCar.ensure(c, vin, pic);
-                if (location.isEmpty() && !Double.isNaN(lat) && !Double.isNaN(lng)) {
-                    location = Geo.resolve(c, lat, lng);
-                }
             }
             if (b != null) {
                 if (soc < 0) soc = ApiClient.intOr(b, "bmssoc", -1);
-                if (range < 0) range = ApiClient.intOr(b, "hmiRidableMile", -1);
                 voltage = ApiClient.intOr(b, "voltage", ApiClient.intOr(b, "bmsVoltage", -1));
+                if (voltageText.isEmpty()) voltageText = ApiClient.text(b, "voltage");
                 current = ApiClient.intOr(b, "current", -1);
                 if (fullMin <= 0) fullMin = ApiClient.fullMinutes(b);
-                if (charge == 0) {
+                if (!chargeKnown) {
                     String bc = ApiClient.text(b, "chargeState");
                     if ("2".equals(bc)) charge = 2;
                     else if ("1".equals(bc) || "3".equals(bc)
@@ -119,8 +109,8 @@ final class Poller {
             if (soc >= 100 && charge == 1) charge = 2;
             if (soc >= 0) j.put("soc", soc);
             j.put("charging", charge);
-            if (range >= 0) j.put("range", range);
-            if (!location.isEmpty()) j.put("location", location);
+            if (voltageText.isEmpty() && voltage >= 0) voltageText = String.valueOf(voltage);
+            if (!voltageText.isEmpty()) j.put("voltageText", voltageText);
             if (voltage >= 0 && current != 0) {
                 j.put("power", Math.abs(Math.round(voltage * (float) current)));
             }
