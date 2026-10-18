@@ -147,8 +147,8 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
 
 ```json
 {
-  "versionCode": 8,
-  "versionName": "1.4.2",
+  "versionCode": 9,
+  "versionName": "1.4.3",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
   "notes": "更新说明"
 }
@@ -166,6 +166,9 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
   改成这次的值，二者一起提交推送。线上 `version.json` 是更新弹窗的唯一开关。
 - debug 包可用 `adb shell am start … --es update_manifest http://127.0.0.1:8899/version.json`
   指向本机清单测试；release 忽略该 extra，只认固定 HTTPS 地址。
+- 1.4.3 起「数据与调试」的两行版本可点击手动检查：`checkAppUpdate()` 同步返回 APK 当前/最新版本，
+  `checkPageUpdate()` 抓远端页面 build；结果由网页弹层展示。点「下载软件」走 `downloadAppUpdate()`，
+  点「重启页面」走 `restartPage()`（有 pending 直接应用，否则先下载页面再 reload）。
 
 ### WebView HTTP 缓存上限（1.4.1）
 
@@ -197,6 +200,8 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 - 页面通过 `ZeehoShell.batteryHistory(range)` 取 JSON：`points` + `summary` +
   `lastCharge` + `lastDischarge`。充电=`state>0`；放电=未充电且 `|current| ≥ 0.3A`。
   统计里的能量按采样间隔积分（单段最多按 5 分钟算），是趋势值不是电表读数。
+- 1.4.3 起「我的」里只放一张入口卡，点「查看记录」打开 `U.sheet(full:true, key:'batt')`
+  全屏弹层（与骑行记录同一套）；范围 chips、图表、上一次充电/放电都在弹层里，切范围只重画这一层。
 - 这块**只在 `inShell()` 时渲染**；浏览器没有桥，整块不出现。页面侧的卡片在「我的」页
   骑行分析下方，范围切换只重新拉数据，不整页刷新。
 
@@ -215,7 +220,9 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 |---|---|
 | `insets()` | 返回 `{"top":24,"bottom":0,"left":0,"right":0}`（CSS px）。WebView 的 `env(safe-area-inset-*)` 不报系统栏高度，页面 `fitViewport()` 在壳模式必须用它。 |
 | `setDark(boolean)` | 页面主题变化时同步状态栏/导航栏图标明暗。 |
-| `appVersion()` | 当前壳版本，形如 `1.4.0 (6)`；页面「数据与调试 → 软件版本」用，浏览器不显示。 |
+| `appVersion()` | 当前壳版本，形如 `1.4.3 (9)`；页面「数据与调试 → 软件版本」用，浏览器不显示。 |
+| `checkAppUpdate()` / `downloadAppUpdate()` | 手动检查 APK 更新（返回 JSON）/ 下载并交给安装器。 |
+| `checkPageUpdate()` / `restartPage()` | 手动检查页面远端 build（返回 JSON）/ 重启页面（有 pending 先应用，否则下载后再 reload）。 |
 | `batteryHistory(range)` | App 专属电量历史，`range` = `24h`/`3d`/`7d`/`30d`；返回降采样 JSON（见下节）。浏览器没有这个桥。 |
 | `syncSession(token, uid, vin, name)` | 页面每次加载后把登录态推给原生；换 token/车辆会清旧摘要。token 为空会停后台。 |
 | `syncStatus(json)` | 页面每轮刷新后的车辆摘要（电量/充电/锁/坐垫/在线/功率/消息未读）。原生只读它做通知和小组件，不反向改页面。 |

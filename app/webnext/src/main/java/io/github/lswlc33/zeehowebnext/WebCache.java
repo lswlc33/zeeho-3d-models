@@ -189,6 +189,17 @@ final class WebCache {
         });
     }
 
+    /** 手动检查页面版本：只取远端 build，不下载；下载交给 restartPage 的 checkForUpdateAsync。 */
+    String remoteBuild() throws IOException {
+        String versionJson = fetchText(versionUrl(), 4096);
+        return parseBuild(versionJson);
+    }
+
+    String pendingBuild() {
+        Snapshot p = pending;
+        return p == null ? "" : p.build;
+    }
+
     /** 后台检查更新；远端 build 与 active/pending 都不同才下载。 */
     void checkForUpdateAsync(UpdateCallback cb) {
         worker.execute(() -> {

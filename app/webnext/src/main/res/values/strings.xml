@@ -23,6 +23,7 @@
     <string name="update_no_notes">修复问题并改进体验。</string>
     <string name="update_now">立即更新</string>
     <string name="update_later">稍后</string>
+    <string name="update_no_update">已经是最新版本</string>
     <string name="update_downloading">正在下载更新…</string>
     <string name="update_download_size">%1$d MB</string>
     <string name="update_failed">更新失败</string>
@@ -31,6 +32,8 @@
     <string name="update_signature_failed">安装包签名与当前应用不一致，已拒绝安装</string>
     <string name="update_allow_install">请允许「几何面板」安装未知应用，允许后会自动继续</string>
     <string name="update_install_failed">无法打开安装器，请在系统设置里允许安装未知应用</string>
+    <string name="page_update_checking">正在检查页面更新…</string>
+    <string name="page_update_failed">页面更新失败：%1$s</string>
 
     <!-- 通知渠道 -->
     <string name="channel_service">后台同步</string>

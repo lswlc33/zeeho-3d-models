@@ -1,6 +1,6 @@
 {
-  "versionCode": 8,
-  "versionName": "1.4.2",
+  "versionCode": 9,
+  "versionName": "1.4.3",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.4.2：更新安装 Provider 补充文件名/大小元数据，兼容部分系统安装器；其余同 1.4.1（去掉 Kotlin 标准库、APK 约 123KB；修复账号 ID 数字导致的「我的」页报错；缓存与快照上限）。"
+  "notes": "1.4.3：电量历史改为全屏页面；「数据与调试」的软件版本/面板版本可点击手动检查更新，结果弹窗支持重启页面与下载软件。"
 }

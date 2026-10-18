@@ -370,6 +370,82 @@ public final class MainActivity extends Activity {
         return versionCode > 0 ? versionName + " (" + versionCode + ")" : versionName;
     }
 
+    /**
+     * 页面「面板版本」的手动检查：同步抓远端 version.json 的 build，不下载。
+     * 在 JavaBridge 线程执行，最长等 WebCache 的 20 秒读超时。
+     */
+    String checkPageUpdate() {
+        JSONObject out = new JSONObject();
+        try {
+            String current = cache != null && cache.active() != null ? cache.active().build : "";
+            String remote = cache == null ? "" : cache.remoteBuild();
+            String pending = cache == null ? "" : cache.pendingBuild();
+            out.put("ok", true);
+            out.put("current", current);
+            out.put("remote", remote == null ? "" : remote);
+            out.put("pending", pending);
+            out.put("hasUpdate", !remote.isEmpty() && !remote.equals(current));
+        } catch (Exception e) {
+            try {
+                out.put("ok", false);
+                out.put("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            } catch (Exception ignored) {
+            }
+        }
+        return out.toString();
+    }
+
+    /** 手动「重启页面」：有 pending 就应用；否则先检查/下载远端页面，完成后再 reload。 */
+    void postRestartPage() {
+        main.post(() -> {
+            if (destroyed || webView == null) return;
+            if (cache != null && cache.hasPending()) {
+                cache.promotePendingNow();
+                webView.reload();
+                return;
+            }
+            if (cache == null || !cache.hasActive() || updateRunning) {
+                webView.reload();
+                return;
+            }
+            updateRunning = true;
+            Toast.makeText(this, R.string.page_update_checking, Toast.LENGTH_SHORT).show();
+            cache.checkForUpdateAsync(new WebCache.UpdateCallback() {
+                @Override
+                public void onUpdateReady(String build) {
+                    main.post(() -> {
+                        updateRunning = false;
+                        if (destroyed || webView == null) return;
+                        if (cache != null && cache.hasPending()) cache.promotePendingNow();
+                        Toast.makeText(MainActivity.this, R.string.updated, Toast.LENGTH_SHORT).show();
+                        webView.reload();
+                    });
+                }
+
+                @Override
+                public void onNoUpdate() {
+                    main.post(() -> {
+                        updateRunning = false;
+                        if (!destroyed && webView != null) webView.reload();
+                    });
+                }
+
+                @Override
+                public void onError(String message) {
+                    main.post(() -> {
+                        updateRunning = false;
+                        if (!destroyed && webView != null) {
+                            Toast.makeText(MainActivity.this,
+                                getString(R.string.page_update_failed, message),
+                                Toast.LENGTH_LONG).show();
+                            webView.reload();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
     void postSetDark(boolean d) {
         main.post(() -> {
             if (destroyed) return;

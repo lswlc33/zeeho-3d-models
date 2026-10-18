@@ -38,6 +38,30 @@ final class ShellBridge {
         return activity.appVersionName();
     }
 
+    /** 手动检查 APK 更新；返回 JSON（不弹原生框），由页面展示结果。 */
+    @JavascriptInterface
+    public String checkAppUpdate() {
+        return UpdateChecker.query(activity);
+    }
+
+    /** 页面点了「下载软件」：走原生下载/校验/安装进度。 */
+    @JavascriptInterface
+    public void downloadAppUpdate() {
+        UpdateChecker.downloadLatest(activity);
+    }
+
+    /** 手动检查页面版本；返回当前/远端 build，不下载。 */
+    @JavascriptInterface
+    public String checkPageUpdate() {
+        return activity.checkPageUpdate();
+    }
+
+    /** 重启页面：有已下载快照就应用，否则先检查/下载再 reload。 */
+    @JavascriptInterface
+    public void restartPage() {
+        activity.postRestartPage();
+    }
+
     /**
      * App 专属电量历史。返回降采样后的 JSON（不会把整月原始记录塞进 JS）；
      * 浏览器没有这个桥，页面整块不渲染。range: 24h / 3d / 7d / 30d。

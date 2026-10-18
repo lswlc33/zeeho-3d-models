@@ -28,6 +28,8 @@ App 1.2 起在壳内做了网页做不到的事：未读消息/充电开始/充�
 1.4.1 去掉了 AGP 自动带进来的 Kotlin 标准库（APK 约 755KB → 123KB），并修复真车账号 ID 为数字时
 「我的」页渲染报错；更新包安装后清理、页面快照只留 active/pending、WebView HTTP 缓存上限 32MB。
 1.4.2 给更新 Provider 补上 `OpenableColumns` 的文件名/大小元数据，兼容部分系统安装器。
+1.4.3 电量历史改为全屏页面（入口仍在「我的」骑行分析下方）；「数据与调试」的软件/面板版本可点，
+手动检查更新并在弹层里选择重启页面或下载软件。
 
 网页源码在主仓库 `tools/dashboard/`，发布时用 `build-static.mjs --obfuscate` 输出到本仓库根的
 `index.html`、`manifest.webmanifest`、`sw.js`、`version.json`、`icons/`。`models/` 和 `index.json`

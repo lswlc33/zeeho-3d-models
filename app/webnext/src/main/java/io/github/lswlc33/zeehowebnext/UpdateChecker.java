@@ -57,6 +57,9 @@ final class UpdateChecker {
     private static boolean dialogShowing;
     private static boolean downloading;
     private static volatile File pendingApk;
+    private static volatile String latestUrl;
+    private static volatile String latestName;
+    private static volatile long latestCode;
 
     private UpdateChecker() {
     }
@@ -104,6 +107,61 @@ final class UpdateChecker {
                 Log.w(TAG, "update check failed", e);
             }
         }, "zeeho-update-check").start();
+    }
+
+    /**
+     * 页面「软件版本」点击后的手动检查：同步返回 JSON，由网页自己弹结果面板。
+     * 不弹原生对话框、不改 checked；网络失败也返回 ok=false 而不是阻塞。
+     */
+    static String query(Activity activity) {
+        latestUrl = null;
+        latestName = "";
+        latestCode = 0;
+        final boolean debug = (activity.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        JSONObject out = new JSONObject();
+        try {
+            JSONObject j = new JSONObject(fetchText(manifestUrl(activity, debug)));
+            long code = j.optLong("versionCode", -1);
+            String name = j.optString("versionName", "");
+            String url = j.optString("url", APK_URL);
+            String notes = j.optString("notes", "");
+            long currentCode = currentVersionCode(activity);
+            boolean validUrl = allowedApkUrl(url, debug);
+            boolean update = code > currentCode && !name.isEmpty() && validUrl;
+            out.put("ok", true);
+            out.put("currentCode", currentCode);
+            out.put("currentName", versionName(activity));
+            out.put("latestCode", code);
+            out.put("latestName", name);
+            out.put("notes", notes);
+            out.put("hasUpdate", update);
+            if (update) {
+                latestUrl = url;
+                latestName = name;
+                latestCode = code;
+            } else if (code > currentCode && !validUrl) {
+                out.put("error", "更新地址校验失败");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "manual update query failed", e);
+            try {
+                out.put("ok", false);
+                out.put("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            } catch (Exception ignored) {
+            }
+        }
+        return out.toString();
+    }
+
+    /** 页面点了「下载软件」：复用 query 找到的 URL，切回 UI 线程走原来的进度/校验/安装流程。 */
+    static void downloadLatest(Activity activity) {
+        if (latestUrl == null) query(activity);
+        final String url = latestUrl;
+        if (url == null) {
+            toast(activity, activity.getString(R.string.update_no_update));
+            return;
+        }
+        activity.runOnUiThread(() -> download(activity, url));
     }
 
     private static void showDialog(Activity activity, String currentName, long currentCode,
