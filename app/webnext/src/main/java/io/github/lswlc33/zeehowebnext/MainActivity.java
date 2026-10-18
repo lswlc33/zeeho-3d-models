@@ -74,6 +74,7 @@ public final class MainActivity extends Activity {
     private static final long BACK_EXIT_MS = 2000;
     private static final long UPDATE_CHECK_GAP_MS = 30000;
     private static final int REQ_LOCATION = 1002;
+    private static final int REQ_PROXIMITY = 1003;
 
     private static final String BACK_JS =
         "(function(){try{"
@@ -196,6 +197,7 @@ public final class MainActivity extends Activity {
         AutoTaskScheduler.ensure(this);
         MonitorService.start(this);
         UpdateChecker.onResume(this);
+        Proximity.resume(this);
         if (pageLoaded) main.postDelayed(() -> UpdateChecker.check(this), 1200);
         if (pageLoaded) scheduleUpdateCheck(1500);
     }
@@ -210,6 +212,8 @@ public final class MainActivity extends Activity {
         StatusFeed.reconcileBackground(this);
         // 电量历史缓存里可能还有不足 8 条的尾块，退后台时落盘，进程被杀也不会丢。
         BatteryHistory.flush(this);
+        // 附近检测只在 App 前台做；退后台立刻停 BLE 扫描，避免耗电。
+        Proximity.stop(this);
     }
 
     @Override
@@ -300,9 +304,29 @@ public final class MainActivity extends Activity {
             || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
+    void postRequestProximity() {
+        main.post(() -> {
+            if (Proximity.hasPermission(this)) {
+                Proximity.resume(this);
+                return;
+            }
+            try {
+                requestPermissions(Proximity.permissions(), REQ_PROXIMITY);
+            } catch (Exception e) {
+                Log.w(TAG, "request proximity permission failed", e);
+            }
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_PROXIMITY) {
+            boolean granted = Proximity.hasPermission(this);
+            if (granted) Proximity.resume(this);
+            else Toast.makeText(this, R.string.nearby_permission_denied, Toast.LENGTH_LONG).show();
+            return;
+        }
         if (requestCode != REQ_LOCATION) return;
         boolean granted = hasLocationPermission();
         String origin = pendingGeoOrigin;

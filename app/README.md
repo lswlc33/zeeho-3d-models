@@ -178,6 +178,20 @@ WebView 时）统计 `cache/WebView/**/HTTP Cache`，**超过 32MB 才整块删�
 安装后真正占空间的大头是 WebView 自己预分配的 4MB `app_webview/BrowserMetrics-spare.pma`
 （Chromium 固定开销，应用无法控制）和 HTTP Cache；APK 本身优化后只有约 123KB。
 
+### 车辆附近检测（1.4.5）
+
+位置卡遮罩不再只写「位置已隐藏」：原生在首页、前台时扫描车况里的 `bluetoothAddress`，
+只收该 MAC 的 BLE 广播并取 RSSI，遮罩显示「车在附近 / -62 dBm · 约 3 米」或「没检测到车辆」。
+
+- **只扫描，不连接**：代码没有 `connectGatt`、配对或 GATT 命令；用 `ScanFilter.setDeviceAddress()`
+  收广播。Android 12+ 申请 `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT`（后者只用于读取扫描结果里的
+  `BluetoothDevice` 地址，不发起连接）；Android 11 及以下用 legacy Bluetooth + `ACCESS_FINE_LOCATION`。
+- 权限只在用户点位置遮罩/眼睛、状态是 `needperm` 时申请，不在启动时弹；拒绝会 Toast。
+- 扫描只在首页 + App 前台进行：离开首页 `proximityStop()`，`onPause` 也停止；`onResume` 恢复。
+- RSSI 做 0.6/0.4 平滑；距离按 log-distance（n=2，默认 1m 处 -59dBm）估算，只作量级参考。
+- 状态：`nearby`（20 秒内收到广播）、`searching`（启动后 10 秒内）、`far`（没收到）、
+  `needperm`、`unavailable`（蓝牙关闭/无适配器）、`noaddr`（车况没蓝牙地址）。
+
 ### 电量历史（1.4.0，App 专属）
 
 后台 `StatusFeed` 每处理一份车况就调 `BatteryHistory.record()`，**50 秒去重**，所以页面
@@ -224,6 +238,8 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 | `checkAppUpdate()` / `downloadAppUpdate()` | 手动检查 APK 更新（返回 JSON）/ 下载并交给安装器。 |
 | `checkPageUpdate()` / `restartPage()` | 手动检查页面远端 build（返回 JSON）/ 重启页面（有 pending 先应用，否则下载后再 reload）。 |
 | `batteryHistory(range)` | App 专属电量历史，`range` = `24h`/`3d`/`7d`/`30d`；返回降采样 JSON（见下节）。浏览器没有这个桥。 |
+| `proximityStart(address)` / `proximityStatus()` | 车辆附近检测：只扫描该 MAC 的 BLE 广播，返回 `state/rssi/meters`；不连接、不配对、不发 GATT 命令。 |
+| `requestProximity()` / `proximityStop()` | 用户点眼睛/遮罩时申请「附近的设备」权限；离开首页或退后台停止扫描。 |
 | `syncSession(token, uid, vin, name)` | 页面每次加载后把登录态推给原生；换 token/车辆会清旧摘要。token 为空会停后台。 |
 | `syncStatus(json)` | 页面每轮刷新后的车辆摘要（电量/充电/锁/坐垫/在线/功率/消息未读）。原生只读它做通知和小组件，不反向改页面。 |
 | `autoTask()` / `setAutoTask(json)` | 读写 App 专属自动任务（开关、执行时间、发帖文案、间隔、上次结果）。 |

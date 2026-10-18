@@ -71,6 +71,27 @@ final class ShellBridge {
         return BatteryHistory.report(activity, NativeStore.vin(activity), range);
     }
 
+    /** 车辆附近检测：只扫描该 MAC 的 BLE 广播，不连接、不发 GATT 命令。 */
+    @JavascriptInterface
+    public String proximityStart(String address) {
+        return Proximity.start(activity, address);
+    }
+
+    @JavascriptInterface
+    public String proximityStatus() {
+        return Proximity.status(activity);
+    }
+
+    @JavascriptInterface
+    public void requestProximity() {
+        activity.postRequestProximity();
+    }
+
+    @JavascriptInterface
+    public void proximityStop() {
+        Proximity.stop(activity);
+    }
+
     /**
      * 网页每次 load 后同步登录态。token/vin 任一为空都会让后台服务停下；
      * 换 token（重新登录）时 NativeStore 会清掉旧车的摘要和登录失效标记。
