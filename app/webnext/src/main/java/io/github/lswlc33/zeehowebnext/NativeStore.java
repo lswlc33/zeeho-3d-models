@@ -95,6 +95,20 @@ final class NativeStore {
             return s;
         }
 
+        /** 除 updatedAt 外，其余字段是否与另一份状态完全一致（updatedAt 每轮都变，不能算变化）。 */
+        boolean sameData(Status o) {
+            return o != null
+                && soc == o.soc && charge == o.charge && power == o.power && voltage == o.voltage
+                && current == o.current && lock == o.lock && seat == o.seat && online == o.online
+                && noRead == o.noRead && fullMin == o.fullMin && chargedMin == o.chargedMin
+                && eq(eta, o.eta) && eq(charged, o.charged) && eq(voltageText, o.voltageText)
+                && eq(msgTitle, o.msgTitle) && eq(msgId, o.msgId) && eq(msgTime, o.msgTime);
+        }
+
+        private static boolean eq(String a, String b) {
+            return a == null ? b == null : a.equals(b);
+        }
+
         void apply(JSONObject j) {
             if (j == null) return;
             if (j.has("soc") && !j.isNull("soc")) soc = j.optInt("soc", soc);
@@ -248,7 +262,13 @@ final class NativeStore {
     }
 
     static void setSeen(Context c, int noRead, String msgId) {
-        sp(c).edit().putInt(K_SEEN_NOREAD, noRead).putString(K_NOTIFIED_MSG, safe(msgId)).apply();
+        String id = safe(msgId);
+        // 页面每 30 秒同步一次，值通常一字没变；没变就不写（SharedPreferences 是整文件覆写）。
+        SharedPreferences p = sp(c);
+        if (p.getInt(K_SEEN_NOREAD, -1) == noRead && safe(p.getString(K_NOTIFIED_MSG, "")).equals(id)) {
+            return;
+        }
+        p.edit().putInt(K_SEEN_NOREAD, noRead).putString(K_NOTIFIED_MSG, id).apply();
     }
 
     static boolean fullNotified(Context c) {

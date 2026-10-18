@@ -316,6 +316,11 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 ### 后台
 
 - `MonitorService` 是 `dataSync` 类型前台服务，登录后启动，60 秒轮询车况/电池/消息。
+  1.4.9 起后台只拉 **1 条**消息（页面要列表才拉 20 条）——后台只需要 `noRead` 与首条标题，
+  而 `noRead` 与页大小无关；这是后台流量最大的一笔。
+- 车况没变化时**不写 SharedPreferences、不重绘小组件**（`StatusFeed.sameData`，`updatedAt` 不参与比较），
+  只在关键字段变了或距上次写盘超过 15 分钟时落一次。以前每 60 秒整份覆写一次状态，还要让桌面进程
+  重绘三套 RemoteViews 并重新解码车图，是后台最贵的一段。
 - 被杀或重启后由 `MonitorJobService`（JobScheduler，15 分钟周期）兜底；两者都受系统省电策略影响。
 - `ACCESS_NETWORK_STATE` 是 Job 网络约束的硬前提：少了它 `JobScheduler.schedule()` 直接抛
   `SecurityException`，而且以前被 `catch` 吞掉，表现就是"任务永远不跑"。**别删这个权限**。

@@ -40,7 +40,9 @@ final class Poller {
             failedAuth(c);
             return;
         }
-        ApiClient.Result msg = uid.isEmpty() ? null : api.msgList(uid, 20);
+        // 后台只需要 noRead（红点/通知判重）和第一条消息的标题；noRead 与页大小无关。
+        // 拉 20 条正文（extra/地址/缩略图 URL）会让每分钟一轮的流量多出一个数量级，纯浪费。
+        ApiClient.Result msg = uid.isEmpty() ? null : api.msgList(uid, 1);
         if (msg != null && msg.auth) {
             failedAuth(c);
             return;

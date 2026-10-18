@@ -18,6 +18,9 @@ final class StatusFeed {
 
     private static final String TAG = "ZeehoWebNext";
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
+    /** 数据没变时微件最多每 15 分钟重绘一次：只为让「更新于 HH:mm」不至于停在一个小时前。 */
+    private static final long WIDGET_IDLE_REFRESH_MS = 15 * 60_000L;
+    private static long lastWidgetAt;
 
     private StatusFeed() {
     }
@@ -50,7 +53,21 @@ final class StatusFeed {
             if (s.charge == 1) s.charge = 2;
             else if (s.charge == 0 && old.charge == 1) s.charge = 2;
         }
-        NativeStore.saveStatus(c, s);
+        // 后台 60 秒一轮，绝大多数轮次车况是同一个数。以前每轮都 saveStatus + updateAll：
+        // 整份 SharedPreferences 重写一遍，还要让桌面进程重绘三套 RemoteViews 并重新解码车图
+        // （WidgetCar.load），是后台最贵的一段。现在只在两种情况写：
+        //   1) 关键字段真的变了（sameData 比较，updatedAt 不参与）；
+        //   2) 距上次写盘已超过 15 分钟（顺带把微件上的「更新于」推到最近一次同步，
+        //      不然它会停在几小时前，看着像同步挂了）。
+        // 通知判定照常往下跑：它看的是 old→s 的跃迁，数据没变时本来也不该发。
+        final long nowMs = System.currentTimeMillis();
+        final boolean changed = !s.sameData(old);
+        final boolean idleRefresh = nowMs - lastWidgetAt > WIDGET_IDLE_REFRESH_MS;
+        if (changed || idleRefresh) {
+            NativeStore.saveStatus(c, s);
+            WidgetProviders.updateAll(c);
+            lastWidgetAt = nowMs;
+        }
         // App 专属电量历史：页面同步与后台轮询都走这里，内部按 50 秒去重。
         BatteryHistory.record(c, s, j);
 
@@ -126,8 +143,6 @@ final class StatusFeed {
             // 服务重启/旧进度通知残留：非充电状态下无条件收掉进度条。
             Notify.cancelChargeProgress(c);
         }
-
-        WidgetProviders.updateAll(c);
     }
 
     /**

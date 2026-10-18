@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "1.4.8",
+  "versionCode": 15,
+  "versionName": "1.4.9",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.4.8：修复 Android 15+ 后台同步 6 小时超时后不恢复；投屏资料页可从壳内打开并返回；缓存/历史文件写入失败不再丢数据；小组件刷新通道收口。"
+  "notes": "1.4.9：降低后台耗电——后台轮询只拉 1 条消息（原来 20 条）；车况没变化时不再每 60 秒重写状态并重绘小组件（最多 15 分钟一次）。"
 }
