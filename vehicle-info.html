@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:,">
+  <title>车辆信息</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1c1c1e;
+      background: #f4f4f4;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --ink-muted: #6e6e73;
+      --line: #e2e2e7;
+      --accent: #007aff;
+      --accent-hover: #006be6;
+      --accent-soft: #eaf3ff;
+      --cell: #f0f0f1;
+      --warning-ink: #244a74;
+    }
+    * { box-sizing: border-box; }
+    body { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; min-height: 100dvh; margin: 0; background: #f4f4f4; }
+    button, select { font: inherit; }
+    button { cursor: pointer; border-radius: 999px; }
+    button:active:not(:disabled) { transform: scale(.97); }
+    button:disabled, select:disabled { cursor: not-allowed; opacity: .55; }
+    button:focus-visible, select:focus-visible { outline: 3px solid #007aff40; outline-offset: 2px; }
+    .page-heading {
+      display: grid;
+      gap: 10px;
+    }
+    .page-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .page-nav[hidden] { display: none; }
+    .page-nav .text-button { min-height: 44px; padding-inline: 0; white-space: nowrap; }
+    #back-step { min-width: 44px; text-align: start; }
+    #clear-session { margin-inline-start: auto; text-align: end; }
+    .text-button {
+      min-height: 40px;
+      padding: 0 12px;
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform .15s ease;
+    }
+    main { flex: 1; width: min(100%, 860px); margin: 0 auto; padding: 24px 18px 36px; }
+    .project-credit { width: min(100%, 860px); margin: 0 auto; padding: 12px 18px calc(20px + env(safe-area-inset-bottom)); color: var(--ink-muted); font-size: 12px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
+    .project-credit a { color: inherit; text-decoration: none; }
+    .project-credit a:hover { text-decoration: underline; }
+    .project-credit a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    h1 { margin: 0; color: #1c1c1e; font-size: 28px; font-weight: 700; line-height: 1.3; }
+    h2 { margin: 0; color: var(--ink-muted); font-size: 15px; line-height: 1.35; }
+    p { margin: 0; }
+    .status-line { display: flex; align-items: center; gap: 9px; margin-top: 13px; color: var(--ink-muted); font-size: 13px; }
+    .status-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #8e8e93; }
+    .status-dot[data-state="ready"] { background: #34a853; }
+    .status-dot[data-state="working"] { background: #ff9f0a; }
+    .status-dot[data-state="error"] { background: #ff3b30; }
+    .warning {
+      margin-top: 20px;
+      padding: 14px 15px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: var(--warning-ink);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .section { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: #fbfbfb; }
+    .login-start { margin-top: 16px; }
+    .workflow-page[hidden] { display: none; }
+    .step-screen { margin-top: 28px; }
+    .step-screen.section { padding: 0; border: 0; border-radius: 0; background: transparent; }
+    .step-screen .section-head { margin-bottom: 18px; }
+    .vehicle-actions { justify-content: flex-end; }
+    .login-complete { margin-top: 16px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; }
+    .guide-steps { grid-column: 2; grid-row: 1; }
+    .guide-block h2 { margin-bottom: 8px; color: #1c1c1e; }
+    .guide-block p, .guide-privacy p { color: var(--ink-muted); font-size: 13px; line-height: 1.55; }
+    .steps { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+    .steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 9px; align-items: start; color: var(--ink-muted); font-size: 13px; line-height: 1.5; }
+    .step-number { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
+    .guide-privacy { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--line); }
+    .guide-privacy h2 { margin-bottom: 6px; color: var(--accent); }
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform .15s ease, background-color .15s ease;
+    }
+    .primary-button { background: var(--accent); color: #fff; }
+    .primary-button:hover { background: var(--accent-hover); }
+    .full-width { width: 100%; min-height: 58px; font-size: 16px; }
+    .form-label { display: block; margin-bottom: 7px; color: var(--ink-muted); font-size: 13px; font-weight: 650; }
+    .form-row { display: grid; gap: 12px; }
+    .vehicle-options { display: grid; max-height: min(46vh, 420px); gap: 12px; overflow: auto; padding: 1px; }
+    .vehicle-option {
+      position: relative;
+      display: grid;
+      min-height: 92px;
+      align-content: center;
+      gap: 7px;
+      padding: 16px 20px;
+      border: 2px solid transparent;
+      border-radius: 32px;
+      background: #f0f0f1;
+      color: #171e2b;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+    }
+    .vehicle-option:hover { background: #e9e9eb; }
+    .vehicle-option:active { transform: scale(.99); }
+    .vehicle-option.is-selected { border-color: #3478f6; background: #ededee; }
+    .vehicle-option input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .vehicle-option input:focus-visible + .vehicle-option__content { outline: 3px solid #007aff40; outline-offset: 3px; border-radius: 4px; }
+    .vehicle-option__heading { display: block; min-width: 0; }
+    .vehicle-option__title { min-width: 0; color: #121a29; font-size: 20px; font-weight: 720; line-height: 1.28; overflow-wrap: anywhere; }
+    .vehicle-option__model { display: block; min-width: 0; margin-top: 3px; color: #74777d; font-size: 15px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+    .vehicle-options__empty { margin: 0; padding: 18px 20px; border-radius: 24px; background: #f0f0f1; color: var(--ink-muted); font-size: 15px; line-height: 1.45; }
+    .vehicle-picker__native { display: none; }
+    .message { min-height: 21px; margin-top: 10px; color: var(--ink-muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+    .message:empty { display: none; }
+    .message[data-state="error"] { color: #c62828; }
+    .message[data-state="success"] { color: #248a4d; }
+    .login-frame {
+      display: block;
+      width: 100%;
+      height: min(660px, calc(100dvh - 190px));
+      min-height: 420px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .login-frame[hidden] { display: none; }
+    .masked-preview {
+      margin: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--cell);
+      color: #1c1c1e;
+      font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+      overflow: auto;
+      white-space: pre;
+    }
+    .privacy-note { margin: 10px 0 14px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+    .subtle { color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+    @media (max-width: 500px) {
+      main { padding: 20px 10px 28px; }
+      .guide { grid-template-columns: 1fr; gap: 16px; }
+      .guide-steps { grid-column: auto; grid-row: auto; }
+      .guide-privacy { grid-column: auto; padding-top: 12px; }
+      .login-frame { height: calc(100dvh - 170px); min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-heading">
+      <nav id="page-nav" class="page-nav" aria-label="页面操作" hidden>
+        <button id="back-step" class="text-button" type="button" hidden>返回</button>
+        <button id="clear-session" class="text-button" type="button" hidden>清除本页信息</button>
+      </nav>
+      <h1 id="page-title">车辆信息</h1>
+    </header>
+    <div class="status-line" role="status" aria-live="polite">
+      <span id="status-dot" class="status-dot" data-state="idle"></span>
+      <span id="status-text">操作说明</span>
+    </div>
+
+    <section id="intro-page" class="workflow-page">
+      <section class="section guide" aria-label="工具说明">
+      <div class="guide-block guide-steps">
+        <h2>操作步骤</h2>
+        <ol class="steps">
+          <li><span class="step-number">1</span><span>输入手机号，用短信验证码登录。</span></li>
+          <li><span class="step-number">2</span><span>选择你的车辆，获取车辆信息。</span></li>
+          <li><span class="step-number">3</span><span>复制信息，导入投屏 App。</span></li>
+        </ol>
+      </div>
+      <div class="guide-block">
+        <h2>这是什么</h2>
+        <p>获取车辆投屏所需连接信息，整理成投屏 App 可直接导入的资料。可获取的内容因车辆而异，信息不完整时无法复制。</p>
+      </div>
+      <div class="guide-privacy">
+        <h2>本站不收集你的车辆信息</h2>
+        <p>本站不会收集或保存你的手机号、登录信息和车辆资料。这些信息只在当前页面中使用，关闭页面后清除。</p>
+      </div>
+      </section>
+
+      <section id="login-warning" class="warning">
+        在这里登录后，手机上的极核 App 会退出登录，需要使用时可重新登录。
+      </section>
+      <section id="login-start-section" class="login-start">
+        <button id="start-login" class="primary-button full-width" type="button">手机号登录</button>
+        <p id="login-message" class="message" aria-live="polite"></p>
+      </section>
+    </section>
+
+    <section id="login-page" class="workflow-page step-screen" hidden>
+      <iframe id="login-frame" class="login-frame" title="手机号登录" hidden></iframe>
+      <p id="frame-message" class="message" aria-live="polite"></p>
+      <div id="login-complete" class="login-complete" hidden>
+        <p>手机号已登录，可以继续选择车辆。</p>
+        <button id="continue-vehicles" class="primary-button full-width" type="button">选择车辆</button>
+      </div>
+    </section>
+
+    <section id="vehicle-section" class="workflow-page step-screen" hidden>
+      <div class="section-head vehicle-actions"><button id="refresh-vehicles" class="text-button" type="button">刷新列表</button></div>
+      <div class="form-row">
+        <div class="vehicle-picker">
+          <span id="vehicle-select-label" class="form-label">已绑定车辆</span>
+          <div id="vehicle-options" class="vehicle-options" role="radiogroup" aria-labelledby="vehicle-select-label"></div>
+          <select id="vehicle-select" class="vehicle-picker__native" aria-hidden="true" tabindex="-1" disabled></select>
+        </div>
+        <button id="read-vehicle" class="primary-button full-width" type="button" disabled>读取车辆信息</button>
+      </div>
+      <p id="vehicle-message" class="message" aria-live="polite"></p>
+    </section>
+
+    <section id="result-section" class="workflow-page step-screen" hidden>
+      <pre id="masked-preview" class="masked-preview"></pre>
+      <p class="privacy-note">复制这段信息，在投屏 App 中粘贴导入。请妥善保管；关闭页面或点击“清除本页信息”后，本页信息会清除。</p>
+      <button id="copy-json" class="primary-button full-width" type="button">复制信息</button>
+      <p id="export-message" class="message" aria-live="polite"></p>
+    </section>
+  </main>
+  <footer class="project-credit">基于开源项目 <a href="https://github.com/lswlc33/zeeho-3d-models" target="_blank" rel="noopener noreferrer">lswlc33 / zeeho-3d-models</a></footer>
+  <script type="module">
+// Standalone vehicle-information page. Reuses the adjacent index.html for phone login.
+// ZH1: fixed-order binary data, optional raw DEFLATE, CRC32, unpadded Base64URL.
+// The matching Android decoder lives in ZeehoVehicleInfoCode.java.
+async function encodeVehicleInfoCode(info) {
+  const bytes = [];
+  const text = value => {
+    const encoded = new TextEncoder().encode(value);
+    if (encoded.length > 255) throw new Error('vehicle_text_too_long');
+    bytes.push(encoded.length, ...encoded);
+  };
+  const material = info.material;
+  bytes.push((info.capabilities.includes('ble') ? 1 : 0) | (info.capabilities.includes('screen_cast') ? 2 : 0));
+  let version = info.version;
+  do {
+    bytes.push((version & 127) | (version > 127 ? 128 : 0));
+    version >>>= 7;
+  } while (version);
+  text(info.model);
+  for (const address of [material.bluetoothAddress, material.hmiAddress]) {
+    bytes.push(...address.split(':').map(value => Number.parseInt(value, 16)));
+  }
+  for (const field of ['token', 'key', 'iv']) {
+    bytes.push(...Array.from(atob(material[field]), char => char.charCodeAt(0)));
+  }
+  // ssid equals name, and action is always 9 in this version.
+  for (const field of ['name', 'pwd', 'modelid']) text(material[field]);
+  const packed = Uint8Array.from(bytes);
+  let payload = packed;
+  let compressed = false;
+  try {
+    const stream = new Blob([packed]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    const candidate = new Uint8Array(await new Response(stream).arrayBuffer());
+    if (candidate.length < packed.length) {
+      payload = candidate;
+      compressed = true;
+    }
+  } catch {
+    // Browsers without raw DEFLATE still emit the same compact binary format.
+  }
+  let crc = 0xffffffff;
+  for (const byte of packed) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  const envelope = new Uint8Array(payload.length + 5);
+  envelope[0] = compressed ? 1 : 0;
+  envelope.set(payload, 1);
+  new DataView(envelope.buffer).setUint32(envelope.length - 4, (crc ^ 0xffffffff) >>> 0);
+  const encoded = btoa(Array.from(envelope, byte => String.fromCharCode(byte)).join(''))
+    .replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  return `ZH1:${encoded}`;
+}
+
+
+const MATERIAL_FIELDS = [
+  'bluetoothAddress',
+  'hmiAddress',
+  'token',
+  'key',
+  'iv',
+  'name',
+  'ssid',
+  'pwd',
+  'modelid',
+  'action',
+];
+
+class VehicleInfoError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'VehicleInfoError';
+  }
+}
+
+function firstText(objects, keys, trim = true) {
+  for (const object of objects) {
+    if (!object || typeof object !== 'object') continue;
+    for (const key of keys) {
+      const value = object[key];
+      if (typeof value === 'string' && value.trim()) return trim ? value.trim() : value;
+    }
+  }
+  return '';
+}
+
+function hasFlag(value) {
+  return value === true || value === 1 || ['1', 'true', 'yes', 'y'].includes(String(value || '').trim().toLowerCase());
+}
+
+function objectCandidates(value) {
+  if (!value || typeof value !== 'object') return [];
+  return [value, value.vehicle, value.vehicleInfo, value.detail].filter(item => item && typeof item === 'object');
+}
+
+function asVehicleArray(value, depth = 0) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== 'object' || depth > 2) return null;
+  for (const key of ['vehicles', 'vehicleList', 'list', 'items', 'records', 'rows', 'data']) {
+    const items = asVehicleArray(value[key], depth + 1);
+    if (items) return items;
+  }
+  return null;
+}
+
+function normalizeVehicleList(response) {
+  const rows = asVehicleArray(response?.data ?? response);
+  if (!rows) throw new VehicleInfoError('无法识别车辆列表');
+  const ownerAccountKeys = [
+    'vehicleOwnerAccount', 'ownerAccount', 'ownerAccountNo', 'ownershipAccount',
+    'vehicleOwnerPhone', 'vehicleOwnerPhoneNo', 'vehicleOwnerMobile', 'vehicleOwnerMobileNo',
+    'ownerPhone', 'ownerPhoneNo', 'ownerPhoneNumber', 'ownerMobile', 'ownerMobileNo',
+    'bindAccount', 'bindPhone', 'bindPhoneNo', 'bindMobile',
+  ];
+  const ownerContactKeys = ['account', 'accountNo', 'phoneNumber', 'phoneNo', 'phoneNum', 'mobilePhone', 'mobileNo', 'mobile', 'phone'];
+  const responseOwner = firstText([
+    response?.data?.data?.ownerInfo, response?.data?.data?.vehicleOwner,
+    response?.data?.ownerInfo, response?.data?.vehicleOwner, response?.ownerInfo, response?.vehicleOwner,
+  ], ownerContactKeys) || firstText([
+    response?.data?.data, response?.data, response,
+  ], ownerAccountKeys);
+  const vehicles = rows
+    .filter(item => item && typeof item === 'object')
+    .map(item => {
+      const vin = firstText([item], ['vinNo', 'vin', 'vehicleVin', 'vehicleCode']);
+      const model = firstText([item], ['modelCode', 'vehicleModel', 'model', 'modelName', 'vehicleType']);
+      const label = firstText([item], ['vehicleName', 'name', 'nickName', 'nickname']) || model || vin;
+      const shared = hasFlag(item.sharedFlag ?? item.shareFlag ?? item.isShared ?? item.shared);
+      const shareSource = firstText([item], [
+        'shareNickName', 'shareName', 'sharedBy', 'sharedUserName', 'shareUserName', 'shareUserNickName',
+      ]);
+      const ownerAccount = firstText([
+        item.ownerInfo, item.vehicleOwner, item.bindUser, item.bindUserInfo,
+      ], ownerContactKeys) || firstText([item], ownerAccountKeys) || responseOwner;
+      return { vin, model, label, ownerAccount, shared, shareSource, source: item };
+    })
+    .filter(item => item.vin);
+  if (rows.length && !vehicles.length) throw new VehicleInfoError('车辆列表缺少车辆标识');
+  return vehicles;
+}
+
+function parseWifiParams(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return new Map();
+
+  let query = raw;
+  if (raw.includes('?')) {
+    try {
+      query = new URL(raw, 'https://local.invalid').search.slice(1);
+    } catch {
+      query = raw.slice(raw.indexOf('?') + 1);
+    }
+  } else {
+    query = raw.replace(/^\?/, '');
+  }
+
+  return new Map([...new URLSearchParams(query.split('#', 1)[0]).entries()]
+    .map(([key, item]) => [key.toLowerCase(), item.trim()]));
+}
+
+function parseWifiAddress(value) {
+  const params = parseWifiParams(value);
+  return Object.fromEntries(params);
+}
+
+function param(params, names) {
+  for (const name of names) {
+    const value = params.get(name.toLowerCase());
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function base64(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function utf8Base64(value) {
+  return base64(new TextEncoder().encode(value));
+}
+
+function hexBase64(value) {
+  const hex = String(value || '').trim().replace(/^0x/i, '');
+  if (!hex || hex.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(hex)) {
+    throw new VehicleInfoError('车辆连接资料格式不正确，暂时无法导出。');
+  }
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return base64(bytes);
+}
+
+function decodedLength(value) {
+  try {
+    return atob(value).length;
+  } catch {
+    return -1;
+  }
+}
+
+function requireText(value, label, trim = true) {
+  if (typeof value !== 'string' || !value.trim()) throw new VehicleInfoError(`缺少${label}，暂时无法导出。`);
+  return trim ? value.trim() : value;
+}
+
+function validate(info) {
+  if (!/^[a-z0-9][a-z0-9 +._-]{0,47}$/.test(info.model)) {
+    throw new VehicleInfoError('车型标识不符合导入格式');
+  }
+  if (!Number.isInteger(info.version) || info.version < 1 || info.version > 999999) {
+    throw new VehicleInfoError('版本号不符合导入格式');
+  }
+  const material = info.material;
+  if (!/^(?:[a-f0-9]{2}:){5}[a-f0-9]{2}$/i.test(material.bluetoothAddress)
+      || !/^(?:[a-f0-9]{2}:){5}[a-f0-9]{2}$/i.test(material.hmiAddress)) {
+    throw new VehicleInfoError('车辆蓝牙地址不完整');
+  }
+  if (decodedLength(material.token) !== 64 || decodedLength(material.key) !== 32 || decodedLength(material.iv) !== 16) {
+    throw new VehicleInfoError('车辆认证材料长度不符合导入格式');
+  }
+  if (!/^ZEEHO[A-Za-z0-9_-]{1,59}$/.test(material.name) || material.name.length > 32 || material.name !== material.ssid) {
+    throw new VehicleInfoError('Wi-Fi 名称不符合导入格式');
+  }
+  if (material.pwd.length < 8 || material.pwd.length > 63 || material.pwd.includes('\u0000')
+      || !/^\d{1,10}$/.test(material.modelid) || material.action !== '9') {
+    throw new VehicleInfoError('Wi-Fi 投屏参数不完整');
+  }
+  if (info.capabilities.length < 1 || info.capabilities.length > 2
+      || new Set(info.capabilities).size !== info.capabilities.length
+      || info.capabilities.some(value => !['ble', 'screen_cast'].includes(value))) {
+    throw new VehicleInfoError('车辆能力字段不符合导入格式');
+  }
+}
+
+function buildVehicleInfo(selectedVehicle, detail) {
+  const sources = objectCandidates(detail);
+  // 官方车辆详情将认证资料放在 encryptInfo 内，与 wifiAddress 分开下发。
+  const encryptionSources = sources.flatMap(source => [source.encryptInfo, source]);
+  const selected = selectedVehicle?.source ? [selectedVehicle.source, selectedVehicle] : [selectedVehicle];
+  const model = firstText(sources, ['modelCode', 'vehicleModel', 'model', 'modelName', 'vehicleType'])
+    || firstText(selected, ['modelCode', 'vehicleModel', 'model', 'modelName', 'vehicleType']);
+  const wifiAddress = firstText(sources, ['wifiAddress']);
+  const params = parseWifiParams(wifiAddress);
+
+  const bluetoothAddress = firstText(sources, ['bluetoothAddress', 'bluetoothMacAddress', 'bluetoothMac', 'bleAddress', 'bleMac', 'macAddress']);
+  const hmiAddress = firstText(sources, ['hmiBluetoothAddress', 'hmiAddress', 'hmiMacAddress', 'hmiMac', 'displayAddress']);
+  const encryptValue = firstText(encryptionSources, ['encryptValue', 'bleEncryptValue']);
+
+  const name = param(params, ['name', 'wifiName', 'deviceName']);
+  const ssid = param(params, ['ssid', 'wifiSsid']) || name;
+  const material = {
+    bluetoothAddress: requireText(bluetoothAddress, '车辆蓝牙信息'),
+    hmiAddress: requireText(hmiAddress, '仪表蓝牙信息'),
+    token: hexBase64(requireText(encryptValue, '车辆连接资料')),
+    // key/iv 是原始 UTF-8 文本；即使看起来像十六进制，也不解码或裁剪。
+    key: utf8Base64(requireText(firstText(encryptionSources, ['key'], false), '车辆连接资料', false)),
+    iv: utf8Base64(requireText(firstText(encryptionSources, ['iv'], false), '车辆连接资料', false)),
+    name: requireText(name, '投屏连接信息'),
+    ssid: requireText(ssid, '投屏连接信息'),
+    pwd: requireText(param(params, ['pwd', 'password', 'wifiPassword']), '投屏连接信息'),
+    modelid: requireText(param(params, ['modelid', 'modelId']), '投屏连接信息'),
+    action: requireText(param(params, ['action']), '投屏连接信息'),
+  };
+
+  const info = {
+    model: requireText(model, '车型信息').toLowerCase(),
+    version: 1,
+    capabilities: ['ble', 'screen_cast'],
+    material,
+  };
+  validate(info);
+  if (Object.keys(material).length !== MATERIAL_FIELDS.length) throw new VehicleInfoError('车辆信息不完整');
+  return info;
+}
+
+function maskedVehicleInfo(info) {
+  const maskAddress = value => `**:**:**:**:${value.slice(-5)}`;
+  return {
+    model: info.model,
+    version: info.version,
+    capabilities: [...info.capabilities],
+    material: {
+      bluetoothAddress: maskAddress(info.material.bluetoothAddress),
+      hmiAddress: maskAddress(info.material.hmiAddress),
+      token: '已隐藏（64 bytes）',
+      key: '已隐藏（32 bytes）',
+      iv: '已隐藏（16 bytes）',
+      name: info.material.name,
+      ssid: info.material.ssid,
+      pwd: '已隐藏',
+      modelid: info.material.modelid,
+      action: info.material.action,
+    },
+  };
+}
+
+async function serializeVehicleInfo(info) {
+  validate(info);
+  return encodeVehicleInfoCode(info);
+}
+
+function installLoginBridge() {
+  function createMemoryStorage() {
+    const values = new Map();
+    return {
+      get length() { return values.size; },
+      key(index) { return [...values.keys()][index] ?? null; },
+      getItem(key) {
+        const value = values.get(String(key));
+        return value === undefined ? null : value;
+      },
+      setItem(key, value) { values.set(String(key), String(value)); },
+      removeItem(key) { values.delete(String(key)); },
+      clear() { values.clear(); },
+    };
+  }
+
+  const localStorage = createMemoryStorage();
+  const sessionStorage = createMemoryStorage();
+  let memoryOnly = false;
+  try {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: false,
+      enumerable: true,
+      get: () => localStorage,
+    });
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: false,
+      enumerable: true,
+      get: () => sessionStorage,
+    });
+    memoryOnly = window.localStorage === localStorage;
+  } catch {}
+
+  const allowedApiPath = path =>
+    path.startsWith('/v1.0/mine/cfmotoservermine/authCode/')
+    || path === '/v1.0/mine/cfmotoservermine/user/loginByPhone'
+    || path === '/v1.0/app/cfmotoserverapp/vehicle/list'
+    || path.startsWith('/v1.0/app/cfmotoserverapp/vehicleHomePageV2/');
+  const allowedRequest = url => memoryOnly
+    && url.origin === 'https://tapi.zeehoev.com'
+    && allowedApiPath(url.pathname);
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    let url;
+    try {
+      url = new URL(typeof input === 'string' ? input : input.url, location.href);
+    } catch {
+      return Promise.reject(new TypeError('blocked_request'));
+    }
+    if (!allowedRequest(url)) return Promise.reject(new TypeError('blocked_request'));
+    return realFetch(input, init);
+  };
+
+  const realXhrOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url, ...args) {
+    let parsed;
+    try {
+      parsed = new URL(url, location.href);
+    } catch {
+      throw new DOMException('blocked_request', 'SecurityError');
+    }
+    if (!allowedRequest(parsed)) throw new DOMException('blocked_request', 'SecurityError');
+    return realXhrOpen.call(this, method, url, ...args);
+  };
+
+  try { navigator.sendBeacon = () => false; } catch {}
+  for (const level of ['log', 'debug', 'info', 'warn', 'error']) {
+    try { console[level] = () => {}; } catch {}
+  }
+  try {
+    if (navigator.serviceWorker?.register) {
+      navigator.serviceWorker.register = () => Promise.reject(new Error('disabled_in_vehicle_info'));
+    }
+  } catch {}
+
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body { width: 100% !important; height: 100% !important; min-height: 100% !important; margin: 0 !important; overflow: hidden !important; background: #f4f4f4 !important; }
+    .stage { display: flex !important; width: 100% !important; height: 100% !important; min-height: 100% !important; padding: 0 !important; align-items: stretch !important; justify-content: center !important; background: transparent !important; }
+    .phone { position: relative !important; width: 100% !important; height: 100% !important; max-width: 700px !important; max-height: none !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; transform: none !important; }
+    #phone > :not(.sheet) { display: none !important; }
+    #phone > .sheet { position: relative !important; inset: auto !important; display: flex !important; flex-direction: column !important; width: 100% !important; height: 100% !important; max-height: 100% !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; transform: none !important; background: #fff !important; }
+    .sheet-head { flex: 0 0 auto !important; }
+    .sheet-head [data-close] { display: none !important; }
+    .sheet-body { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; padding-bottom: 22px !important; }
+    .sheet-body > .lg-sec:first-child + .note:not(.bad) { display: none !important; }
+  `;
+  document.head.append(style);
+  Object.defineProperty(window, '__vehicleInfoMemoryOnly', { value: memoryOnly });
+}
+
+const byId = id => document.getElementById(id);
+const LOGIN_THEME_CSS = `
+  html, body { background: #f4f4f4 !important; }
+  .sheet, .sheet-head, .sheet-body { color: #1c1c1e !important; }
+  .grab, .sheet-head, .sheet-body > .lg-sec:first-child,
+  .sheet-body > .lg-sec ~ .lg-sec, .sheet-body > .lg-sec ~ .lg-sec ~ * { display: none !important; }
+  .sheet .lg-sec, .sheet a { color: #007aff !important; }
+  .sheet button { border-radius: 999px !important; transition: transform .15s ease !important; }
+  .sheet button:active { transform: scale(.97) !important; }
+  .sheet .btn:not(.text), .sheet [data-act="sendcode"] {
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    height: 58px !important; min-height: 58px !important; padding: 0 20px !important;
+    border: 0 !important; border-radius: 999px !important; background: #007aff !important;
+    color: #fff !important; font: 600 16px/1.2 system-ui, -apple-system, sans-serif !important;
+    box-shadow: none !important;
+  }
+  .sheet .btn.text { min-height: 40px !important; padding: 0 12px !important; border: 0 !important; background: transparent !important; color: #007aff !important; font: 600 14px/1.2 system-ui, -apple-system, sans-serif !important; box-shadow: none !important; }
+  .sheet .field input { box-sizing: border-box !important; color-scheme: light !important; min-width: 0 !important; height: 48px !important; min-height: 48px !important; margin: 0 !important; padding: 0 20px !important; border: 0 !important; border-radius: 999px !important; background: #f2f2f7 !important; color: #1c1c1e !important; font: 400 16px/1.4 system-ui, sans-serif !important; outline: none !important; box-shadow: none !important; }
+  .sheet .field input::placeholder { color: #8e8e93 !important; opacity: 1 !important; }
+  .sheet .field input:focus-visible { outline: 2px solid #007aff !important; outline-offset: 3px !important; }
+`;
+const state = {
+  framePoll: 0,
+  loginObserver: null,
+  exportInfo: null,
+  exportText: '',
+  vehicles: [],
+  loadingList: false,
+  currentPage: 'intro',
+  loggedIn: false,
+  loginReady: false,
+};
+
+const statusDot = byId('status-dot');
+const statusText = byId('status-text');
+const pageTitle = byId('page-title');
+const backStep = byId('back-step');
+const introPage = byId('intro-page');
+const loginPage = byId('login-page');
+const loginFrame = byId('login-frame');
+const vehicleSection = byId('vehicle-section');
+const resultSection = byId('result-section');
+const vehicleSelect = byId('vehicle-select');
+const vehicleOptions = byId('vehicle-options');
+
+function setStatus(step, message, stateName = 'idle') {
+  statusText.textContent = step ? `第 ${step} / 3 步 · ${message}` : message;
+  statusDot.dataset.state = stateName;
+}
+
+function showPage(name) {
+  state.currentPage = name;
+  introPage.hidden = name !== 'intro';
+  loginPage.hidden = name !== 'login';
+  vehicleSection.hidden = name !== 'vehicle';
+  resultSection.hidden = name !== 'result';
+  backStep.hidden = name === 'intro';
+  byId('page-nav').hidden = name === 'intro' && !state.loggedIn;
+
+  const page = {
+    intro: ['车辆信息', 0, '操作说明'],
+    login: ['手机号登录', 1, state.loggedIn ? '手机号已登录' : '手机号登录'],
+    vehicle: ['选择车辆', 2, state.vehicles.length ? '选择车辆并获取信息' : '正在读取车辆列表'],
+    result: ['投屏资料', 3, '复制信息'],
+  }[name];
+  [pageTitle.textContent, state.currentStep, state.currentStatus] = page;
+  const pageState = name === 'result' || (name === 'vehicle' && state.vehicles.length) || (name === 'login' && state.loggedIn) ? 'ready' : 'idle';
+  setStatus(state.currentStep, state.currentStatus, pageState);
+
+  if (name !== 'login' && !state.loggedIn) {
+    clearInterval(state.framePoll);
+    state.framePoll = 0;
+  }
+  if (name === 'intro') {
+    byId('start-login').disabled = false;
+    byId('login-warning').hidden = state.loggedIn;
+    byId('start-login').textContent = state.loggedIn ? '继续' : '手机号登录';
+  }
+}
+
+function setMessage(id, message = '', stateName = '') {
+  const element = byId(id);
+  element.textContent = message;
+  element.dataset.state = stateName;
+}
+
+function clearExport() {
+  state.exportInfo = null;
+  state.exportText = '';
+  resultSection.hidden = true;
+  byId('masked-preview').textContent = '';
+  setMessage('export-message');
+}
+
+function ensureLoginSheet() {
+  const frameWindow = loginFrame.contentWindow;
+  const document = frameWindow?.document;
+  if (!document?.body) return;
+
+  if (!document.getElementById('vehicle-info-login-theme')) {
+    const style = document.createElement('style');
+    style.id = 'vehicle-info-login-theme';
+    style.textContent = LOGIN_THEME_CSS;
+    document.head.append(style);
+  }
+
+  const debugButton = document.querySelector('[data-act="debug"]');
+  const currentSheet = document.querySelector('.sheet.show') || document.querySelector('.sheet');
+  const currentTitle = currentSheet?.querySelector('.sheet-title')?.textContent || '';
+  if (!currentSheet || !/数据与调试|手机号登录/.test(currentTitle)) debugButton?.click();
+
+  updateLoginSheet(document);
+  if (!state.loginObserver) {
+    // 获取图形验证码、发送短信及登录失败都会重建表单。
+    state.loginObserver = new MutationObserver(() => updateLoginSheet(document));
+    state.loginObserver.observe(document.body, { childList: true, subtree: true });
+  }
+}
+
+function updateLoginSheet(document) {
+  const sheet = document.querySelector('.sheet.show') || document.querySelector('.sheet');
+  const body = sheet?.querySelector('.sheet-body');
+  const phoneInput = body?.querySelector('#phoneInput');
+  if (!phoneInput) return;
+  const title = sheet.querySelector('.sheet-title');
+  if (title && title.textContent !== '手机号登录') title.textContent = '手机号登录';
+  phoneInput.setAttribute('aria-label', '手机号');
+  phoneInput.setAttribute('autocomplete', 'tel');
+  phoneInput.setAttribute('inputmode', 'numeric');
+  const tokenSection = [...body.children].filter(child => child.classList.contains('lg-sec'))[1];
+  for (let sibling = tokenSection; sibling;) {
+    const next = sibling.nextElementSibling;
+    sibling.remove();
+    sibling = next;
+  }
+}
+
+function disconnectLoginObserver() {
+  state.loginObserver?.disconnect();
+  state.loginObserver = null;
+}
+
+function currentApi() {
+  const api = loginFrame.contentWindow?.API;
+  if (!api?.call || !loginFrame.contentWindow?.__vehicleInfoMemoryOnly) return null;
+  return api;
+}
+
+async function startLogin() {
+  showPage('login');
+  if (state.loggedIn) {
+    loginFrame.hidden = true;
+    byId('login-complete').hidden = false;
+    byId('start-login').disabled = false;
+    return;
+  }
+
+  byId('login-complete').hidden = true;
+  setStatus(1, '正在准备手机号登录', 'working');
+  setMessage('login-message', '');
+  setMessage('frame-message', '正在载入登录页面');
+
+  try {
+    loginFrame.hidden = false;
+    if (state.loginReady && currentApi()) {
+      setStatus(1, '等待手机号登录', 'working');
+      watchForLogin();
+      return;
+    }
+    if (!loginFrame.hasAttribute('srcdoc')) {
+      const loginUrl = new URL('./index.html', location.href);
+      const response = await fetch(loginUrl, {
+        cache: 'no-cache', credentials: 'omit', signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error('login_page_unavailable');
+      const source = await response.text();
+      if (state.currentPage !== 'login') return;
+      // Install the memory-only bridge before any dashboard script runs.
+      // This keeps the existing dashboard and its saved account untouched.
+      const loginDocument = new DOMParser().parseFromString(source, 'text/html');
+      const bridge = loginDocument.createElement('script');
+      bridge.textContent = '(' + installLoginBridge.toString() + ')();';
+      loginDocument.head.prepend(bridge);
+      const base = loginDocument.createElement('base');
+      base.href = loginUrl.href;
+      loginDocument.head.prepend(base);
+      loginFrame.addEventListener('load', handleFrameLoad, { once: true });
+      loginFrame.srcdoc = '<!doctype html>\n' + loginDocument.documentElement.outerHTML;
+    } else if (loginFrame.contentDocument?.readyState === 'complete') {
+      handleFrameLoad();
+    }
+  } catch {
+    setStatus(1, '登录页面载入失败', 'error');
+    setMessage('login-message', '暂时无法打开登录页面，请刷新后重试。', 'error');
+    byId('start-login').disabled = false;
+  }
+}
+
+function handleFrameLoad() {
+  loginFrame.addEventListener('load', handleFrameLoad, { once: true });
+  clearInterval(state.framePoll);
+  disconnectLoginObserver();
+  if (state.currentPage !== 'login') return;
+  let attempts = 0;
+  state.framePoll = window.setInterval(() => {
+    attempts += 1;
+    try {
+      ensureLoginSheet();
+      const api = currentApi();
+      if (!loginFrame.contentWindow?.__vehicleInfoMemoryOnly) {
+        clearInterval(state.framePoll);
+        setStatus(1, '当前浏览器无法安全登录', 'error');
+        setMessage('frame-message', '当前浏览器无法保护本次登录信息，请换一个浏览器后重试。', 'error');
+        byId('start-login').disabled = false;
+        return;
+      }
+      const loginDocument = loginFrame.contentDocument;
+      const loginPanel = loginDocument?.querySelector('.sheet.show') || loginDocument?.querySelector('.sheet');
+      const loginPanelReady = Boolean(loginPanel?.querySelector('#phoneInput') && loginPanel.querySelector('[data-act="sendcode"]'));
+      if (api && loginPanelReady) {
+        clearInterval(state.framePoll);
+        state.loginReady = true;
+        installRawResponseSanitizer(api);
+        byId('start-login').disabled = false;
+        setStatus(1, '等待手机号登录', 'working');
+        setMessage('frame-message', '');
+        watchForLogin();
+        return;
+      }
+      if (attempts > 40) {
+        clearInterval(state.framePoll);
+        setStatus(1, '登录页面暂时无法打开', 'error');
+        setMessage('frame-message', '请重新载入登录页面。', 'error');
+        byId('start-login').disabled = false;
+      }
+    } catch {
+      clearInterval(state.framePoll);
+      setStatus(1, '登录页面打开失败', 'error');
+      setMessage('frame-message', '请重新载入登录页面。', 'error');
+      byId('start-login').disabled = false;
+    }
+  }, 250);
+}
+
+function installRawResponseSanitizer(api) {
+  if (api.__vehicleInfoSanitizerInstalled) return;
+  const finish = api.finish;
+  if (typeof finish !== 'function') return;
+  api.finish = function (id, ...args) {
+    const result = finish.call(this, id, ...args);
+    if (result && typeof result === 'object') result.raw = null;
+    if (this.lastRaw && typeof this.lastRaw === 'object') {
+      this.lastRaw[id] = { ok: Boolean(result?.ok) };
+    }
+    return result;
+  };
+  api.lastRaw = {};
+  Object.defineProperty(api, '__vehicleInfoSanitizerInstalled', { value: true });
+}
+
+function watchForLogin() {
+  const check = () => {
+    const api = currentApi();
+    if (!api || !String(api.token || '').trim()) return;
+    state.loggedIn = true;
+    clearInterval(state.framePoll);
+    disconnectLoginObserver();
+    api.source = 'direct';
+    installRawResponseSanitizer(api);
+    loginFrame.hidden = true;
+    byId('login-complete').hidden = false;
+    byId('clear-session').hidden = false;
+    byId('start-login').disabled = false;
+    showPage('vehicle');
+    setStatus(2, '已登录，正在读取车辆列表', 'working');
+    void loadVehicles();
+  };
+  state.framePoll = window.setInterval(check, 500);
+}
+
+function safeClearRuntimeResponse(api, response) {
+  if (response && typeof response === 'object') {
+    response.raw = null;
+    response.data = null;
+  }
+  if (api?.lastRaw && typeof api.lastRaw === 'object') api.lastRaw = {};
+}
+
+async function apiCall(id, body = {}) {
+  const api = currentApi();
+  if (!api || !String(api.token || '').trim()) throw new Error('session_unavailable');
+  // 原项目的浏览器请求模式是 direct；app 是接口标签，不是数据模式。
+  api.source = 'direct';
+  installRawResponseSanitizer(api);
+  let response;
+  try {
+    response = await api.call(id, body);
+    if (response?.source !== 'direct') throw new Error('unexpected_data_source');
+    if (!response?.ok) {
+      const isNetworkFailure = /fetch|network|cors|timeout|请求失败|网络|跨域/i.test(String(response?.message || ''));
+      throw new Error(isNetworkFailure ? 'cors_or_network' : 'api_failed');
+    }
+    const data = response.data;
+    safeClearRuntimeResponse(api, response);
+    return data;
+  } catch (error) {
+    safeClearRuntimeResponse(api, response);
+    if (error instanceof TypeError) throw new Error('cors_or_network');
+    throw error;
+  }
+}
+
+function fillVehicleSelect(emptyMessage = '没有已绑定车辆') {
+  vehicleSelect.replaceChildren();
+  vehicleOptions.replaceChildren();
+  if (!state.vehicles.length) {
+    vehicleSelect.add(new Option(emptyMessage, ''));
+    vehicleSelect.disabled = true;
+    byId('read-vehicle').disabled = true;
+    const empty = document.createElement('p');
+    empty.className = 'vehicle-options__empty';
+    empty.textContent = emptyMessage;
+    vehicleOptions.append(empty);
+    return;
+  }
+
+  vehicleSelect.add(new Option('选择车辆', ''));
+  vehicleSelect.disabled = false;
+  for (const [index, vehicle] of state.vehicles.entries()) {
+    vehicleSelect.add(new Option(vehicle.label, String(index)));
+    const card = document.createElement('label');
+    card.className = 'vehicle-option';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'bound-vehicle';
+    radio.value = String(index);
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      vehicleSelect.value = String(index);
+      vehicleOptions.querySelectorAll('.vehicle-option').forEach(item => {
+        item.classList.toggle('is-selected', item.querySelector('input')?.checked === true);
+      });
+      byId('read-vehicle').disabled = false;
+      vehicleSelect.dispatchEvent(new Event('change'));
+    });
+    const content = document.createElement('span');
+    content.className = 'vehicle-option__content';
+    const heading = document.createElement('span');
+    heading.className = 'vehicle-option__heading';
+    const title = document.createElement('span');
+    title.className = 'vehicle-option__title';
+    title.textContent = vehicle.label || vehicle.model || '未命名车辆';
+    heading.append(title);
+    const model = document.createElement('span');
+    model.className = 'vehicle-option__model';
+    model.textContent = [vehicle.model, vehicle.shared && vehicle.shareSource ? `共享（${vehicle.shareSource}）` : '']
+      .filter(Boolean)
+      .join(' · ');
+    content.append(heading, model);
+    card.append(radio, content);
+    vehicleOptions.append(card);
+  }
+  byId('read-vehicle').disabled = true;
+}
+
+async function loadVehicles() {
+  if (state.loadingList) return;
+  state.loadingList = true;
+  clearExport();
+  vehicleSelect.disabled = true;
+  byId('read-vehicle').disabled = true;
+  vehicleSelect.replaceChildren(new Option('正在读取车辆列表', ''));
+  vehicleOptions.replaceChildren();
+  const loading = document.createElement('p');
+  loading.className = 'vehicle-options__empty';
+  loading.textContent = '正在读取车辆列表';
+  vehicleOptions.append(loading);
+  setMessage('vehicle-message', '');
+  setStatus(2, '正在读取车辆列表', 'working');
+  try {
+    const data = await apiCall('vehicle_list');
+    state.vehicles = normalizeVehicleList(data);
+    fillVehicleSelect();
+    if (state.currentPage === 'vehicle') setStatus(2, state.vehicles.length ? '选择车辆并获取信息' : '账号下没有已绑定车辆', 'ready');
+    setMessage('vehicle-message', state.vehicles.length ? `已找到 ${state.vehicles.length} 台车辆` : '账号下没有已绑定车辆', state.vehicles.length ? 'success' : '');
+  } catch (error) {
+    state.vehicles = [];
+    fillVehicleSelect('车辆列表读取失败');
+    if (state.currentPage === 'vehicle') setStatus(2, '读取车辆列表失败', 'error');
+    setMessage('vehicle-message', error.message === 'cors_or_network'
+      ? '暂时无法获取车辆信息，请检查网络后重试；仍无法使用时请联系网站维护者。'
+      : '暂时无法获取车辆信息，请点击“清除本页信息”后重新登录。', 'error');
+  } finally {
+    state.loadingList = false;
+  }
+}
+
+async function readVehicle() {
+  const selected = vehicleSelect.value === '' ? null : state.vehicles[Number(vehicleSelect.value)];
+  if (!selected?.vin) {
+    setMessage('vehicle-message', '请先选择车辆');
+    return;
+  }
+
+  clearExport();
+  byId('read-vehicle').disabled = true;
+  vehicleSelect.disabled = true;
+  vehicleOptions.querySelectorAll('input').forEach(input => { input.disabled = true; });
+  setStatus(2, '正在读取车辆信息', 'working');
+  setMessage('vehicle-message', '');
+  try {
+    const detail = await apiCall('vehicle_home', { vin: selected.vin });
+    const info = buildVehicleInfo(selected, detail || {});
+    const code = await serializeVehicleInfo(info);
+    state.exportInfo = info;
+    state.exportText = code;
+    byId('masked-preview').textContent = code;
+    showPage('result');
+    setStatus(3, '复制信息', 'ready');
+    setMessage('vehicle-message', '车辆信息已准备好，可以导入投屏 App。', 'success');
+  } catch (error) {
+    const incomplete = error instanceof VehicleInfoError;
+    setStatus(2, incomplete ? '车辆信息不完整' : '读取车辆信息失败', 'error');
+    const message = incomplete
+      ? `${error.message} 请重试读取；仍然失败时，请在极核 App 中确认该车辆的信息是否可用。`
+      : error.message === 'cors_or_network'
+        ? '暂时无法读取车辆信息，请检查网络后重试。'
+        : '暂时无法读取车辆信息，请稍后重试；仍然失败时请重新登录。';
+    setMessage('vehicle-message', message, 'error');
+  } finally {
+    byId('read-vehicle').disabled = false;
+    vehicleSelect.disabled = false;
+    vehicleOptions.querySelectorAll('input').forEach(input => { input.disabled = false; });
+  }
+}
+
+async function copyJson() {
+  if (!state.exportText) return;
+  try {
+    await navigator.clipboard.writeText(state.exportText);
+    setMessage('export-message', '复制成功', 'success');
+  } catch {
+    setMessage('export-message', '复制失败，请重试。', 'error');
+  }
+}
+
+function clearSession() {
+  clearInterval(state.framePoll);
+  disconnectLoginObserver();
+  state.framePoll = 0;
+  state.vehicles = [];
+  state.loadingList = false;
+  vehicleSelect.replaceChildren();
+  vehicleSelect.disabled = true;
+  vehicleOptions.replaceChildren();
+  byId('read-vehicle').disabled = true;
+  state.loggedIn = false;
+  state.loginReady = false;
+  clearExport();
+  loginFrame.removeEventListener('load', handleFrameLoad);
+  loginFrame.removeAttribute('srcdoc');
+  loginFrame.removeAttribute('src');
+  loginFrame.hidden = true;
+  byId('clear-session').hidden = true;
+  byId('login-complete').hidden = true;
+  byId('start-login').disabled = false;
+  setMessage('login-message');
+  setMessage('frame-message');
+  setMessage('vehicle-message');
+  showPage('intro');
+}
+
+byId('start-login').addEventListener('click', () => { void startLogin(); });
+byId('back-step').addEventListener('click', () => {
+  const previousPage = { login: 'intro', vehicle: 'login', result: 'vehicle' }[state.currentPage];
+  if (previousPage) showPage(previousPage);
+});
+byId('continue-vehicles').addEventListener('click', () => showPage('vehicle'));
+byId('refresh-vehicles').addEventListener('click', () => { void loadVehicles(); });
+byId('read-vehicle').addEventListener('click', () => { void readVehicle(); });
+byId('copy-json').addEventListener('click', () => { void copyJson(); });
+byId('clear-session').addEventListener('click', clearSession);
+vehicleSelect.addEventListener('change', () => {
+  clearExport();
+  showPage('vehicle');
+  setStatus(2, '选择车辆并获取信息', 'ready');
+});
+window.addEventListener('pagehide', () => {
+  clearInterval(state.framePoll);
+  disconnectLoginObserver();
+  state.exportInfo = null;
+  state.exportText = '';
+  state.vehicles = [];
+});
+
+showPage('intro');
+  </script>
+</body>
+</html>
