@@ -27,10 +27,12 @@ final class Notify {
     static final int ID_TASK = 1005;
     static final int ID_ACTION = 1006;
     static final int ID_AUTH = 1007;
+    static final int ID_STOP = 1008;
 
     static final String CH_SERVICE = "service";
     static final String CH_MSG = "messages";
     static final String CH_CHARGE = "charging";
+    static final String CH_CHARGE_EVENT = "charge_events";
     static final String CH_TASK = "tasks";
     static final String CH_ACTION = "actions";
 
@@ -47,6 +49,8 @@ final class Notify {
             c.getString(R.string.channel_messages_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
         channel(nm, CH_CHARGE, c.getString(R.string.channel_charging),
             c.getString(R.string.channel_charging_desc), NotificationManager.IMPORTANCE_LOW, true);
+        channel(nm, CH_CHARGE_EVENT, c.getString(R.string.channel_charge_events),
+            c.getString(R.string.channel_charge_events_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
         channel(nm, CH_TASK, c.getString(R.string.channel_tasks),
             c.getString(R.string.channel_tasks_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
         channel(nm, CH_ACTION, c.getString(R.string.channel_actions),
@@ -59,7 +63,7 @@ final class Notify {
         ch.setDescription(desc);
         if (!sound) ch.setSound(null, null);
         ch.setShowBadge(importance >= NotificationManager.IMPORTANCE_DEFAULT);
-        if (CH_MSG.equals(id) || CH_CHARGE.equals(id)) {
+        if (CH_MSG.equals(id) || CH_CHARGE.equals(id) || CH_CHARGE_EVENT.equals(id)) {
             ch.enableVibration(true);
         }
         nm.createNotificationChannel(ch);
@@ -150,7 +154,7 @@ final class Notify {
 
     static void chargeFull(Context c, NativeStore.Status s) {
         if (!allowed(c)) return;
-        Notification.Builder b = base(c, CH_CHARGE, R.string.notify_charge_full_title, 0)
+        Notification.Builder b = base(c, CH_CHARGE_EVENT, R.string.notify_charge_full_title, 0)
             .setContentTitle(c.getString(R.string.notify_charge_full_title))
             .setContentText(s.soc >= 0
                 ? c.getString(R.string.notify_charge_full_text, s.soc)
@@ -162,15 +166,35 @@ final class Notify {
         notify(c, ID_FULL, b.build());
     }
 
+    /** 充电中途结束（未充满）：和「已充满」分开一条通知，避免用户以为已经充满。 */
+    static void chargeStopped(Context c, NativeStore.Status s) {
+        if (!allowed(c)) return;
+        Notification.Builder b = base(c, CH_CHARGE_EVENT, R.string.notify_charge_stop_title, 0)
+            .setContentTitle(c.getString(R.string.notify_charge_stop_title))
+            .setContentText(s.soc >= 0
+                ? c.getString(R.string.notify_charge_stop_text, s.soc)
+                : c.getString(R.string.notify_charge_stop_text_unknown))
+            .setAutoCancel(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setOnlyAlertOnce(false);
+        notify(c, ID_STOP, b.build());
+    }
+
     static void cancelChargeProgress(Context c) {
         cancel(c, ID_CHARGE);
         cancel(c, ID_START);
+    }
+
+    static void cancelChargeStop(Context c) {
+        cancel(c, ID_STOP);
     }
 
     static void cancelAllCharge(Context c) {
         cancel(c, ID_CHARGE);
         cancel(c, ID_START);
         cancel(c, ID_FULL);
+        cancel(c, ID_STOP);
     }
 
     static void auth(Context c) {

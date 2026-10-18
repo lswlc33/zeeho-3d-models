@@ -23,7 +23,9 @@
     <string name="channel_messages">车辆消息</string>
     <string name="channel_messages_desc">有新的车辆消息时提醒</string>
     <string name="channel_charging">充电状态</string>
-    <string name="channel_charging_desc">开始充电、充电进度与充满提醒</string>
+    <string name="channel_charging_desc">开始充电与实时充电进度</string>
+    <string name="channel_charge_events">充电完成</string>
+    <string name="channel_charge_events_desc">充满或充电中途结束的提醒</string>
     <string name="channel_tasks">自动任务</string>
     <string name="channel_tasks_desc">每日自动任务的执行结果</string>
     <string name="channel_actions">快捷操作</string>
@@ -49,6 +51,9 @@
     <string name="notify_charge_full_title">已充满</string>
     <string name="notify_charge_full_text">当前电量 %1$d%%，可以拔枪了</string>
     <string name="notify_charge_full_text_unknown">可以拔枪了</string>
+    <string name="notify_charge_stop_title">充电已停止</string>
+    <string name="notify_charge_stop_text">当前电量 %1$d%% · 充电器已断开</string>
+    <string name="notify_charge_stop_text_unknown">充电器已断开</string>
 
     <!-- 自动任务 -->
     <string name="notify_task_ok_title">自动任务完成</string>
@@ -83,6 +88,7 @@
     <string name="widget_soc_unknown">--</string>
     <string name="widget_updated">%1$s 更新</string>
     <string name="widget_eta">预计 %1$s 充满</string>
+    <string name="widget_range">续航 %1$d km</string>
     <string name="widget_charged">已充 %1$s</string>
     <string name="widget_refresh">刷新</string>
     <string name="widget_action_unlock">解锁</string>

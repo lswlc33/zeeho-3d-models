@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="18dp"
     android:background="@drawable/widget_card">
 
     <LinearLayout
@@ -20,26 +20,23 @@
             android:singleLine="true"
             android:ellipsize="end"
             android:text="@string/widget_title"
-            android:textColor="@color/widget_text"
-            android:textSize="14sp"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
-            android:id="@+id/w_online"
+            android:id="@+id/w_updated"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/widget_chip"
-            android:paddingStart="9dp"
-            android:paddingEnd="9dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:text="—"
-            android:textColor="@color/widget_muted"
-            android:textSize="9sp" />
+            android:layout_marginStart="6dp"
+            android:singleLine="true"
+            android:text=""
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="8sp" />
         <TextView
             android:id="@+id/w_refresh"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:background="@drawable/widget_btn"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
@@ -47,171 +44,225 @@
             android:paddingBottom="4dp"
             android:text="@string/widget_refresh"
             android:textColor="@color/widget_accent"
-            android:textSize="9sp" />
+            android:textSize="8sp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="bottom"
+        android:layout_marginTop="12dp"
+        android:baselineAligned="false"
         android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_soc"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/widget_soc_unknown"
-            android:textColor="@color/widget_text"
-            android:textSize="42sp"
-            android:textStyle="bold" />
-        <TextView
-            android:id="@+id/w_charge"
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:layout_marginBottom="6dp"
-            android:text="@string/widget_no_data"
-            android:textColor="@color/widget_accent"
-            android:textSize="11sp" />
-    </LinearLayout>
+            android:orientation="vertical">
 
-    <ProgressBar
-        android:id="@+id/w_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="6dp"
-        android:progressBackgroundTint="#22FFFFFF"
-        android:progressTint="@color/widget_accent" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:gravity="bottom"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/w_soc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_soc_unknown"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="44sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginBottom="5dp"
+                    android:text="%"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/w_range"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/w_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="6dp"
+                android:progressBackgroundTint="@color/widget_line"
+                android:progressTint="@color/widget_accent" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/w_charge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="@string/widget_no_data"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/w_power"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="9dp"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/w_time"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/w_lock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/widget_chip"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="9sp" />
+                <TextView
+                    android:id="@+id/w_seat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/widget_chip"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="9sp" />
+</LinearLayout>
+
+            <TextView
+                android:id="@+id/w_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:drawableStart="@drawable/ic_widget_pin"
+                android:drawablePadding="4dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text=""
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/w_car_box"
+            android:layout_width="100dp"
+            android:layout_height="112dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/widget_stage"
+            android:padding="8dp">
+            <ImageView
+                android:id="@+id/w_car"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/widget_title" />
+        </FrameLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_power"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:singleLine="true"
-            android:text=""
-            android:textColor="@color/widget_text"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-        <TextView
-            android:id="@+id/w_time"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.6"
-            android:gravity="end"
-            android:maxLines="2"
-            android:text=""
-            android:textColor="@color/widget_muted"
-            android:textSize="10sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_lock"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/widget_chip"
-            android:gravity="center"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:text="—"
-            android:textColor="@color/widget_text"
-            android:textSize="10sp" />
-        <TextView
-            android:id="@+id/w_seat"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/widget_chip"
-            android:gravity="center"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:text="—"
-            android:textColor="@color/widget_text"
-            android:textSize="10sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="10dp"
-        android:gravity="bottom"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal">
         <TextView
             android:id="@+id/w_btn_unlock"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
+            android:drawableStart="@drawable/ic_widget_unlock"
+            android:drawablePadding="3dp"
             android:gravity="center"
-            android:paddingTop="9dp"
-            android:paddingBottom="9dp"
             android:text="@string/widget_action_unlock"
-            android:textColor="@color/widget_accent"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textColor="@color/widget_text_primary"
+            android:textSize="9sp" />
         <TextView
             android:id="@+id/w_btn_lock"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_height="36dp"
             android:layout_marginStart="7dp"
+            android:layout_weight="1"
             android:background="@drawable/widget_btn"
+            android:drawableStart="@drawable/ic_widget_lock"
+            android:drawablePadding="3dp"
             android:gravity="center"
-            android:paddingTop="9dp"
-            android:paddingBottom="9dp"
             android:text="@string/widget_action_lock"
-            android:textColor="@color/widget_text"
-            android:textSize="10sp" />
+            android:textColor="@color/widget_text_primary"
+            android:textSize="9sp" />
         <TextView
             android:id="@+id/w_btn_horn"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_height="36dp"
             android:layout_marginStart="7dp"
+            android:layout_weight="1"
             android:background="@drawable/widget_btn"
+            android:drawableStart="@drawable/ic_widget_horn"
+            android:drawablePadding="3dp"
             android:gravity="center"
-            android:paddingTop="9dp"
-            android:paddingBottom="9dp"
             android:text="@string/widget_action_horn"
-            android:textColor="@color/widget_text"
-            android:textSize="10sp" />
+            android:textColor="@color/widget_text_primary"
+            android:textSize="9sp" />
         <TextView
             android:id="@+id/w_btn_seat"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_height="36dp"
             android:layout_marginStart="7dp"
+            android:layout_weight="1"
             android:background="@drawable/widget_btn"
+            android:drawableStart="@drawable/ic_widget_seat"
+            android:drawablePadding="3dp"
             android:gravity="center"
-            android:paddingTop="9dp"
-            android:paddingBottom="9dp"
             android:text="@string/widget_action_seat"
-            android:textColor="@color/widget_text"
-            android:textSize="10sp" />
+            android:textColor="@color/widget_text_primary"
+            android:textSize="9sp" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/w_updated"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="7dp"
-        android:singleLine="true"
-        android:text=""
-        android:textColor="@color/widget_muted"
-        android:textSize="8sp" />
 </LinearLayout>

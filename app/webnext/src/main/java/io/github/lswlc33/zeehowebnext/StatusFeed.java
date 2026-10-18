@@ -39,10 +39,22 @@ final class StatusFeed {
         NativeStore.Status s = old.copy();
         s.apply(j);
         if (s.updatedAt <= 0) s.updatedAt = System.currentTimeMillis();
-        NativeStore.saveStatus(c, s);
 
         boolean messages = NativeStore.messagesEnabled(c);
         boolean charging = NativeStore.chargingEnabled(c);
+        boolean widget = WidgetProviders.anyBound(c);
+
+        // 页面同步和后台轮询偶尔会一前一后给出不一致的状态：98% 且有正向电流，页面却报未充电。
+        // 用电流兜一下，避免微件/通知短暂闪成"未充电"。
+        if (s.charge == 0 && s.current > 0 && s.soc >= 0 && s.soc < 100) s.charge = 1;
+
+        // 车机/接口在 100% 时经常还会短暂报 charging=1；只要到 100% 就按"已充满"处理，
+        // 否则进度通知会一直挂着。掉到 100% 且刚断开（old=1）也归到充满，而不是"中途停止"。
+        if (s.soc >= 100) {
+            if (s.charge == 1) s.charge = 2;
+            else if (s.charge == 0 && old.charge == 1) s.charge = 2;
+        }
+        NativeStore.saveStatus(c, s);
 
         if (s.noRead >= 0) {
             if (foreground) {
@@ -75,14 +87,19 @@ final class StatusFeed {
                 if (s.charge == 1 && old.charge != 1) {
                     ChargeLog.startSession(c, NativeStore.vin(c));
                     NativeStore.setFullNotified(c, false);
+                    NativeStore.setStopNotified(c, false);
                 }
                 // 在页面里看到充满、之后退后台时仍补一次"已充满"提醒
-                if (s.charge == 2 && old.charge != 2) NativeStore.setFullNotified(c, false);
+                if (s.charge == 2 && old.charge != 2) {
+                    NativeStore.setFullNotified(c, false);
+                    NativeStore.setStopNotified(c, false);
+                }
             }
         } else if (!charging) {
             Notify.cancelChargeProgress(c);
         } else if (s.charge == 2) {
             Notify.cancelChargeProgress(c);
+            Notify.cancelChargeStop(c);
             if (!NativeStore.fullNotified(c)) {
                 Notify.chargeFull(c, s);
                 NativeStore.setFullNotified(c, true);
@@ -91,15 +108,25 @@ final class StatusFeed {
             NativeStore.setFullNotified(c, false);
             if (old.charge != 1) {
                 Notify.cancelAllCharge(c);
-                Notify.chargeStart(c, s);
+                NativeStore.setStopNotified(c, false);
+                // 桌面已经挂着微件时，充满/停止事件仍提醒，但不再重复一条持续性的进度通知。
+                if (!widget) Notify.chargeStart(c, s);
                 ChargeLog.startSession(c, NativeStore.vin(c));
             }
-            Notify.chargeProgress(c, s);
+            if (widget) Notify.cancelChargeProgress(c);
+            else Notify.chargeProgress(c, s);
             ChargeLog.append(c, NativeStore.vin(c), s.soc, s.voltage, s.current, s.chargedMin);
         } else if (old.charge == 1) {
-            // 结束充电：收掉进度；已经弹过的"已充满"保留给用户看
+            // 未充满就断开：和「已充满」分开一条通知；已经提示过充满就不再补"停止"。
             Notify.cancelChargeProgress(c);
+            if (!NativeStore.fullNotified(c) && !NativeStore.stopNotified(c)) {
+                Notify.chargeStopped(c, s);
+                NativeStore.setStopNotified(c, true);
+            }
             NativeStore.setFullNotified(c, false);
+        } else {
+            // 服务重启/旧进度通知残留：非充电状态下无条件收掉进度条。
+            Notify.cancelChargeProgress(c);
         }
 
         WidgetProviders.updateAll(c);
@@ -111,6 +138,8 @@ final class StatusFeed {
      */
     static synchronized void reconcileBackground(Context c) {
         NativeStore.Status s = NativeStore.status(c);
+        boolean widget = WidgetProviders.anyBound(c);
+        if (s.soc >= 100 && s.charge == 1) s.charge = 2;
         if (s.noRead > 0 && NativeStore.messagesEnabled(c)) {
             int seen = NativeStore.seenNoRead(c);
             String notified = NativeStore.notifiedMsgId(c);
@@ -120,7 +149,8 @@ final class StatusFeed {
             }
         }
         if (NativeStore.chargingEnabled(c) && s.charge == 1) {
-            Notify.chargeProgress(c, s);
+            if (widget) Notify.cancelChargeProgress(c);
+            else Notify.chargeProgress(c, s);
         } else if (NativeStore.chargingEnabled(c) && s.charge == 2) {
             if (!NativeStore.fullNotified(c)) {
                 Notify.chargeFull(c, s);

@@ -13,11 +13,22 @@
     <color name="brand_blue">#FF2F7BF6</color>
     <color name="ic_launcher_background">#FF0A0A0C</color>
 
-    <!-- 小组件 / 通知的品牌色（与图标蓝一致） -->
-    <color name="widget_bg">#FF0F1116</color>
-    <color name="widget_btn">#FF1B1E24</color>
-    <color name="widget_text">#FFF5F5F7</color>
-    <color name="widget_muted">#FF9AA0A6</color>
+    <!-- 小组件语义色：浅色模式。深色覆盖在 values-night/colors.xml -->
+    <color name="widget_card_bg">#FFF6F8FD</color>
+    <color name="widget_text_primary">#FF131720</color>
+    <color name="widget_text_secondary">#FF5F6B7A</color>
+    <color name="widget_chip_bg">#FFFFFFFF</color>
+    <color name="widget_action_bg">#FFFFFFFF</color>
+    <color name="widget_stage_bg">#FFE7EDF8</color>
+    <color name="widget_line">#FFE2E8F2</color>
+    <color name="widget_icon">#FF2F7BF6</color>
     <color name="widget_accent">#FF2F7BF6</color>
-    <color name="widget_good">#FF8CE99A</color>
+    <color name="widget_good">#FF0E8A5F</color>
+    <color name="widget_warn">#FFC2410C</color>
+
+    <!-- 兼容旧布局/旧代码里的名字 -->
+    <color name="widget_bg">#FFF6F8FD</color>
+    <color name="widget_btn">#FFFFFFFF</color>
+    <color name="widget_text">#FF131720</color>
+    <color name="widget_muted">#FF5F6B7A</color>
 </resources>

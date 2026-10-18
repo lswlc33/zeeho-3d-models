@@ -33,6 +33,8 @@ final class NativeStore {
     private static final String K_LOCK = "lock";
     private static final String K_SEAT = "seat";
     private static final String K_ONLINE = "online";
+    private static final String K_RANGE = "range";
+    private static final String K_LOCATION = "location";
     private static final String K_ETA = "eta";
     private static final String K_FULL_MIN = "full_min";
     private static final String K_CHARGED = "charged";
@@ -46,6 +48,7 @@ final class NativeStore {
     private static final String K_SEEN_NOREAD = "seen_no_read";
     private static final String K_NOTIFIED_MSG = "notified_msg";
     private static final String K_FULL_NOTIFIED = "full_notified";
+    private static final String K_STOP_NOTIFIED = "stop_notified";
 
     private static final String K_BG = "background";
     private static final String K_MSG_ON = "messages_on";
@@ -71,11 +74,13 @@ final class NativeStore {
         int lock = -1;
         int seat = -1;
         int online = -1;
+        int range = -1;
         int noRead = -1;
         int fullMin = -1;
         int chargedMin = -1;
         String eta = "";
         String charged = "";
+        String location = "";
         String msgTitle = "";
         String msgId = "";
         String msgTime = "";
@@ -84,9 +89,10 @@ final class NativeStore {
         Status copy() {
             Status s = new Status();
             s.soc = soc; s.charge = charge; s.power = power; s.voltage = voltage; s.current = current;
-            s.lock = lock; s.seat = seat; s.online = online; s.noRead = noRead;
+            s.lock = lock; s.seat = seat; s.online = online; s.range = range; s.noRead = noRead;
             s.fullMin = fullMin; s.chargedMin = chargedMin;
-            s.eta = eta; s.charged = charged; s.msgTitle = msgTitle; s.msgId = msgId;
+            s.eta = eta; s.charged = charged; s.location = location;
+            s.msgTitle = msgTitle; s.msgId = msgId;
             s.msgTime = msgTime; s.updatedAt = updatedAt;
             return s;
         }
@@ -101,6 +107,8 @@ final class NativeStore {
             if (j.has("lock") && !j.isNull("lock")) lock = j.optInt("lock", lock);
             if (j.has("seat") && !j.isNull("seat")) seat = j.optInt("seat", seat);
             if (j.has("online") && !j.isNull("online")) online = j.optInt("online", online);
+            if (j.has("range") && !j.isNull("range")) range = j.optInt("range", range);
+            if (j.has("location")) location = j.optString("location", location);
             if (j.has("noRead") && !j.isNull("noRead")) noRead = j.optInt("noRead", noRead);
             if (j.has("fullMin") && !j.isNull("fullMin")) fullMin = j.optInt("fullMin", fullMin);
             if (j.has("chargedMin") && !j.isNull("chargedMin")) chargedMin = j.optInt("chargedMin", chargedMin);
@@ -191,10 +199,11 @@ final class NativeStore {
 
     private static void clearStatus(SharedPreferences.Editor e) {
         e.remove(K_SOC).remove(K_CHARGE).remove(K_POWER).remove(K_VOLTAGE).remove(K_CURRENT)
-            .remove(K_LOCK).remove(K_SEAT).remove(K_ONLINE).remove(K_ETA).remove(K_FULL_MIN)
+            .remove(K_LOCK).remove(K_SEAT).remove(K_ONLINE).remove(K_RANGE).remove(K_LOCATION)
+            .remove(K_ETA).remove(K_FULL_MIN)
             .remove(K_CHARGED).remove(K_CHARGED_MIN).remove(K_NOREAD).remove(K_MSG_TITLE)
             .remove(K_MSG_ID).remove(K_MSG_TIME).remove(K_UPDATED)
-            .remove(K_SEEN_NOREAD).remove(K_NOTIFIED_MSG).remove(K_FULL_NOTIFIED);
+            .remove(K_SEEN_NOREAD).remove(K_NOTIFIED_MSG).remove(K_FULL_NOTIFIED).remove(K_STOP_NOTIFIED);
     }
 
     static Status status(Context c) {
@@ -208,11 +217,13 @@ final class NativeStore {
         s.lock = p.getInt(K_LOCK, -1);
         s.seat = p.getInt(K_SEAT, -1);
         s.online = p.getInt(K_ONLINE, -1);
+        s.range = p.getInt(K_RANGE, -1);
         s.noRead = p.getInt(K_NOREAD, -1);
         s.fullMin = p.getInt(K_FULL_MIN, -1);
         s.chargedMin = p.getInt(K_CHARGED_MIN, -1);
         s.eta = p.getString(K_ETA, "");
         s.charged = p.getString(K_CHARGED, "");
+        s.location = p.getString(K_LOCATION, "");
         s.msgTitle = p.getString(K_MSG_TITLE, "");
         s.msgId = p.getString(K_MSG_ID, "");
         s.msgTime = p.getString(K_MSG_TIME, "");
@@ -225,8 +236,9 @@ final class NativeStore {
             .putInt(K_SOC, s.soc).putInt(K_CHARGE, s.charge).putInt(K_POWER, s.power)
             .putInt(K_VOLTAGE, s.voltage).putInt(K_CURRENT, s.current)
             .putInt(K_LOCK, s.lock).putInt(K_SEAT, s.seat).putInt(K_ONLINE, s.online)
+            .putInt(K_RANGE, s.range)
             .putInt(K_NOREAD, s.noRead).putInt(K_FULL_MIN, s.fullMin).putInt(K_CHARGED_MIN, s.chargedMin)
-            .putString(K_ETA, s.eta).putString(K_CHARGED, s.charged)
+            .putString(K_ETA, s.eta).putString(K_CHARGED, s.charged).putString(K_LOCATION, s.location)
             .putString(K_MSG_TITLE, s.msgTitle).putString(K_MSG_ID, s.msgId)
             .putString(K_MSG_TIME, s.msgTime).putLong(K_UPDATED, s.updatedAt)
             .apply();
@@ -250,6 +262,14 @@ final class NativeStore {
 
     static void setFullNotified(Context c, boolean on) {
         sp(c).edit().putBoolean(K_FULL_NOTIFIED, on).apply();
+    }
+
+    static boolean stopNotified(Context c) {
+        return sp(c).getBoolean(K_STOP_NOTIFIED, false);
+    }
+
+    static void setStopNotified(Context c, boolean on) {
+        sp(c).edit().putBoolean(K_STOP_NOTIFIED, on).apply();
     }
 
     static boolean backgroundEnabled(Context c) {

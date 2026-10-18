@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -51,10 +52,18 @@ abstract class BaseWidget extends AppWidgetProvider {
         String name = NativeStore.name(c);
         if (name.isEmpty()) name = c.getString(R.string.widget_title);
         rv.setTextViewText(R.id.w_title, name);
-        rv.setTextViewText(R.id.w_soc, s.soc >= 0 ? s.soc + "%" : c.getString(R.string.widget_soc_unknown));
+        rv.setTextViewText(R.id.w_soc, s.soc >= 0 ? String.valueOf(s.soc) : c.getString(R.string.widget_soc_unknown));
         rv.setTextViewText(R.id.w_charge, state(c, s, hasData));
+        rv.setTextColor(R.id.w_charge, c.getColor(
+            !hasData ? R.color.widget_text_secondary
+                : s.charge == 1 ? R.color.widget_accent
+                : s.charge == 2 ? R.color.widget_good : R.color.widget_text_secondary));
         rv.setTextViewText(R.id.w_updated, hasData ? updated(c, s) : "");
+        String range = s.range >= 0 ? c.getString(R.string.widget_range, s.range) : "";
+        rv.setTextViewText(R.id.w_range, range);
+        rv.setViewVisibility(R.id.w_range, range.isEmpty() ? View.GONE : View.VISIBLE);
 
+        rv.setTextViewText(R.id.w_lock, two ? lock(c, s) : lockLine(c, s));
         if (s.soc >= 0) {
             rv.setViewVisibility(R.id.w_progress, View.VISIBLE);
             rv.setProgressBar(R.id.w_progress, 100, Math.max(0, Math.min(100, s.soc)), false);
@@ -65,12 +74,22 @@ abstract class BaseWidget extends AppWidgetProvider {
         if (two) {
             rv.setTextViewText(R.id.w_sub, sub(c, s, hasData));
         } else {
-            rv.setTextViewText(R.id.w_lock, lock(c, s));
             rv.setTextViewText(R.id.w_seat, seat(c, s));
-            rv.setTextViewText(R.id.w_online, online(c, s));
-            rv.setTextViewText(R.id.w_power, power(s));
-            rv.setTextViewText(R.id.w_time, time(c, s));
+            rv.setTextViewText(R.id.w_power, s.charge == 1 ? power(s) : "");
+            rv.setTextViewText(R.id.w_time, s.charge == 1 ? time(c, s) : "");
             rv.setOnClickPendingIntent(R.id.w_refresh, refresh(c));
+
+            String loc = s.location == null ? "" : s.location.trim();
+            rv.setTextViewText(R.id.w_location, loc);
+            rv.setViewVisibility(R.id.w_location, loc.isEmpty() ? View.GONE : View.VISIBLE);
+
+            Bitmap car = WidgetCar.load(c, NativeStore.vin(c));
+            if (car != null) {
+                rv.setImageViewBitmap(R.id.w_car, car);
+                rv.setViewVisibility(R.id.w_car_box, View.VISIBLE);
+            } else {
+                rv.setViewVisibility(R.id.w_car_box, View.GONE);
+            }
         }
 
         if (four) {
@@ -78,6 +97,9 @@ abstract class BaseWidget extends AppWidgetProvider {
             rv.setOnClickPendingIntent(R.id.w_btn_lock, action(c, "lock", 302));
             rv.setOnClickPendingIntent(R.id.w_btn_horn, action(c, "horn", 303));
             rv.setOnClickPendingIntent(R.id.w_btn_seat, action(c, "seat", 304));
+        } else if (!two) {
+            rv.setOnClickPendingIntent(R.id.w_btn_unlock, action(c, "unlock", 301));
+            rv.setOnClickPendingIntent(R.id.w_btn_horn, action(c, "horn", 303));
         }
 
         rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
@@ -85,6 +107,8 @@ abstract class BaseWidget extends AppWidgetProvider {
             m.updateAppWidget(id, rv);
         } catch (Exception ignored) {
         }
+        // 桌面已经有微件时，充电进度在桌面就能看到；持续性的进度通知不再重复挂在通知栏。
+        if (WidgetProviders.anyBound(c)) Notify.cancelChargeProgress(c);
     }
 
     private static String state(Context c, NativeStore.Status s, boolean hasData) {
@@ -107,27 +131,32 @@ abstract class BaseWidget extends AppWidgetProvider {
             }
             return sb.length() == 0 ? c.getString(R.string.widget_charging) : sb.toString();
         }
+        String on = online(c, s);
+        return on.isEmpty() ? lock(c, s) : on;
+    }
+
+    private static String lockLine(Context c, NativeStore.Status s) {
         String lk = lock(c, s);
-        String on = s.online == 1 ? c.getString(R.string.widget_online) : "";
-        return on.isEmpty() ? lk : lk + " · " + on;
+        if (s.online == 1) return lk + " · " + c.getString(R.string.widget_online);
+        return lk;
     }
 
     private static String lock(Context c, NativeStore.Status s) {
         if (s.lock == 1) return c.getString(R.string.widget_locked);
         if (s.lock == 0) return c.getString(R.string.widget_unlocked);
-        return "—";
+        return "--";
     }
 
     private static String seat(Context c, NativeStore.Status s) {
         if (s.seat == 1) return c.getString(R.string.widget_seat_locked);
         if (s.seat == 0) return c.getString(R.string.widget_seat_unlocked);
-        return "—";
+        return "--";
     }
 
     private static String online(Context c, NativeStore.Status s) {
         if (s.online == 1) return c.getString(R.string.widget_online);
         if (s.online == 0) return c.getString(R.string.widget_offline);
-        return "—";
+        return "";
     }
 
     private static String power(NativeStore.Status s) {

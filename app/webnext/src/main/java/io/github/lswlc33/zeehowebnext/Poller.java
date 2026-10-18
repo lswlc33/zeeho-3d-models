@@ -60,6 +60,8 @@ final class Poller {
             int lock = -1;
             int seat = -1;
             int online = -1;
+            int range = -1;
+            String location = "";
             String eta = "";
             int fullMin = -1;
             String charged = "";
@@ -78,9 +80,27 @@ final class Poller {
                 fullMin = ApiClient.fullMinutes(h);
                 charged = ApiClient.text(h, "chargeTimeString");
                 chargedMin = ApiClient.chargedMinutes(charged);
+
+                range = ApiClient.intOr(h, "hmiRidableMile", -1);
+                if (range < 0) range = ApiClient.intOr(h, "hmiRidableMileAbnormalShow", -1);
+                location = ApiClient.text(h, "address");
+                double lat = Double.NaN, lng = Double.NaN;
+                JSONObject loc = h.optJSONObject("location");
+                if (loc != null) {
+                    if (location.isEmpty()) location = ApiClient.text(loc, "address");
+                    if (location.isEmpty()) location = ApiClient.text(loc, "addressName");
+                    lat = loc.optDouble("latitude", Double.NaN);
+                    lng = loc.optDouble("longitude", Double.NaN);
+                }
+                String pic = ApiClient.text(h, "vehiclePicUrl");
+                if (!pic.isEmpty()) WidgetCar.ensure(c, vin, pic);
+                if (location.isEmpty() && !Double.isNaN(lat) && !Double.isNaN(lng)) {
+                    location = Geo.resolve(c, lat, lng);
+                }
             }
             if (b != null) {
                 if (soc < 0) soc = ApiClient.intOr(b, "bmssoc", -1);
+                if (range < 0) range = ApiClient.intOr(b, "hmiRidableMile", -1);
                 voltage = ApiClient.intOr(b, "voltage", ApiClient.intOr(b, "bmsVoltage", -1));
                 current = ApiClient.intOr(b, "current", -1);
                 if (fullMin <= 0) fullMin = ApiClient.fullMinutes(b);
@@ -96,8 +116,11 @@ final class Poller {
                     }
                 }
             }
+            if (soc >= 100 && charge == 1) charge = 2;
             if (soc >= 0) j.put("soc", soc);
             j.put("charging", charge);
+            if (range >= 0) j.put("range", range);
+            if (!location.isEmpty()) j.put("location", location);
             if (voltage >= 0 && current != 0) {
                 j.put("power", Math.abs(Math.round(voltage * (float) current)));
             }
