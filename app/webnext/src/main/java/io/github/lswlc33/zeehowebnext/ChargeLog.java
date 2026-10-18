@@ -124,7 +124,7 @@ final class ChargeLog {
             tmp.delete();
             return;
         }
-        f.delete();
+        // rename 是原子替换；失败就保留原文件（先 delete 会在失败时把采样整份丢掉）。
         if (!tmp.renameTo(f)) tmp.delete();
     }
 }

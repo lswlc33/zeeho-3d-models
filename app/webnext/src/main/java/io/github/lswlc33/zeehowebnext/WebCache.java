@@ -55,6 +55,8 @@ final class WebCache {
     private static final String INDEX = "index.html";
     private static final String VERSION = "version.json";
     private static final String MANIFEST = "manifest.webmanifest";
+    /** 投屏资料页（车辆设置 → 投屏）：和主页面同源，单独一个 html。 */
+    private static final String VEHICLE_INFO = "vehicle-info.html";
     private static final String[] ICONS = {
         "icons/icon-192.png",
         "icons/icon-512.png",
@@ -289,6 +291,12 @@ final class WebCache {
             if (s == null) return null;
             return fileResponse(new File(s.dir, VERSION), "application/json");
         }
+        if (VEHICLE_INFO.equals(rel)) {
+            Snapshot s = active;
+            // 老快照里没有这个文件时返回 null，让 WebView 走网络（同源，线上有就行）。
+            if (s == null) return null;
+            return fileResponse(new File(s.dir, VEHICLE_INFO), "text/html");
+        }
         if ("sw.js".equals(rel)) {
             // 壳不用 Service Worker：它网络优先，而且不经过 shouldInterceptRequest，
             // 注册上会把本地快照废掉。直接 404 让注册失败（页面侧也加了壳判断）。
@@ -307,11 +315,23 @@ final class WebCache {
             Snapshot s = active;
             if (s != null) {
                 File f = new File(s.dir, rel);
-                if (f.isFile()) return fileResponse(f, "image/png");
+                // 防路径穿越：rel 来自请求路径，`icons/..%2f..%2f...` 这类会被 Uri 解码出 `..`，
+                // 仅靠 startsWith 前缀判断能让 File 逃出快照目录（读到 shared_prefs 里的 token）。
+                if (inside(s.dir, f) && f.isFile()) return fileResponse(f, "image/png");
             }
         }
         // 其他同源子资源放行网络：站点以后加新文件时壳不至于白屏
         return null;
+    }
+
+    /** f 是否真的位于 dir 之内（canonical 路径前缀比较，挡掉 ../ 逃逸）。 */
+    private static boolean inside(File dir, File f) {
+        try {
+            String base = dir.getCanonicalPath() + File.separator;
+            return f.getCanonicalPath().startsWith(base);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private WebResourceResponse fileResponse(File f, String mime) {
@@ -398,6 +418,8 @@ final class WebCache {
     private void downloadOptionalAssets(File dir, String build, Progress progress) {
         // manifest / 图标是可选资源；失败不影响页面本身
         String q = "?build=" + Uri.encode(build);
+        // 投屏资料页：可选资源，下载失败不影响主页面；进度条不占它的份额（文件小）。
+        downloadOptional(dir, VEHICLE_INFO, VEHICLE_INFO + q, null, 0, 0);
         downloadOptional(dir, MANIFEST, MANIFEST + q, progress, 92, 94);
         int step = Math.max(1, 6 / ICONS.length);
         for (int i = 0; i < ICONS.length; i++) {

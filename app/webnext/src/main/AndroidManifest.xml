@@ -84,6 +84,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- 微件上的刷新按钮：不导出，只接自己 PendingIntent 的显式广播 -->
+        <receiver
+            android:name=".WidgetRefreshReceiver"
+            android:exported="false" />
+
         <!-- 2×2 -->
         <receiver
             android:name=".Widget2x2"
@@ -91,7 +96,6 @@
             android:label="@string/widget_2x2_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="io.github.lswlc33.zeehowebnext.WIDGET_REFRESH" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -105,7 +109,6 @@
             android:label="@string/widget_4x2_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="io.github.lswlc33.zeehowebnext.WIDGET_REFRESH" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -119,7 +122,6 @@
             android:label="@string/widget_4x4_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="io.github.lswlc33.zeehowebnext.WIDGET_REFRESH" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

@@ -86,6 +86,11 @@ cp keystore.properties.example keystore.properties
 `keystore.properties`、`*.jks`、`local.properties` 都在 `.gitignore` 里。**不要**把密钥
 提交到这个公开仓库；已安装用户靠同一把密钥覆盖升级，换密钥会导致无法覆盖安装。
 
+> **关于 `ApiClient.java` 里的 `APP_SECRET` / `H5_SECRET` / `CAR_AES_KEY`**：这三个常量是从
+> 官方客户端逆向出的硬编码值，与私有模块仓库 `SignUtil.java` 同源，**刻意**留在这个仓库里
+> （壳要自己发请求/云解锁就得带它们）。它们不是用户凭据，也不是本项目需要保护的秘密；
+> 网页版混淆的意义是"不让陌生人复制粘贴就能用"，不是保护这三个值。
+
 ## 启动与更新机制
 
 ```
@@ -117,6 +122,7 @@ files/webcache/snapshots/<build-id>/
   version.json
   icons/*.png
   meta.json          # 原始 build / createdAt，最后写
+  vehicle-info.html  # 投屏资料页（可选资源，失败不影响主页面）
 files/webcache/.tmp-<build-id>/
 ```
 
@@ -167,8 +173,9 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
 - debug 包可用 `adb shell am start … --es update_manifest http://127.0.0.1:8899/version.json`
   指向本机清单测试；release 忽略该 extra，只认固定 HTTPS 地址。
 - 「数据与调试」两行版本可点击：**软件版本**走 `checkAppUpdate()` 返回 APK 当前/最新版本，有更新时
-  只提供「下载更新」→ `downloadAppUpdate()`；**面板版本**直接 `restartPage()`，原生检查/下载
-  pending 后 reload，网页显示不确定进度条。两者的动作刻意不同，不要合并。
+  只提供「下载更新」→ `downloadAppUpdate()`；**面板版本**先走 `checkPageUpdate()` 只查远端 build
+  （V5.93 起页面侧：没更新只显示状态，有更新才出现「更新并重启」→ `restartPage()`），
+  原生检查/下载 pending 后 reload，网页显示不确定进度条。两者的动作刻意不同，不要合并。
 
 ### WebView HTTP 缓存上限（1.4.1）
 
@@ -268,12 +275,19 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 | `/`、`/index.html` | active 快照的 index.html（`text/html`，无 charset 参数） |
 | `/version.json` | active 快照的 version.json（绝不放行到网络） |
 | `/manifest.webmanifest`、`/icons/*` | 快照文件；缺失则放行网络 |
+| `/vehicle-info.html` | 投屏资料页；老快照里没有就放行网络（页面小，不占下载进度） |
 | `/sw.js` | 固定 404，阻止 Service Worker 注册 |
 | 其他同源子资源 | 放行网络（站点以后加文件时不至于白屏） |
 
-顶层导航只允许面板根路径/`index.html`（可带 query/hash）。外部 http(s) 网页直接拦截，
-页面留在面板；`intent://` / `androidamap://` 等地图 scheme 交给系统 App，失败时用
+顶层导航只允许面板根路径/`index.html`、`vehicle-info.html`（可带 query/hash）。外部 http(s)
+网页直接拦截，页面留在面板；`intent://` 解析后会剥掉 `component`/`selector` 并强制
+`CATEGORY_BROWSABLE`，`androidamap://` 等地图 scheme 交给系统 App，失败时用
 `browser_fallback_url` 开浏览器。
+
+`vehicle-info.html` 是「车辆设置 → 投屏」的落点：面板 `openVehicleInfo()` 同源时把
+`{token, vin}` 写进 `sessionStorage['zeeho.vi.handoff']`（token 不进 URL），跨源退化到 hash
+且页面读完立刻 `replaceState` 清掉；页面只认 `?auto=1`。壳里按返回键先 `webView.canGoBack()`
+回面板，再走原来的 `BACK_JS`。
 
 ## 通知、后台与自动化（1.2 / 1.3）
 
@@ -393,6 +407,7 @@ debug manifest 允许 cleartext，release 是 `usesCleartextTraffic=false`。
 - 返回键：`BACK_JS` 先调 `APP.back()`。骑行记录内部先退单条 → 单日 → 年视图 → 月视图，再关弹层
   （多个弹层只退一层，不一次性全关）；没有弹层时回爱车，最后双击退出。
 - 外部网页被拦截；地图 intent 放行。
+- 从面板「车辆设置 → 投屏」进入 `vehicle-info.html` 后，按系统返回键回到面板（不是退出 App）。
 - 壳内「我的」没有下载入口；普通浏览器有。
 - 登录后后台出现 `service` 常驻通知；按 Home 后 60 秒内 `last_poll`/电量会更新；充电时出现
   「充电中 · xx%」进度通知，充满后出现「已充满」。

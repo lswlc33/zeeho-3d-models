@@ -64,7 +64,9 @@ final class Proximity {
         return new String[] { Manifest.permission.ACCESS_FINE_LOCATION };
     }
 
-    static String start(Context context, String mac) {
+    // 状态会在三个线程上碰：JavaBridge（proximityStart）、主线程（onPause/onResume）、
+    // BLE 回调线程。全部收敛到类锁上，避免 stopScan 与 startScan 交错把 callback 漏掉。
+    static synchronized String start(Context context, String mac) {
         String a = normalize(mac);
         if (a.isEmpty()) {
             address = "";
@@ -106,20 +108,24 @@ final class Proximity {
                     // ScanFilter 已按 MAC 过滤；不读 BluetoothDevice.getAddress()，
                     // 所以不需要 BLUETOOTH_CONNECT，也不会触发任何连接。
                     if (result == null) return;
-                    int next = result.getRssi();
-                    rssi = rssi == 0 ? next : Math.round(rssi * 0.6f + next * 0.4f);
-                    int tx = result.getTxPower();
-                    if (tx == ScanResult.TX_POWER_NOT_PRESENT) tx = DEFAULT_TX_POWER;
-                    double d = Math.pow(10.0, (tx - rssi) / 20.0);
-                    meters = Math.max(0.5, Math.min(100.0, d));
-                    lastSeen = System.currentTimeMillis();
-                    updatedAt = lastSeen;
+                    synchronized (Proximity.class) {
+                        int next = result.getRssi();
+                        rssi = rssi == 0 ? next : Math.round(rssi * 0.6f + next * 0.4f);
+                        int tx = result.getTxPower();
+                        if (tx == ScanResult.TX_POWER_NOT_PRESENT) tx = DEFAULT_TX_POWER;
+                        double d = Math.pow(10.0, (tx - rssi) / 20.0);
+                        meters = Math.max(0.5, Math.min(100.0, d));
+                        lastSeen = System.currentTimeMillis();
+                        updatedAt = lastSeen;
+                    }
                 }
 
                 @Override
                 public void onScanFailed(int errorCode) {
                     Log.w(TAG, "BLE scan failed: " + errorCode);
-                    scanning = false;
+                    synchronized (Proximity.class) {
+                        scanning = false;
+                    }
                 }
             };
             scanner.startScan(Collections.singletonList(filter), settings, callback);
@@ -135,17 +141,17 @@ final class Proximity {
         return status(context);
     }
 
-    static void stop(Context context) {
+    static synchronized void stop(Context context) {
         stopScan();
         updatedAt = System.currentTimeMillis();
     }
 
     /** Activity 回前台：如果页面之前给过蓝牙地址且权限在，继续扫描。 */
-    static void resume(Context context) {
+    static synchronized void resume(Context context) {
         if (!address.isEmpty() && hasPermission(context)) start(context, address);
     }
 
-    static String status(Context context) {
+    static synchronized String status(Context context) {
         JSONObject j = new JSONObject();
         try {
             long now = System.currentTimeMillis();
@@ -167,7 +173,7 @@ final class Proximity {
         return j.toString();
     }
 
-    private static void stopScan() {
+    private static synchronized void stopScan() {
         try {
             if (scanner != null && callback != null) scanner.stopScan(callback);
         } catch (Exception ignored) {

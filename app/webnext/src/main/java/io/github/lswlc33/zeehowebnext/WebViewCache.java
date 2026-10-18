@@ -26,6 +26,31 @@ final class WebViewCache {
     private WebViewCache() {
     }
 
+    private static volatile Thread trimThread;
+
+    /**
+     * 启动时在后台量缓存（递归 stat 上千个文件，别压在主线程上）。
+     * 创建 WebView 前用 awaitTrim() 等一下，尽量维持"先修剪、后创建"的顺序。
+     */
+    static void trimAsync(Context context) {
+        if (trimThread != null) return;
+        final Context app = context.getApplicationContext();
+        Thread t = new Thread(() -> trim(app), "webview-cache-trim");
+        trimThread = t;
+        t.start();
+    }
+
+    /** 最多等 maxMs；超时就让它在后台继续（Chromium 对缺失的 HTTP Cache 会自己重建）。 */
+    static void awaitTrim(long maxMs) {
+        Thread t = trimThread;
+        if (t == null) return;
+        try {
+            t.join(maxMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     static void trim(Context context) {
         if (context == null) return;
         try {

@@ -8,8 +8,9 @@ public final class WebNextApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // 必须在任何 WebView 创建之前；只在超过 32MB 时删，不是每次清空。
-        WebViewCache.trim(this);
+        // 必须在任何 WebView 创建之前发起；只在超过 32MB 时删，不是每次清空。
+        // 递归统计放到后台线程，MainActivity 创建 WebView 前会等它最多 400ms。
+        WebViewCache.trimAsync(this);
         Notify.ensureChannels(this);
         ShortcutHelper.ensure(this);
         MonitorScheduler.ensure(this);

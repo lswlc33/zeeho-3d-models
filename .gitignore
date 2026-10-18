@@ -1,0 +1,7 @@
+# 临时文件/解码产物（曾把混淆包的 stringArray 解码件留在工作区，含明文密钥）
+.tmp*
+*.tmp
+*.log
+
+# 本机工具产物
+node_modules/

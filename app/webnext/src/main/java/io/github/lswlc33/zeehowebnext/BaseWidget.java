@@ -33,11 +33,8 @@ abstract class BaseWidget extends AppWidgetProvider {
 
     @Override
     public void onReceive(Context c, Intent intent) {
-        if (intent != null && ACTION_REFRESH.equals(intent.getAction())) {
-            MonitorService.start(c);
-            WidgetProviders.updateAll(c);
-            return;
-        }
+        // WIDGET_REFRESH 已改由不导出的 WidgetRefreshReceiver 处理；这里不再接这个 action，
+        // 否则第三方仍可显式发广播给 exported 的 widget receiver。
         super.onReceive(c, intent);
     }
 
@@ -203,7 +200,7 @@ abstract class BaseWidget extends AppWidgetProvider {
     }
 
     private static PendingIntent refresh(Context c) {
-        Intent i = new Intent(c, Widget4x2.class).setAction(ACTION_REFRESH);
+        Intent i = new Intent(c, WidgetRefreshReceiver.class).setAction(ACTION_REFRESH);
         return PendingIntent.getBroadcast(c, 400, i,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }

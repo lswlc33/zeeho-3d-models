@@ -76,6 +76,10 @@ public final class MonitorService extends Service {
             return START_NOT_STICKY;
         }
         if (!NativeStore.backgroundEnabled(this) || NativeStore.token(this).isEmpty()) {
+            // startForegroundService 之后必须在 5 秒内 startForeground。用户恰好在启动窗口里
+            // 关掉后台同步/退出登录时，直接 stopSelf 会触发 "did not then call startForeground"
+            // 崩溃（Android 8~10 与部分 OEM 上仍会判）；先挂一条瞬态通知再停，代价可以忽略。
+            startForeground(Notify.ID_SERVICE, Notify.service(this));
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -83,6 +87,18 @@ public final class MonitorService extends Service {
         main.removeCallbacks(tick);
         main.post(tick);
         return START_STICKY;
+    }
+
+    /**
+     * Android 15+（targetSdk 35）对 dataSync 前台服务有 6 小时/24 小时配额：超时后系统回调这里，
+     * 不在宽限期内停下会抛 ForegroundServiceDidNotStopInTimeException 直接崩溃。
+     * 配额耗尽后不能立刻再起 dataSync 前台服务，所以这里只停自己——15 分钟周期的
+     * MonitorJobService 仍会兜底轮询，用户下次打开 App 也会重新拉起。
+     */
+    @Override
+    public void onTimeout(int startId) {
+        Log.w(TAG, "monitor dataSync timeout, fall back to periodic job");
+        stopSelf(startId);
     }
 
     @Override

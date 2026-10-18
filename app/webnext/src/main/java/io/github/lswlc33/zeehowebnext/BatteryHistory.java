@@ -398,8 +398,10 @@ final class BatteryHistory {
             out.flush();
         }
         if (!tmp.renameTo(file)) {
-            file.delete();
-            if (!tmp.renameTo(file)) throw new IOException("battery history rename failed");
+            // Linux 上 rename(2) 本身是原子替换，失败时**不要先删原文件**——
+            // 早先的 delete-then-rename 在磁盘满/打盹窗口里会把 31 天历史整份清掉。
+            // 保留 tmp：原文件完好，下次 rewrite 开头会清掉它。
+            throw new IOException("battery history rename failed");
         }
     }
 

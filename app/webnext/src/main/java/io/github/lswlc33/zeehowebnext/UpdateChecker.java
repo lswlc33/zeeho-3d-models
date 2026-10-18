@@ -69,7 +69,6 @@ final class UpdateChecker {
         File apk = pendingApk;
         if (apk == null || !apk.isFile()) return;
         if (canInstall(activity)) {
-            pendingApk = null;
             install(activity, apk);
         }
     }
@@ -269,11 +268,21 @@ final class UpdateChecker {
                 }
                 downloading = false;
                 if (error != null) {
-                    new AlertDialog.Builder(activity)
-                        .setTitle(R.string.update_failed)
-                        .setMessage(error)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
+                    // 用户点了「立即更新」后可能已经退出：对已销毁的 Activity show() 会抛
+                    // WindowManager.BadTokenException。这里和 showDialog 用同一套存活检查。
+                    if (activity.isFinishing()
+                        || (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) {
+                        return;
+                    }
+                    try {
+                        new AlertDialog.Builder(activity)
+                            .setTitle(R.string.update_failed)
+                            .setMessage(error)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show();
+                    } catch (Exception e) {
+                        Log.w(TAG, "show update error dialog failed", e);
+                    }
                 } else {
                     install(activity, apk);
                 }
@@ -333,7 +342,8 @@ final class UpdateChecker {
             }
             return;
         }
-        pendingApk = null;
+        // 先保留 pendingApk：startActivity 失败（没有安装器）时下次 onResume 还能重试；
+        // 成功拉起安装器后再清，避免重复弹安装页。
         try {
             Uri uri = UpdateProvider.uriFor(activity);
             Intent i = new Intent(Intent.ACTION_VIEW)
@@ -341,6 +351,7 @@ final class UpdateChecker {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             i.setClipData(ClipData.newRawUri("", uri));
             activity.startActivity(i);
+            pendingApk = null;
         } catch (Exception e) {
             Log.w(TAG, "open installer failed", e);
             toast(activity, activity.getString(R.string.update_install_failed));

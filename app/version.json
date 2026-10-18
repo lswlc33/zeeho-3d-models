@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "1.4.7",
+  "versionCode": 14,
+  "versionName": "1.4.8",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.4.7：返回键先退弹层内的骑行日/单条/年视图再关弹层；软件版本点击只检查/下载更新，面板版本点击直接更新面板并重启（带进度条）。"
+  "notes": "1.4.8：修复 Android 15+ 后台同步 6 小时超时后不恢复；投屏资料页可从壳内打开并返回；缓存/历史文件写入失败不再丢数据；小组件刷新通道收口。"
 }

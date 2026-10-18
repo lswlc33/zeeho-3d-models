@@ -239,6 +239,12 @@ public final class MainActivity extends Activity {
             super.onBackPressed();
             return;
         }
+        // 从面板进过 vehicle-info.html（投屏资料页）时，先退回面板；
+        // 主面板本身是单页，没有历史记录，不会影响原来的"连按两次退出"。
+        if (webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
         if (backInFlight) return;
         backInFlight = true;
         webView.evaluateJavascript(BACK_JS, value -> main.post(() -> {
@@ -633,6 +639,9 @@ public final class MainActivity extends Activity {
 
     private boolean createWebView() {
         try {
+            // 等启动时的缓存修剪跑完（最多 400ms）：它必须在 WebView 创建前完成，
+            // 否则可能删到 Chromium 正在打开的 HTTP Cache。
+            WebViewCache.awaitTrim(400);
             webView = new WebView(this);
         } catch (RuntimeException | LinkageError t) {
             Log.e(TAG, "webview unavailable", t);

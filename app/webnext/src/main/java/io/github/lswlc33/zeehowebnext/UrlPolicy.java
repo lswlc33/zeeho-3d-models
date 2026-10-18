@@ -19,7 +19,7 @@ final class UrlPolicy {
     private UrlPolicy() {
     }
 
-    /** 是否是“面板自己的页面”：同 scheme/host/port，且路径是根路径或 index.html。 */
+    /** 是否是“面板自己的页面”：同 scheme/host/port，且路径是根路径、index.html 或 vehicle-info.html。 */
     static boolean isAllowedPage(String url, String baseUrl) {
         if (url == null) return false;
         try {
@@ -33,6 +33,9 @@ final class UrlPolicy {
             String p = u.getPath() == null ? "/" : u.getPath();
             return p.equals(bp)
                 || p.equals(bp + "index.html")
+                // 投屏资料页：车辆设置页的「投屏」入口会带 ?auto=1&vin=... 进来。
+                // 它是壳自己的功能页，不能像外链一样被拦掉。
+                || p.equals(bp + "vehicle-info.html")
                 || p.equals(bp.substring(0, bp.length() - 1));
         } catch (Exception e) {
             return false;
@@ -75,6 +78,11 @@ final class UrlPolicy {
     private static void launchIntentUri(Activity activity, String url) {
         try {
             Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+            // 只放行"可浏览"的外部 intent：剥掉 component/selector，防止页面里被注入的
+            // intent://#Intent;component=...;end 直接拉起任意导出组件（含带任意 data 的 VIEW）。
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+            intent.setComponent(null);
+            intent.setSelector(null);
             try {
                 activity.startActivity(intent);
                 return;
