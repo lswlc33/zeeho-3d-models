@@ -147,8 +147,8 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
 
 ```json
 {
-  "versionCode": 9,
-  "versionName": "1.4.3",
+  "versionCode": 13,
+  "versionName": "1.4.7",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
   "notes": "更新说明"
 }
@@ -166,9 +166,9 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
   改成这次的值，二者一起提交推送。线上 `version.json` 是更新弹窗的唯一开关。
 - debug 包可用 `adb shell am start … --es update_manifest http://127.0.0.1:8899/version.json`
   指向本机清单测试；release 忽略该 extra，只认固定 HTTPS 地址。
-- 1.4.3 起「数据与调试」的两行版本可点击手动检查：`checkAppUpdate()` 同步返回 APK 当前/最新版本，
-  `checkPageUpdate()` 抓远端页面 build；结果由网页弹层展示。点「下载软件」走 `downloadAppUpdate()`，
-  点「重启页面」走 `restartPage()`（有 pending 直接应用，否则先下载页面再 reload）。
+- 「数据与调试」两行版本可点击：**软件版本**走 `checkAppUpdate()` 返回 APK 当前/最新版本，有更新时
+  只提供「下载更新」→ `downloadAppUpdate()`；**面板版本**直接 `restartPage()`，原生检查/下载
+  pending 后 reload，网页显示不确定进度条。两者的动作刻意不同，不要合并。
 
 ### WebView HTTP 缓存上限（1.4.1）
 
@@ -234,7 +234,7 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 |---|---|
 | `insets()` | 返回 `{"top":24,"bottom":0,"left":0,"right":0}`（CSS px）。WebView 的 `env(safe-area-inset-*)` 不报系统栏高度，页面 `fitViewport()` 在壳模式必须用它。 |
 | `setDark(boolean)` | 页面主题变化时同步状态栏/导航栏图标明暗。 |
-| `appVersion()` | 当前壳版本，形如 `1.4.3 (9)`；页面「数据与调试 → 软件版本」用，浏览器不显示。 |
+| `appVersion()` | 当前壳版本，形如 `1.4.7 (13)`；页面「数据与调试 → 软件版本」用，浏览器不显示。 |
 | `checkAppUpdate()` / `downloadAppUpdate()` | 手动检查 APK 更新（返回 JSON）/ 下载并交给安装器。 |
 | `checkPageUpdate()` / `restartPage()` | 手动检查页面远端 build（返回 JSON）/ 重启页面（有 pending 先应用，否则下载后再 reload）。 |
 | `batteryHistory(range)` | App 专属电量历史，`range` = `24h`/`3d`/`7d`/`30d`；返回降采样 JSON（见下节）。浏览器没有这个桥。 |
@@ -390,7 +390,8 @@ debug manifest 允许 cleartext，release 是 `usesCleartextTraffic=false`。
 - 新 build 下载后旧页不变；空闲 5 秒或下次启动才切新页。
 - 有弹层/输入框聚焦时推迟空闲刷新。
 - 底栏悬浮在系统手势条上方，顶部不被状态栏压住；切系统深浅色状态栏图标跟随。
-- 返回键：先退弹层，再回爱车，最后双击退出。
+- 返回键：`BACK_JS` 先调 `APP.back()`。骑行记录内部先退单条 → 单日 → 年视图 → 月视图，再关弹层
+  （多个弹层只退一层，不一次性全关）；没有弹层时回爱车，最后双击退出。
 - 外部网页被拦截；地图 intent 放行。
 - 壳内「我的」没有下载入口；普通浏览器有。
 - 登录后后台出现 `service` 常驻通知；按 Home 后 60 秒内 `last_poll`/电量会更新；充电时出现

@@ -78,6 +78,7 @@ public final class MainActivity extends Activity {
 
     private static final String BACK_JS =
         "(function(){try{"
+            + "if(window.APP&&typeof window.APP.back==='function'){var r=window.APP.back();if(r)return r;}"
             + "var s=document.querySelector('.sheet.show');"
             + "if(s){window.UI.back();return 'sheet';}"
             + "if(window.APP&&window.APP.state&&window.APP.state.tab!=='home'){"

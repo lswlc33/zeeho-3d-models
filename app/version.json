@@ -1,6 +1,6 @@
 {
-  "versionCode": 12,
-  "versionName": "1.4.6",
+  "versionCode": 13,
+  "versionName": "1.4.7",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.4.6：附近检测只申请「附近的设备」扫描权限（BLUETOOTH_SCAN），不申请连接权限；继续只监听车辆蓝牙地址的 BLE 广播。"
+  "notes": "1.4.7：返回键先退弹层内的骑行日/单条/年视图再关弹层；软件版本点击只检查/下载更新，面板版本点击直接更新面板并重启（带进度条）。"
 }
