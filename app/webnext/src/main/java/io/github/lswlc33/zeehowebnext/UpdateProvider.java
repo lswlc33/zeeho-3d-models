@@ -4,8 +4,10 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.provider.OpenableColumns;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,7 +61,18 @@ public final class UpdateProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
-        return null;
+        if (uri == null || !FILE_NAME.equals(uri.getLastPathSegment())) return null;
+        File file = apkFile(getContext());
+        String[] cols = projection != null ? projection
+            : new String[] { OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE };
+        MatrixCursor c = new MatrixCursor(cols, 1);
+        Object[] row = new Object[cols.length];
+        for (int i = 0; i < cols.length; i++) {
+            if (OpenableColumns.DISPLAY_NAME.equals(cols[i])) row[i] = FILE_NAME;
+            else if (OpenableColumns.SIZE.equals(cols[i])) row[i] = file.length();
+        }
+        c.addRow(row);
+        return c;
     }
 
     @Override

@@ -147,8 +147,8 @@ APK 和页面是两条独立的版本线：页面用 `version.json` 的 `build`�
 
 ```json
 {
-  "versionCode": 7,
-  "versionName": "1.4.1",
+  "versionCode": 8,
+  "versionName": "1.4.2",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
   "notes": "更新说明"
 }
