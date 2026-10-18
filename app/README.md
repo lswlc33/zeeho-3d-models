@@ -238,6 +238,9 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 - `applyTheme()` 调 `ZeehoShell.setDark()`。
 - `checkBuild()` 在壳内直接 return（更新由原生接管，页面绝不整页重载）。
 - `registerSw()` 在壳内直接 return（SW 网络优先且绕过 `shouldInterceptRequest`）。
+- 大地图「我的位置」用 `navigator.geolocation`：壳必须开 `setGeolocationEnabled(true)`，并在
+  `onGeolocationPermissionsShowPrompt` 里申请 `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION`
+  （任一授予即放行，拒绝回 false）。权限只在用户点「我的位置」/「两个都看」时弹，不在启动时申请。
 - 「我的」页的「几何面板 / 下载 App」卡片只在 `!inShell()` 时渲染。
 - `syncNative()` 在每次 `doLoad` 末尾把登录态与车辆摘要推给原生；**别删**，否则通知/小组件/
   自动任务拿不到数据。

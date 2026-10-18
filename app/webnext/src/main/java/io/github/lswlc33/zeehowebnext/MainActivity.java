@@ -73,6 +73,7 @@ public final class MainActivity extends Activity {
     private static final long IDLE_MS = 5000;
     private static final long BACK_EXIT_MS = 2000;
     private static final long UPDATE_CHECK_GAP_MS = 30000;
+    private static final int REQ_LOCATION = 1002;
 
     private static final String BACK_JS =
         "(function(){try{"
@@ -113,6 +114,8 @@ public final class MainActivity extends Activity {
     private long lastBackAt;
     private boolean idleApplyInFlight;
     private long lastCheckAt;
+    private String pendingGeoOrigin;
+    private GeolocationPermissions.Callback pendingGeoCallback;
 
     private View overlay;
     private TextView overlayTitle;
@@ -289,6 +292,26 @@ public final class MainActivity extends Activity {
         try {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
         } catch (Exception ignored) {
+        }
+    }
+
+    private boolean hasLocationPermission() {
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQ_LOCATION) return;
+        boolean granted = hasLocationPermission();
+        String origin = pendingGeoOrigin;
+        GeolocationPermissions.Callback cb = pendingGeoCallback;
+        pendingGeoOrigin = null;
+        pendingGeoCallback = null;
+        if (cb != null) cb.invoke(origin, granted, false);
+        if (!granted) {
+            Toast.makeText(this, R.string.location_permission_denied, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -601,7 +624,7 @@ public final class MainActivity extends Activity {
         s.setAllowFileAccessFromFileURLs(false);
         s.setAllowUniversalAccessFromFileURLs(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        s.setGeolocationEnabled(false);
+        s.setGeolocationEnabled(true);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setSupportZoom(false);
@@ -1031,7 +1054,22 @@ public final class MainActivity extends Activity {
         @Override
         public void onGeolocationPermissionsShowPrompt(String origin,
                                                        GeolocationPermissions.Callback callback) {
-            callback.invoke(origin, false, false);
+            // 只有页面真的调用 navigator.geolocation（点「我的位置」/「两个都看」）才会走到这里，
+            // 不在启动时申请定位，避免一打开 App 就弹权限。
+            if (hasLocationPermission()) {
+                callback.invoke(origin, true, false);
+                return;
+            }
+            if (isFinishing() || (Build.VERSION.SDK_INT >= 17 && isDestroyed())) {
+                callback.invoke(origin, false, false);
+                return;
+            }
+            pendingGeoOrigin = origin;
+            pendingGeoCallback = callback;
+            requestPermissions(new String[] {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            }, REQ_LOCATION);
         }
 
         @Override
