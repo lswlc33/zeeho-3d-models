@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "1.4.5",
+  "versionCode": 12,
+  "versionName": "1.4.6",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.4.5：车辆位置遮罩显示蓝牙附近检测（信号强度与预估距离）；只扫描车辆蓝牙地址的 BLE 广播，不连接车辆、不发 GATT 命令。立绘增加宽高上限，超出自动等比缩放。"
+  "notes": "1.4.6：附近检测只申请「附近的设备」扫描权限（BLUETOOTH_SCAN），不申请连接权限；继续只监听车辆蓝牙地址的 BLE 广播。"
 }

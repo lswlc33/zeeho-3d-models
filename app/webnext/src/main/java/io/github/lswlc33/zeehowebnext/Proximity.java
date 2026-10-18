@@ -49,12 +49,9 @@ final class Proximity {
 
     static boolean hasPermission(Context c) {
         if (Build.VERSION.SDK_INT >= 31) {
-            // 读扫描结果的 BluetoothDevice 地址也需要 CONNECT；这里只申请/使用权限，
-            // 代码里没有任何 connectGatt / 配对调用。
+            // 只申请 SCAN：过滤条件已经限定 MAC，不需要 CONNECT 去读设备地址/连接。
             return c.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)
-                    == PackageManager.PERMISSION_GRANTED
-                && c.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
-                    == PackageManager.PERMISSION_GRANTED;
+                == PackageManager.PERMISSION_GRANTED;
         }
         return c.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED;
@@ -62,10 +59,7 @@ final class Proximity {
 
     static String[] permissions() {
         if (Build.VERSION.SDK_INT >= 31) {
-            return new String[] {
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT
-            };
+            return new String[] { Manifest.permission.BLUETOOTH_SCAN };
         }
         return new String[] { Manifest.permission.ACCESS_FINE_LOCATION };
     }
@@ -109,8 +103,9 @@ final class Proximity {
             callback = new ScanCallback() {
                 @Override
                 public void onScanResult(int callbackType, ScanResult result) {
-                    if (result == null || result.getDevice() == null) return;
-                    if (!address.equalsIgnoreCase(result.getDevice().getAddress())) return;
+                    // ScanFilter 已按 MAC 过滤；不读 BluetoothDevice.getAddress()，
+                    // 所以不需要 BLUETOOTH_CONNECT，也不会触发任何连接。
+                    if (result == null) return;
                     int next = result.getRssi();
                     rssi = rssi == 0 ? next : Math.round(rssi * 0.6f + next * 0.4f);
                     int tx = result.getTxPower();

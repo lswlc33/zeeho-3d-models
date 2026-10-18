@@ -184,8 +184,8 @@ WebView 时）统计 `cache/WebView/**/HTTP Cache`，**超过 32MB 才整块删�
 只收该 MAC 的 BLE 广播并取 RSSI，遮罩显示「车在附近 / -62 dBm · 约 3 米」或「没检测到车辆」。
 
 - **只扫描，不连接**：代码没有 `connectGatt`、配对或 GATT 命令；用 `ScanFilter.setDeviceAddress()`
-  收广播。Android 12+ 申请 `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT`（后者只用于读取扫描结果里的
-  `BluetoothDevice` 地址，不发起连接）；Android 11 及以下用 legacy Bluetooth + `ACCESS_FINE_LOCATION`。
+  收广播。Android 12+ 只申请 `BLUETOOTH_SCAN`（过滤条件已限定 MAC，不读设备地址、不连接）；
+  Android 11 及以下用 legacy Bluetooth + `ACCESS_FINE_LOCATION`。
 - 权限只在用户点位置遮罩/眼睛、状态是 `needperm` 时申请，不在启动时弹；拒绝会 Toast。
 - 扫描只在首页 + App 前台进行：离开首页 `proximityStop()`，`onPause` 也停止；`onResume` 恢复。
 - RSSI 做 0.6/0.4 平滑；距离按 log-distance（n=2，默认 1m 处 -59dBm）估算，只作量级参考。
