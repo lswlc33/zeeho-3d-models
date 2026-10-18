@@ -14,6 +14,8 @@ public final class MonitorJobService extends JobService {
         new Thread(() -> {
             try {
                 Poller.poll(this);
+                // 胎压不进 60 秒轮询：跟着 15 分钟的兜底任务查一次就够（用户开了提醒才发请求）。
+                Alerts.checkTire(this);
             } catch (Exception e) {
                 Log.w(TAG, "monitor job poll failed", e);
             } finally {

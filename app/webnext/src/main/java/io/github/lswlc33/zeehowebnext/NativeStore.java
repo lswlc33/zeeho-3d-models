@@ -24,9 +24,11 @@ final class NativeStore {
     private static final String K_LAST_PAGE = "last_page_sync";
     private static final String K_LAST_POLL = "last_poll";
     private static final String K_AUTH_FAILED = "auth_failed";
+    private static final String K_AUTH_AT = "auth_failed_at";
 
     private static final String K_SOC = "soc";
     private static final String K_CHARGE = "charge";       // 0 未充 / 1 充电中 / 2 已充满
+    private static final String K_CHARGE_KNOWN = "charge_known"; // 接口是否真的报过充电状态
     private static final String K_POWER = "power";
     private static final String K_VOLTAGE = "voltage";
     private static final String K_VOLTAGE_TEXT = "voltage_text";
@@ -60,13 +62,29 @@ final class NativeStore {
     private static final String K_AUTO_GAP = "auto_gap";
     private static final String K_AUTO_LAST_AT = "auto_last_at";
     private static final String K_AUTO_LAST_RESULT = "auto_last_result";
+    private static final String K_AUTO_TRY = "auto_try";
+
+    /** 可选车况提醒（默认全关，用户在任务面板里逐项打开）。 */
+    private static final String K_ALERT_LOW = "alert_low";
+    private static final String K_ALERT_OFFLINE = "alert_offline";
+    private static final String K_ALERT_TIRE = "alert_tire";
+    private static final String K_LOW_NOTIFIED = "low_notified";
+    private static final String K_TIRE_NOTIFIED = "tire_notified";
 
     private static final String K_SECRET = "shortcut_secret";
+
+    /** 方案 3：VPN 自动抓取（只存最近一次结果，页面取走后清掉）。 */
+    private static final String K_CAPTURE_STATE = "capture_state";
+    private static final String K_CAPTURE_TOKEN = "capture_token";
+    private static final String K_CAPTURE_UID = "capture_uid";
+    private static final String K_CAPTURE_ERROR = "capture_error";
+    private static final String K_CAPTURE_AT = "capture_at";
 
     /** 车辆摘要。字段 -1 / 空串表示未知。 */
     static final class Status {
         int soc = -1;
         int charge = 0;
+        boolean chargeKnown = false;
         int power = -1;
         int voltage = -1;
         int current = -1;
@@ -87,6 +105,7 @@ final class NativeStore {
         Status copy() {
             Status s = new Status();
             s.soc = soc; s.charge = charge; s.power = power; s.voltage = voltage; s.current = current;
+            s.chargeKnown = chargeKnown;
             s.lock = lock; s.seat = seat; s.online = online; s.noRead = noRead;
             s.fullMin = fullMin; s.chargedMin = chargedMin;
             s.eta = eta; s.charged = charged; s.voltageText = voltageText;
@@ -98,7 +117,8 @@ final class NativeStore {
         /** 除 updatedAt 外，其余字段是否与另一份状态完全一致（updatedAt 每轮都变，不能算变化）。 */
         boolean sameData(Status o) {
             return o != null
-                && soc == o.soc && charge == o.charge && power == o.power && voltage == o.voltage
+                && soc == o.soc && charge == o.charge && chargeKnown == o.chargeKnown
+                && power == o.power && voltage == o.voltage
                 && current == o.current && lock == o.lock && seat == o.seat && online == o.online
                 && noRead == o.noRead && fullMin == o.fullMin && chargedMin == o.chargedMin
                 && eq(eta, o.eta) && eq(charged, o.charged) && eq(voltageText, o.voltageText)
@@ -112,7 +132,10 @@ final class NativeStore {
         void apply(JSONObject j) {
             if (j == null) return;
             if (j.has("soc") && !j.isNull("soc")) soc = j.optInt("soc", soc);
-            if (j.has("charging") && !j.isNull("charging")) charge = j.optInt("charging", charge);
+            if (j.has("charging") && !j.isNull("charging")) {
+                charge = j.optInt("charging", charge);
+                chargeKnown = true;
+            }
             if (j.has("power") && !j.isNull("power")) power = j.optInt("power", power);
             if (j.has("voltage") && !j.isNull("voltage")) voltage = j.optInt("voltage", voltage);
             if (j.has("voltageText")) voltageText = j.optString("voltageText", voltageText);
@@ -179,8 +202,61 @@ final class NativeStore {
         return sp(c).getBoolean(K_AUTH_FAILED, false);
     }
 
+    /** 上次判定鉴权失败的时刻：Poller 用它做冷却重试，不能像以前那样一到 true 就永久停摆。 */
+    static long authFailedAt(Context c) {
+        return sp(c).getLong(K_AUTH_AT, 0L);
+    }
+
     static void setAuthFailed(Context c, boolean failed) {
-        sp(c).edit().putBoolean(K_AUTH_FAILED, failed).apply();
+        SharedPreferences.Editor e = sp(c).edit().putBoolean(K_AUTH_FAILED, failed);
+        if (failed) e.putLong(K_AUTH_AT, System.currentTimeMillis());
+        else e.remove(K_AUTH_AT);
+        e.apply();
+    }
+
+    /** 自动抓取状态：idle / vpn / waiting / success / error / denied。开始新一轮时清掉旧结果。 */
+    static void setCaptureState(Context c, String state, String error) {
+        SharedPreferences.Editor e = sp(c).edit()
+            .putString(K_CAPTURE_STATE, safe(state))
+            .putLong(K_CAPTURE_AT, System.currentTimeMillis());
+        if (error == null || error.isEmpty()) e.remove(K_CAPTURE_ERROR);
+        else e.putString(K_CAPTURE_ERROR, safe(error));
+        if (!"success".equals(state)) {
+            e.remove(K_CAPTURE_TOKEN).remove(K_CAPTURE_UID);
+        }
+        e.apply();
+    }
+
+    static void setCaptureSuccess(Context c, String token, String uid) {
+        sp(c).edit()
+            .putString(K_CAPTURE_STATE, "success")
+            .putString(K_CAPTURE_TOKEN, safe(token))
+            .putString(K_CAPTURE_UID, safe(uid))
+            .putLong(K_CAPTURE_AT, System.currentTimeMillis())
+            .remove(K_CAPTURE_ERROR)
+            .apply();
+    }
+
+    static void clearCapture(Context c) {
+        sp(c).edit()
+            .remove(K_CAPTURE_STATE).remove(K_CAPTURE_TOKEN).remove(K_CAPTURE_UID)
+            .remove(K_CAPTURE_ERROR).remove(K_CAPTURE_AT)
+            .apply();
+    }
+
+    /** 给页面轮询的结果；token 只在本地桥里返回，通知/日志不碰它。 */
+    static String captureJson(Context c) {
+        SharedPreferences p = sp(c);
+        JSONObject j = new JSONObject();
+        try {
+            j.put("state", p.getString(K_CAPTURE_STATE, "idle"));
+            j.put("token", p.getString(K_CAPTURE_TOKEN, ""));
+            j.put("uid", p.getString(K_CAPTURE_UID, ""));
+            j.put("error", p.getString(K_CAPTURE_ERROR, ""));
+            j.put("at", p.getLong(K_CAPTURE_AT, 0L));
+        } catch (Exception ignored) {
+        }
+        return j.toString();
     }
 
     /** 网页同步登录态；换了 VIN 或退出登录时把旧车摘要清掉，别让小组件继续显示上一台车。 */
@@ -197,24 +273,27 @@ final class NativeStore {
         if (!oldVin.equals(safe(vin)) || tokenChanged) {
             clearStatus(e);
             e.putBoolean(K_AUTH_FAILED, false);
+            e.remove(K_AUTH_AT);
         }
         e.apply();
     }
 
     static void clearSession(Context c) {
         SharedPreferences.Editor e = sp(c).edit()
-            .remove(K_TOKEN).remove(K_UID).remove(K_VIN).remove(K_NAME).remove(K_AUTH_FAILED);
+            .remove(K_TOKEN).remove(K_UID).remove(K_VIN).remove(K_NAME)
+            .remove(K_AUTH_FAILED).remove(K_AUTH_AT);
         clearStatus(e);
         e.apply();
     }
 
     private static void clearStatus(SharedPreferences.Editor e) {
-        e.remove(K_SOC).remove(K_CHARGE).remove(K_POWER).remove(K_VOLTAGE).remove(K_CURRENT)
+        e.remove(K_SOC).remove(K_CHARGE).remove(K_CHARGE_KNOWN).remove(K_POWER).remove(K_VOLTAGE).remove(K_CURRENT)
             .remove(K_LOCK).remove(K_SEAT).remove(K_ONLINE)
             .remove(K_ETA).remove(K_FULL_MIN).remove(K_VOLTAGE_TEXT)
             .remove(K_CHARGED).remove(K_CHARGED_MIN).remove(K_NOREAD).remove(K_MSG_TITLE)
             .remove(K_MSG_ID).remove(K_MSG_TIME).remove(K_UPDATED)
-            .remove(K_SEEN_NOREAD).remove(K_NOTIFIED_MSG).remove(K_FULL_NOTIFIED).remove(K_STOP_NOTIFIED);
+            .remove(K_SEEN_NOREAD).remove(K_NOTIFIED_MSG).remove(K_FULL_NOTIFIED).remove(K_STOP_NOTIFIED)
+            .remove(K_LOW_NOTIFIED).remove(K_TIRE_NOTIFIED);
     }
 
     static Status status(Context c) {
@@ -222,6 +301,7 @@ final class NativeStore {
         Status s = new Status();
         s.soc = p.getInt(K_SOC, -1);
         s.charge = p.getInt(K_CHARGE, 0);
+        s.chargeKnown = p.getBoolean(K_CHARGE_KNOWN, false);
         s.power = p.getInt(K_POWER, -1);
         s.voltage = p.getInt(K_VOLTAGE, -1);
         s.current = p.getInt(K_CURRENT, -1);
@@ -243,7 +323,8 @@ final class NativeStore {
 
     static void saveStatus(Context c, Status s) {
         sp(c).edit()
-            .putInt(K_SOC, s.soc).putInt(K_CHARGE, s.charge).putInt(K_POWER, s.power)
+            .putInt(K_SOC, s.soc).putInt(K_CHARGE, s.charge).putBoolean(K_CHARGE_KNOWN, s.chargeKnown)
+            .putInt(K_POWER, s.power)
             .putInt(K_VOLTAGE, s.voltage).putInt(K_CURRENT, s.current)
             .putInt(K_LOCK, s.lock).putInt(K_SEAT, s.seat).putInt(K_ONLINE, s.online)
             .putInt(K_NOREAD, s.noRead).putInt(K_FULL_MIN, s.fullMin).putInt(K_CHARGED_MIN, s.chargedMin)
@@ -353,6 +434,51 @@ final class NativeStore {
         sp(c).edit().putLong(K_AUTO_LAST_AT, at).putString(K_AUTO_LAST_RESULT, safe(result)).apply();
     }
 
+    /** 当天自动任务的连续失败次数：失败按 20 分钟退避重试，最多 3 次再排到明天。 */
+    static int autoTry(Context c) {
+        return sp(c).getInt(K_AUTO_TRY, 0);
+    }
+
+    static void setAutoTry(Context c, int n) {
+        sp(c).edit().putInt(K_AUTO_TRY, Math.max(0, n)).apply();
+    }
+
+    static boolean alertLow(Context c) {
+        return sp(c).getBoolean(K_ALERT_LOW, false);
+    }
+
+    static boolean alertOffline(Context c) {
+        return sp(c).getBoolean(K_ALERT_OFFLINE, false);
+    }
+
+    static boolean alertTire(Context c) {
+        return sp(c).getBoolean(K_ALERT_TIRE, false);
+    }
+
+    static void setAlerts(Context c, boolean low, boolean offline, boolean tire) {
+        sp(c).edit()
+            .putBoolean(K_ALERT_LOW, low)
+            .putBoolean(K_ALERT_OFFLINE, offline)
+            .putBoolean(K_ALERT_TIRE, tire)
+            .apply();
+    }
+
+    static boolean lowNotified(Context c) {
+        return sp(c).getBoolean(K_LOW_NOTIFIED, false);
+    }
+
+    static void setLowNotified(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_LOW_NOTIFIED, v).apply();
+    }
+
+    static boolean tireNotified(Context c) {
+        return sp(c).getBoolean(K_TIRE_NOTIFIED, false);
+    }
+
+    static void setTireNotified(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_TIRE_NOTIFIED, v).apply();
+    }
+
     static String autoJson(Context c) {
         JSONObject j = new JSONObject();
         try {
@@ -363,6 +489,9 @@ final class NativeStore {
             j.put("gapMs", autoGap(c));
             j.put("lastAt", autoLastAt(c));
             j.put("lastResult", autoLastResult(c));
+            j.put("alertsLow", alertLow(c));
+            j.put("alertsOffline", alertOffline(c));
+            j.put("alertsTire", alertTire(c));
         } catch (Exception ignored) {
         }
         return j.toString();

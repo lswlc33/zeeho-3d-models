@@ -39,6 +39,13 @@ final class StatusFeed {
 
     static synchronized void apply(Context c, JSONObject j, boolean foreground) {
         NativeStore.Status old = NativeStore.status(c);
+        // 页面同步与后台轮询是两个写者。迟到的旧响应（尤其页面在 IO 队列里排过队）不能把
+        // 新状态倒回去，否则会出现 1→0→1 的假跃迁，进而发"充电已停止"之类的假通知。
+        long at = j.optLong("at", 0);
+        if (at > 0 && old.updatedAt > 0 && at < old.updatedAt) {
+            Log.d(TAG, "skip stale status at=" + at + " old=" + old.updatedAt);
+            return;
+        }
         NativeStore.Status s = old.copy();
         s.apply(j);
         if (s.updatedAt <= 0) s.updatedAt = System.currentTimeMillis();
@@ -50,8 +57,13 @@ final class StatusFeed {
         // 车机/接口在 100% 时经常还会短暂报 charging=1；只要到 100% 就按"已充满"处理，
         // 否则进度通知会一直挂着。掉到 100% 且刚断开（old=1）也归到充满，而不是"中途停止"。
         if (s.soc >= 100) {
-            if (s.charge == 1) s.charge = 2;
-            else if (s.charge == 0 && old.charge == 1) s.charge = 2;
+            if (s.charge == 1) {
+                s.charge = 2;
+                s.chargeKnown = true;
+            } else if (s.charge == 0 && old.charge == 1) {
+                s.charge = 2;
+                s.chargeKnown = true;
+            }
         }
         // 后台 60 秒一轮，绝大多数轮次车况是同一个数。以前每轮都 saveStatus + updateAll：
         // 整份 SharedPreferences 重写一遍，还要让桌面进程重绘三套 RemoteViews 并重新解码车图
@@ -86,8 +98,9 @@ final class StatusFeed {
                 boolean fresh = s.noRead > seen
                     || (!s.msgId.isEmpty() && !s.msgId.equals(notified));
                 if (fresh) {
-                    Notify.message(c, s);
-                    NativeStore.setSeen(c, s.noRead, s.msgId);
+                    // 只有通知真的发出去才记"已提醒"：权限被关/渠道被静音时不要假装提醒过，
+                    // 否则用户过两天打开权限，那条消息永远不会再出现。
+                    if (Notify.message(c, s)) NativeStore.setSeen(c, s.noRead, s.msgId);
                 }
             }
         }
@@ -116,8 +129,7 @@ final class StatusFeed {
             Notify.cancelChargeProgress(c);
             Notify.cancelChargeStop(c);
             if (!NativeStore.fullNotified(c)) {
-                Notify.chargeFull(c, s);
-                NativeStore.setFullNotified(c, true);
+                if (Notify.chargeFull(c, s)) NativeStore.setFullNotified(c, true);
             }
         } else if (s.charge == 1) {
             NativeStore.setFullNotified(c, false);
@@ -135,14 +147,16 @@ final class StatusFeed {
             // 未充满就断开：和「已充满」分开一条通知；已经提示过充满就不再补"停止"。
             Notify.cancelChargeProgress(c);
             if (!NativeStore.fullNotified(c) && !NativeStore.stopNotified(c)) {
-                Notify.chargeStopped(c, s);
-                NativeStore.setStopNotified(c, true);
+                if (Notify.chargeStopped(c, s)) NativeStore.setStopNotified(c, true);
             }
             NativeStore.setFullNotified(c, false);
         } else {
             // 服务重启/旧进度通知残留：非充电状态下无条件收掉进度条。
             Notify.cancelChargeProgress(c);
         }
+
+        // 可选提醒放最后：低电量/离线看的是 old→s 的跃迁，不受上面充电通知开关影响。
+        Alerts.checkStatus(c, s, old, foreground);
     }
 
     /**
@@ -152,13 +166,15 @@ final class StatusFeed {
     static synchronized void reconcileBackground(Context c) {
         NativeStore.Status s = NativeStore.status(c);
         boolean widget = WidgetProviders.anyBound(c);
-        if (s.soc >= 100 && s.charge == 1) s.charge = 2;
+        if (s.soc >= 100 && s.charge == 1) {
+            s.charge = 2;
+            s.chargeKnown = true;
+        }
         if (s.noRead > 0 && NativeStore.messagesEnabled(c)) {
             int seen = NativeStore.seenNoRead(c);
             String notified = NativeStore.notifiedMsgId(c);
             if (s.noRead > seen || (!s.msgId.isEmpty() && !s.msgId.equals(notified))) {
-                Notify.message(c, s);
-                NativeStore.setSeen(c, s.noRead, s.msgId);
+                if (Notify.message(c, s)) NativeStore.setSeen(c, s.noRead, s.msgId);
             }
         }
         if (NativeStore.chargingEnabled(c) && s.charge == 1) {
@@ -166,8 +182,7 @@ final class StatusFeed {
             else Notify.chargeProgress(c, s);
         } else if (NativeStore.chargingEnabled(c) && s.charge == 2) {
             if (!NativeStore.fullNotified(c)) {
-                Notify.chargeFull(c, s);
-                NativeStore.setFullNotified(c, true);
+                if (Notify.chargeFull(c, s)) NativeStore.setFullNotified(c, true);
             }
             Notify.cancelChargeProgress(c);
         } else {

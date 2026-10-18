@@ -202,7 +202,10 @@ final class UpdateChecker {
         pd.setTitle(R.string.update_downloading);
         pd.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         pd.setIndeterminate(true);
-        pd.setCancelable(false);
+        // 慢网/镜像卡住时不能把用户锁在对话框里（以前 setCancelable(false)）。
+        final boolean[] canceled = { false };
+        pd.setCancelable(true);
+        pd.setOnCancelListener(d -> canceled[0] = true);
         pd.show();
 
         new Thread(() -> {
@@ -231,6 +234,7 @@ final class UpdateChecker {
                     byte[] buf = new byte[16 * 1024];
                     int n;
                     while ((n = in.read(buf)) > 0) {
+                        if (canceled[0]) throw new Exception("cancelled");
                         out.write(buf, 0, n);
                         done += n;
                         if (done > 30L * 1024 * 1024) throw new Exception("安装包异常大");
@@ -248,6 +252,7 @@ final class UpdateChecker {
                     }
                     out.flush();
                 }
+                if (canceled[0]) throw new Exception("cancelled");
                 if (!part.renameTo(apk)) throw new Exception("保存安装包失败");
                 String verify = verify(activity, apk);
                 if (verify != null) {
@@ -267,6 +272,12 @@ final class UpdateChecker {
                 } catch (Exception ignored) {
                 }
                 downloading = false;
+                if (canceled[0]) {
+                    // 用户主动取消：不弹失败框，也不留半截包。
+                    part.delete();
+                    apk.delete();
+                    return;
+                }
                 if (error != null) {
                     // 用户点了「立即更新」后可能已经退出：对已销毁的 Activity show() 会抛
                     // WindowManager.BadTokenException。这里和 showDialog 用同一套存活检查。
@@ -284,6 +295,12 @@ final class UpdateChecker {
                         Log.w(TAG, "show update error dialog failed", e);
                     }
                 } else {
+                    // 下载完成后页面可能已经被销毁：别在死 Activity 上拉安装器；
+                    // 留下的 apk 会在下次进程启动的检查里被清掉/重下（见 README）。
+                    if (activity.isFinishing()
+                        || (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) {
+                        return;
+                    }
                     install(activity, apk);
                 }
             });

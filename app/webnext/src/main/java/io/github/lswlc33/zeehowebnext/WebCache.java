@@ -383,8 +383,10 @@ final class WebCache {
                 indexBytes = total[0];
                 String html = readAll(out);
                 String metaBuild = parseBuildMeta(html);
-                if (html.length() > 100_000 && html.contains("<title>极核面板</title>")
-                    && build.equals(metaBuild)) {
+                // 以前还要求 `<title>极核面板</title>` 精确匹配：网页一改标题，新装用户就永久
+                // "页面校验失败"。真正的版本凭据是 build meta（version.json 与页面里那份对上了）；
+                // 再留一个长度下限挡住网关/错误页就够了。
+                if (html.length() > 100_000 && build.equals(metaBuild)) {
                     break;
                 }
                 out.delete();

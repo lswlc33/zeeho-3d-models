@@ -10,6 +10,7 @@ import android.util.Log;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 前台常驻同步服务：页面打开时由 ZeehoShell 启动，60 秒一轮车况/消息。
@@ -24,21 +25,33 @@ public final class MonitorService extends Service {
     private static final String ACTION_START = "io.github.lswlc33.zeehowebnext.MONITOR_START";
     private static final String ACTION_STOP = "io.github.lswlc33.zeehowebnext.MONITOR_STOP";
     private static final long TICK_MS = 60_000L;
+    /** 给「后台自检」用：前台服务是否真的活着。 */
+    private static volatile boolean running;
+
+    static boolean isRunning() {
+        return running;
+    }
 
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final AtomicBoolean inFlight = new AtomicBoolean();
     private ExecutorService io;
 
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
             if (io == null || io.isShutdown()) return;
-            io.execute(() -> {
-                try {
-                    Poller.poll(MonitorService.this);
-                } catch (Exception e) {
-                    Log.w(TAG, "monitor poll failed", e);
-                }
-            });
+            // 上一轮还没回来就跳过这一拍：三个接口最坏各 25 秒，60 秒的 tick 会越堆越多。
+            if (inFlight.compareAndSet(false, true)) {
+                io.execute(() -> {
+                    try {
+                        Poller.poll(MonitorService.this);
+                    } catch (Exception e) {
+                        Log.w(TAG, "monitor poll failed", e);
+                    } finally {
+                        inFlight.set(false);
+                    }
+                });
+            }
             main.postDelayed(this, TICK_MS);
         }
     };
@@ -84,6 +97,7 @@ public final class MonitorService extends Service {
             return START_NOT_STICKY;
         }
         startForeground(Notify.ID_SERVICE, Notify.service(this));
+        running = true;
         main.removeCallbacks(tick);
         main.post(tick);
         return START_STICKY;
@@ -103,6 +117,7 @@ public final class MonitorService extends Service {
 
     @Override
     public void onDestroy() {
+        running = false;
         main.removeCallbacks(tick);
         if (io != null) io.shutdownNow();
         BatteryHistory.flush(this);

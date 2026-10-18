@@ -1,120 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  2x2：固定 110x110dp 的设计基准，内容全部用权重/单行省略适配不同桌面的格子尺寸。
+  车图是透明 PNG，直接铺在卡片上（不要 stage/背景板）。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/widget_card"
     android:orientation="vertical"
-    android:padding="14dp"
-    android:background="@drawable/widget_card">
+    android:padding="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
+
         <TextView
             android:id="@+id/w_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:singleLine="true"
             android:ellipsize="end"
+            android:singleLine="true"
             android:text="@string/widget_title"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-</LinearLayout>
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/w_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:text=""
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="8sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="2dp"
+        android:layout_weight="1"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:gravity="bottom"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/w_soc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_soc_unknown"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="30sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginBottom="3dp"
+                    android:text="%"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/w_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="4dp"
+                android:progressBackgroundTint="@color/widget_line"
+                android:progressTint="@color/widget_accent" />
+
+            <TextView
+                android:id="@+id/w_charge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="@string/widget_no_data"
+                android:textColor="@color/widget_accent"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/w_sub"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="8sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/w_car_box"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_weight="0.8">
+
+            <ImageView
+                android:id="@+id/w_car"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/widget_title"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:baselineAligned="false"
-        android:gravity="bottom"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView
-            android:id="@+id/w_soc"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:includeFontPadding="false"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/widget_soc_unknown"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="38sp" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="1dp"
-            android:layout_marginBottom="5dp"
-            android:text="%"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/w_voltage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="5dp"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:singleLine="true"
-            android:text=""
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="9sp" />
-    </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/w_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="5dp"
-        android:progressBackgroundTint="@color/widget_line"
-        android:progressTint="@color/widget_accent" />
-
-    <TextView
-        android:id="@+id/w_charge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:singleLine="true"
-        android:text="@string/widget_no_data"
-        android:textColor="@color/widget_accent"
-        android:textSize="10sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/w_sub"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
-        android:singleLine="true"
-        android:ellipsize="end"
-        android:text=""
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="8sp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:orientation="horizontal">
         <TextView
             android:id="@+id/w_lock"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:ellipsize="end"
             android:singleLine="true"
             android:text=""
             android:textColor="@color/widget_text_secondary"
             android:textSize="8sp" />
+
         <TextView
-            android:id="@+id/w_updated"
+            android:id="@+id/w_voltage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:ellipsize="end"
             android:singleLine="true"
             android:text=""
             android:textColor="@color/widget_text_secondary"

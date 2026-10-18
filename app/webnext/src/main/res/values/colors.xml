@@ -19,7 +19,6 @@
     <color name="widget_text_secondary">#FF5F6B7A</color>
     <color name="widget_chip_bg">#FFFFFFFF</color>
     <color name="widget_action_bg">#FFFFFFFF</color>
-    <color name="widget_stage_bg">#FFE7EDF8</color>
     <color name="widget_line">#FFE2E8F2</color>
     <color name="widget_icon">#FF2F7BF6</color>
     <color name="widget_accent">#FF2F7BF6</color>

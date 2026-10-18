@@ -28,6 +28,11 @@ final class Notify {
     static final int ID_ACTION = 1006;
     static final int ID_AUTH = 1007;
     static final int ID_STOP = 1008;
+    static final int ID_LOW = 1009;
+    static final int ID_OFFLINE = 1010;
+    static final int ID_TIRE = 1011;
+    static final int ID_CAPTURE_WAIT = 1012;
+    static final int ID_CAPTURE_DONE = 1013;
 
     static final String CH_SERVICE = "service";
     static final String CH_MSG = "messages";
@@ -35,6 +40,9 @@ final class Notify {
     static final String CH_CHARGE_EVENT = "charge_events";
     static final String CH_TASK = "tasks";
     static final String CH_ACTION = "actions";
+    static final String CH_ALERTS = "alerts";
+    static final String CH_CAPTURE_WAIT = "capture_wait";
+    static final String CH_CAPTURE_DONE = "capture_done";
 
     private Notify() {
     }
@@ -55,6 +63,12 @@ final class Notify {
             c.getString(R.string.channel_tasks_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
         channel(nm, CH_ACTION, c.getString(R.string.channel_actions),
             c.getString(R.string.channel_actions_desc), NotificationManager.IMPORTANCE_LOW, false);
+        channel(nm, CH_ALERTS, c.getString(R.string.channel_alerts),
+            c.getString(R.string.channel_alerts_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
+        channel(nm, CH_CAPTURE_WAIT, c.getString(R.string.channel_capture_wait),
+            c.getString(R.string.channel_capture_wait_desc), NotificationManager.IMPORTANCE_LOW, false);
+        channel(nm, CH_CAPTURE_DONE, c.getString(R.string.channel_capture_done),
+            c.getString(R.string.channel_capture_done_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
     }
 
     private static void channel(NotificationManager nm, String id, String name, String desc,
@@ -88,8 +102,8 @@ final class Notify {
             .build();
     }
 
-    static void message(Context c, NativeStore.Status s) {
-        if (!allowed(c) || s.noRead <= 0) return;
+    static boolean message(Context c, NativeStore.Status s) {
+        if (!allowed(c) || s.noRead <= 0) return false;
         String title = s.msgTitle == null || s.msgTitle.isEmpty()
             ? c.getString(R.string.notify_message_title) : s.msgTitle;
         String text = c.getString(R.string.notify_message_text, s.noRead, title);
@@ -103,7 +117,7 @@ final class Notify {
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setWhen(s.updatedAt > 0 ? s.updatedAt : System.currentTimeMillis());
-        notify(c, ID_MSG, b.build());
+        return notify(c, ID_MSG, b.build());
     }
 
     static void cancelMessage(Context c) {
@@ -152,8 +166,8 @@ final class Notify {
         notify(c, ID_CHARGE, b.build());
     }
 
-    static void chargeFull(Context c, NativeStore.Status s) {
-        if (!allowed(c)) return;
+    static boolean chargeFull(Context c, NativeStore.Status s) {
+        if (!allowed(c)) return false;
         Notification.Builder b = base(c, CH_CHARGE_EVENT, R.string.notify_charge_full_title, 0)
             .setContentTitle(c.getString(R.string.notify_charge_full_title))
             .setContentText(s.soc >= 0
@@ -163,12 +177,12 @@ final class Notify {
             .setCategory(Notification.CATEGORY_STATUS)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(false);
-        notify(c, ID_FULL, b.build());
+        return notify(c, ID_FULL, b.build());
     }
 
     /** 充电中途结束（未充满）：和「已充满」分开一条通知，避免用户以为已经充满。 */
-    static void chargeStopped(Context c, NativeStore.Status s) {
-        if (!allowed(c)) return;
+    static boolean chargeStopped(Context c, NativeStore.Status s) {
+        if (!allowed(c)) return false;
         Notification.Builder b = base(c, CH_CHARGE_EVENT, R.string.notify_charge_stop_title, 0)
             .setContentTitle(c.getString(R.string.notify_charge_stop_title))
             .setContentText(s.soc >= 0
@@ -178,7 +192,91 @@ final class Notify {
             .setCategory(Notification.CATEGORY_STATUS)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(false);
-        notify(c, ID_STOP, b.build());
+        return notify(c, ID_STOP, b.build());
+    }
+
+    /** 低电量（默认关闭，用户自己开）：同一次放电只提醒一次，充电或回到 25% 以上后复位。 */
+    static boolean lowBattery(Context c, NativeStore.Status s) {
+        if (!allowed(c) || s.soc < 0) return false;
+        Notification.Builder b = base(c, CH_ALERTS, R.string.notify_low_title, 0)
+            .setContentTitle(c.getString(R.string.notify_low_title))
+            .setContentText(c.getString(R.string.notify_low_text, s.soc))
+            .setAutoCancel(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC);
+        return notify(c, ID_LOW, b.build());
+    }
+
+    /** 在线 → 离线的那一次跃迁（默认关闭）。 */
+    static boolean offline(Context c, NativeStore.Status s) {
+        if (!allowed(c)) return false;
+        Notification.Builder b = base(c, CH_ALERTS, R.string.notify_offline_title, 0)
+            .setContentTitle(c.getString(R.string.notify_offline_title))
+            .setContentText(c.getString(R.string.notify_offline_text,
+                NativeStore.name(c).isEmpty() ? c.getString(R.string.app_name) : NativeStore.name(c)))
+            .setAutoCancel(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC);
+        return notify(c, ID_OFFLINE, b.build());
+    }
+
+    /** 胎压异常（默认关闭，15 分钟兜底任务里检查）。 */
+    static boolean tire(Context c, String pos, double bar, int warn) {
+        if (!allowed(c)) return false;
+        String value = String.format(Locale.CHINA, "%.1f", bar);
+        Notification.Builder b = base(c, CH_ALERTS, R.string.notify_tire_title, 0)
+            .setContentTitle(c.getString(R.string.notify_tire_title))
+            .setContentText(c.getString(R.string.notify_tire_text, pos, value,
+                c.getString(warn > 0 ? R.string.tire_reason_warn : R.string.tire_reason_low)))
+            .setAutoCancel(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC);
+        return notify(c, ID_TIRE, b.build());
+    }
+
+    /** 自动抓取的常驻“等待中”通知（前台服务用，不响铃）。 */
+    static Notification captureWaiting(Context c) {
+        Notification.Builder b = base(c, CH_CAPTURE_WAIT, R.string.capture_wait_title, 0)
+            .setContentTitle(c.getString(R.string.capture_wait_title))
+            .setContentText(c.getString(R.string.capture_wait_text))
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(Notification.PRIORITY_MIN)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setShowWhen(false);
+        return b.build();
+    }
+
+    static void captureSuccess(Context c, String uid) {
+        if (!allowed(c)) return;
+        String masked = uid == null ? "" : uid.trim();
+        if (masked.length() > 10) masked = masked.substring(0, 8) + "…";
+        String text = masked.isEmpty()
+            ? c.getString(R.string.capture_success_text_unknown)
+            : c.getString(R.string.capture_success_text, masked);
+        Notification.Builder b = base(c, CH_CAPTURE_DONE, R.string.capture_success_title, 0)
+            .setContentTitle(c.getString(R.string.capture_success_title))
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(false)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PRIVATE);
+        notify(c, ID_CAPTURE_DONE, b.build());
+    }
+
+    static void captureFailed(Context c, String message) {
+        if (!allowed(c)) return;
+        String text = message == null || message.isEmpty()
+            ? c.getString(R.string.capture_failed_text) : message;
+        Notification.Builder b = base(c, CH_CAPTURE_DONE, R.string.capture_failed_title, 0)
+            .setContentTitle(c.getString(R.string.capture_failed_title))
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(false)
+            .setCategory(Notification.CATEGORY_ERROR);
+        notify(c, ID_CAPTURE_DONE, b.build());
     }
 
     static void cancelChargeProgress(Context c) {
@@ -286,14 +384,15 @@ final class Notify {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static void notify(Context c, int id, Notification n) {
+    private static boolean notify(Context c, int id, Notification n) {
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm != null) {
-            try {
-                nm.notify(id, n);
-            } catch (SecurityException ignored) {
-                // 没给通知权限：后台照常跑，用户开权限后下次事件会补上
-            }
+        if (nm == null) return false;
+        try {
+            nm.notify(id, n);
+            return true;
+        } catch (SecurityException ignored) {
+            // 没给通知权限：后台照常跑，用户开权限后下次事件会补上
+            return false;
         }
     }
 

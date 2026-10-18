@@ -3,6 +3,9 @@ package io.github.lswlc33.zeehowebnext;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 
 /**
  * 微件上的「刷新」按钮。
@@ -16,7 +19,29 @@ public final class WidgetRefreshReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent intent) {
         if (intent == null || !BaseWidget.ACTION_REFRESH.equals(intent.getAction())) return;
-        MonitorService.start(c);
-        WidgetProviders.updateAll(c);
+        final Context app = c.getApplicationContext();
+        if (NativeStore.token(app).isEmpty() || NativeStore.vin(app).isEmpty()) {
+            toast(app, R.string.widget_refresh_no_token);
+            return;
+        }
+        // 以前只调 MonitorService.start：后台同步关着/登录失效时它直接 return，按钮点下去毫无反应。
+        // 现在无论开关状态都真打一次接口；后台同步没开时顺带告诉用户这只是手动的一次。
+        if (!NativeStore.backgroundEnabled(app)) toast(app, R.string.widget_refresh_manual);
+        MonitorService.start(app);
+        new Thread(() -> {
+            try {
+                Poller.pollNow(app);
+            } finally {
+                WidgetProviders.updateAll(app);
+            }
+        }, "widget-refresh").start();
+    }
+
+    private static void toast(Context c, int res) {
+        try {
+            new Handler(Looper.getMainLooper()).post(() ->
+                Toast.makeText(c, res, Toast.LENGTH_SHORT).show());
+        } catch (Exception ignored) {
+        }
     }
 }

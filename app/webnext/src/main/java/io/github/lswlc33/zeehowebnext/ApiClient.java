@@ -78,6 +78,14 @@ final class ApiClient {
         return call("GET", "/v1.0/app/cfmotoserverapp/batteryInfo/" + vin, null, null);
     }
 
+    /** 胎压（只在 15 分钟兜底任务里查一次，不进 60 秒轮询）。 */
+    Result tireMonitor(String vin) {
+        Map<String, String> q = new TreeMap<>();
+        q.put("sensorType", "EXTERNAL");
+        q.put("vinNo", vin);
+        return call("GET", "/v1.0/app/cfmotoserverapp/app/vehicle/tire/monitoring", q, null);
+    }
+
     Result msgList(String uid, int pageSize) {
         Map<String, String> q = new TreeMap<>();
         q.put("messageKind", "3");
@@ -314,7 +322,10 @@ final class ApiClient {
         } else {
             r.message = http >= 200 && http < 300 ? "响应不是 JSON" : "HTTP " + http;
         }
-        r.auth = http == 401 || isAuthText(r.code + " " + r.message + " " + r.raw);
+        // 鉴权失败只认两种情况：HTTP 401，或**失败响应**里的明确文案。
+        // 以前这里把 raw 正文（含 data 里的消息标题/内容）一起做子串匹配，而且成功响应也算——
+        // 一条正文写着"您的账号在别处登录，请重新登录"的普通消息，就能把后台轮询永久锁死。
+        r.auth = http == 401 || (!r.ok && isAuthText(r.code + " " + r.message));
         return r;
     }
 

@@ -53,6 +53,28 @@ final class AutoTaskScheduler {
         if (js != null) js.cancel(JOB);
     }
 
+    /**
+     * 失败后的短延迟重试（默认 20 分钟）。不能直接排到明天：断网/服务端抖动一次
+     * 就会丢掉当天签到；也不能让系统的 onStopJob 重试和这里的 schedule 互相 cancel。
+     */
+    static void scheduleRetry(Context c, long delayMs) {
+        JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if (js == null) return;
+        js.cancel(JOB);
+        if (!NativeStore.autoEnabled(c)) return;
+        JobInfo job = new JobInfo.Builder(JOB, new ComponentName(c, AutoTaskJobService.class))
+            .setMinimumLatency(Math.max(60_000L, delayMs))
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setPersisted(true)
+            .build();
+        try {
+            int r = js.schedule(job);
+            Log.i(TAG, "auto retry in " + (delayMs / 60_000L) + " min, result=" + r);
+        } catch (Exception e) {
+            Log.w(TAG, "auto retry schedule failed", e);
+        }
+    }
+
     /** 下一次 HH:mm 的毫秒延迟；今天已过就排到明天。 */
     static long nextDelay(String hhmm) {
         int h = 9, m = 0;

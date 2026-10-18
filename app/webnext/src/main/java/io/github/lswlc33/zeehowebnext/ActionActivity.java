@@ -139,7 +139,8 @@ public final class ActionActivity extends Activity {
 
     private void openMain() {
         startActivity(new Intent(this, MainActivity.class)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     private int dp(int v) {

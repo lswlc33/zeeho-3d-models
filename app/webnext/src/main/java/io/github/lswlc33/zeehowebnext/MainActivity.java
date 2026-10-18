@@ -13,12 +13,14 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.net.VpnService;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.TypedValue;
@@ -75,6 +77,7 @@ public final class MainActivity extends Activity {
     private static final long UPDATE_CHECK_GAP_MS = 30000;
     private static final int REQ_LOCATION = 1002;
     private static final int REQ_PROXIMITY = 1003;
+    private static final int REQ_VPN = 1004;
 
     private static final String BACK_JS =
         "(function(){try{"
@@ -120,6 +123,7 @@ public final class MainActivity extends Activity {
     private GeolocationPermissions.Callback pendingGeoCallback;
 
     private View overlay;
+    private View splash;
     private TextView overlayTitle;
     private TextView overlayStatus;
     private TextView overlayDetail;
@@ -131,6 +135,19 @@ public final class MainActivity extends Activity {
     private int lastInsetBottom = -1;
     private int lastInsetLeft = -1;
     private int lastInsetRight = -1;
+    /**
+     * 回到前台后的"杂活"：快捷方式/Job 排程/前台服务/更新检查/BLE。
+     * 这些都不是首帧需要的，放在首帧之后跑，别和 WebView 启动、页面 JS 抢主线程。
+     */
+    private final Runnable backgroundWork = () -> {
+        if (destroyed) return;
+        ShortcutHelper.ensure(this);
+        MonitorScheduler.ensure(this);
+        AutoTaskScheduler.ensure(this);
+        MonitorService.start(this);
+        UpdateChecker.onResume(this);
+        Proximity.resume(this);
+    };
 
     private final Runnable idleTick = new Runnable() {
         @Override
@@ -163,6 +180,9 @@ public final class MainActivity extends Activity {
         setContentView(root);
 
         if (!createWebView()) return;
+        // 冷启动到页面首帧之间（约 300~600ms）原来是一块纯色。放一张极轻的原生启动图，
+        // 首帧就有东西可看；页面 commit 时淡出。真正的数据仍由页面/缓存负责。
+        if (savedInstanceState == null) showSplash();
 
         cache = new WebCache(this, baseUrl);
         bridge = new ShellBridge(this);
@@ -193,12 +213,9 @@ public final class MainActivity extends Activity {
         main.post(idleTick);
         applyBarAppearance(dark);
         AppState.foreground = true;
-        ShortcutHelper.ensure(this);
-        MonitorScheduler.ensure(this);
-        AutoTaskScheduler.ensure(this);
-        MonitorService.start(this);
-        UpdateChecker.onResume(this);
-        Proximity.resume(this);
+        // 首帧优先：这些系统调用（快捷方式、JobScheduler、前台服务、更新检查、BLE）全部后移。
+        main.removeCallbacks(backgroundWork);
+        main.postDelayed(backgroundWork, 350);
         if (pageLoaded) main.postDelayed(() -> UpdateChecker.check(this), 1200);
         if (pageLoaded) scheduleUpdateCheck(1500);
     }
@@ -346,6 +363,90 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_VPN) return;
+        if (resultCode == RESULT_OK) {
+            startCaptureService();
+        } else {
+            NativeStore.setCaptureState(this, "denied", "你拒绝了 VPN 授权");
+            Notify.captureFailed(this, "你拒绝了 VPN 授权");
+        }
+    }
+
+    // ---------------- 方案 3：VPN 自动抓取 ----------------
+
+    /** 页面按钮：先弹系统 VPN 授权，授权后启动 AutoCaptureService。 */
+    void postStartCapture() {
+        main.post(() -> {
+            if (destroyed || isFinishing()) return;
+            NativeStore.setCaptureState(this, "vpn", null);
+            Intent prep = VpnService.prepare(this);
+            if (prep != null) {
+                try {
+                    startActivityForResult(prep, REQ_VPN);
+                    return;
+                } catch (Exception e) {
+                    Log.w(TAG, "vpn permission intent failed", e);
+                    NativeStore.setCaptureState(this, "error", "无法打开 VPN 授权界面");
+                    Notify.captureFailed(this, "无法打开 VPN 授权界面");
+                    return;
+                }
+            }
+            startCaptureService();
+        });
+    }
+
+    private void startCaptureService() {
+        if (getPackageManager().getLaunchIntentForPackage("com.cfmoto") == null) {
+            NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
+            Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
+            return;
+        }
+        NativeStore.setCaptureState(this, "waiting", null);
+        AutoCaptureService.start(this);
+    }
+
+    void postStopCapture() {
+        main.post(() -> AutoCaptureService.stop(this));
+    }
+
+    /** 指引确认后跳到官方 App；VPN 已在后台等待。 */
+    void postLaunchOfficialApp() {
+        main.post(() -> {
+            Intent i = getPackageManager().getLaunchIntentForPackage("com.cfmoto");
+            if (i == null) {
+                NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
+                Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
+                return;
+            }
+            try {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+            } catch (Exception e) {
+                Log.w(TAG, "launch cfmoto failed", e);
+                NativeStore.setCaptureState(this, "error", "无法启动极核 App");
+            }
+        });
+    }
+
+    /** 页面取走抓取结果后清掉，避免下次开屏又弹一次。 */
+    void postClearCapture() {
+        main.post(() -> NativeStore.clearCapture(this));
+    }
+
+    /** 给页面轮询的状态：state/token/uid/error + 官方 App 是否已安装。 */
+    String captureJson() {
+        try {
+            JSONObject j = new JSONObject(NativeStore.captureJson(this));
+            j.put("installed", getPackageManager().getLaunchIntentForPackage("com.cfmoto") != null);
+            return j.toString();
+        } catch (Exception e) {
+            return NativeStore.captureJson(this);
+        }
+    }
+
     /** 网页任务面板的 App 专属设置：自动执行开关/时间/任务参数。 */
     void postSetAutoTask(String json) {
         main.post(() -> {
@@ -356,6 +457,11 @@ public final class MainActivity extends Activity {
                 String content = j.optString("postContent", "开心的一天");
                 boolean delete = j.optBoolean("deleteAfterPost", true);
                 int gap = j.optInt("gapMs", 2000);
+                // 提醒开关跟自动任务同一份 JSON：老页面不带这三个键时保留原值，别把它们重置成 false。
+                NativeStore.setAlerts(this,
+                    j.has("alertsLow") ? j.optBoolean("alertsLow") : NativeStore.alertLow(this),
+                    j.has("alertsOffline") ? j.optBoolean("alertsOffline") : NativeStore.alertOffline(this),
+                    j.has("alertsTire") ? j.optBoolean("alertsTire") : NativeStore.alertTire(this));
                 NativeStore.setAuto(this, enabled, time, content, delete, gap,
                     NativeStore.autoLastResult(this));
                 if (enabled) {
@@ -395,6 +501,14 @@ public final class MainActivity extends Activity {
             } else if ("notifications".equals(kind) && Build.VERSION.SDK_INT >= 26) {
                 i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+            } else if ("battery".equals(kind)) {
+                // 已经加入白名单就打开系统列表（没有标准的"单应用详情"页）；否则直接弹本应用的请求框。
+                if (batteryIgnoring()) {
+                    i = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                } else {
+                    i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName()));
+                }
             } else {
                 i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:" + getPackageName()));
@@ -403,6 +517,15 @@ public final class MainActivity extends Activity {
             try {
                 startActivity(i);
             } catch (Exception e) {
+                if ("battery".equals(kind)) {
+                    try {
+                        startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        return;
+                    } catch (Exception ignored) {
+                        // 继续退到应用详情
+                    }
+                }
                 try {
                     startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.parse("package:" + getPackageName()))
@@ -414,6 +537,59 @@ public final class MainActivity extends Activity {
     }
 
     // ---------------- 提供给 ShellBridge ----------------
+
+    /** 是否已加入电池优化白名单（HyperOS 上后台存活的关键一项）。 */
+    boolean batteryIgnoring() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** 「后台自检」卡的数据：让用户看到后台到底还活着没有，而不是靠微件时间猜。 */
+    String backgroundStatusJson() {
+        JSONObject j = new JSONObject();
+        try {
+            NativeStore.Status s = NativeStore.status(this);
+            j.put("enabled", NativeStore.backgroundEnabled(this));
+            j.put("service", MonitorService.isRunning());
+            j.put("job", MonitorScheduler.isScheduled(this));
+            j.put("notifications", Notify.allowed(this));
+            j.put("batteryIgnoring", batteryIgnoring());
+            j.put("lastPoll", NativeStore.lastPoll(this));
+            j.put("lastPage", NativeStore.lastPageSync(this));
+            j.put("updatedAt", s.updatedAt);
+            j.put("authFailed", NativeStore.authFailed(this));
+            j.put("hasToken", !NativeStore.token(this).isEmpty());
+            j.put("configured", NativeStore.isConfigured(this));
+        } catch (Exception e) {
+            Log.w(TAG, "backgroundStatus failed", e);
+        }
+        return j.toString();
+    }
+
+    /** 页面第一次 render 完成（桥调用，可能在 JavaBridge 线程）：回主线程淡出启动图。 */
+    void postHideSplash() {
+        main.post(() -> {
+            Log.i(TAG, "page ready in " + (SystemClock.elapsedRealtime() - startAt) + "ms");
+            hideSplash();
+        });
+    }
+
+    /** 一键修复后台：重排 15 分钟兜底任务并拉起前台服务（已有实例时只会重开 tick）。 */
+    void postRestartBackground() {
+        main.post(() -> {
+            try {
+                MonitorScheduler.ensure(this);
+                MonitorService.start(this);
+                Toast.makeText(this, R.string.bg_restarted, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Log.w(TAG, "restart background failed", e);
+            }
+        });
+    }
 
     String insetsJson() {
         return "{\"top\":" + insetTop + ",\"bottom\":" + insetBottom
@@ -641,8 +817,13 @@ public final class MainActivity extends Activity {
         try {
             // 等启动时的缓存修剪跑完（最多 400ms）：它必须在 WebView 创建前完成，
             // 否则可能删到 Chromium 正在打开的 HTTP Cache。
+            long t0 = SystemClock.elapsedRealtime();
+            // 一周才扫一次（见 WebViewCache.trimAsync）；绝大多数启动这里立即返回。
             WebViewCache.awaitTrim(400);
+            long t1 = SystemClock.elapsedRealtime();
             webView = new WebView(this);
+            Log.i(TAG, "webview ready: trimWait=" + (t1 - t0) + "ms create="
+                + (SystemClock.elapsedRealtime() - t1) + "ms total=" + (SystemClock.elapsedRealtime() - startAt) + "ms");
         } catch (RuntimeException | LinkageError t) {
             Log.e(TAG, "webview unavailable", t);
             showFatal(getString(R.string.webview_unavailable), false);
@@ -692,7 +873,13 @@ public final class MainActivity extends Activity {
         pageLoaded = false;
         Log.i(TAG, "load page, active=" + (cache == null || cache.active() == null
             ? "none" : cache.active().build));
+        long t = SystemClock.elapsedRealtime();
         webView.loadUrl(baseUrl);
+        // 兜底：旧版页面没有 pageReady 桥，onPageFinished 又可能被外链字体拖到 1s+。
+        // 650ms 后无论如何收掉启动图，最多挡住"本来就要显示的内容"一小会儿。
+        main.postDelayed(this::hideSplash, 650);
+        Log.i(TAG, "loadUrl returned in " + (SystemClock.elapsedRealtime() - t) + "ms, since start="
+            + (SystemClock.elapsedRealtime() - startAt) + "ms");
     }
 
     private void startInitialization() {
@@ -722,7 +909,12 @@ public final class MainActivity extends Activity {
                     main.post(() -> {
                         if (destroyed) return;
                         initRunning = false;
-                        showOverlayError(getString(R.string.init_failed, message));
+                        // 没有可用快照时别把用户钉在"页面校验失败"上：WebCache 在无 active
+                        // 快照时会让请求走网络，直接打开在线版至少还有机会用；真断网时
+                        // WebView 自己的 onReceivedError 会再给一次明确提示与重试。
+                        Log.w(TAG, "cache init failed, fall back to online: " + message);
+                        updateOverlayOpening();
+                        loadPage();
                     });
                 }
             });
@@ -779,9 +971,52 @@ public final class MainActivity extends Activity {
         }));
     }
 
+    // ---------------- 启动图 ----------------
+
+    /**
+     * 极轻的原生启动图：只画图标 + 名称，不做动画、不读网络/缓存。
+     * 目的是把"WebView 还没 commit"的那 300~600ms 从纯色块变成品牌画面；
+     * 页面 commit / 首启遮罩 / 错误页出现时立刻淡出。
+     */
+    private void showSplash() {
+        if (splash != null || destroyed || root == null) return;
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        box.setBackgroundColor(bgColor());
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.mipmap.ic_launcher);
+        int size = dp(76);
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(size, size);
+        ip.bottomMargin = dp(14);
+        box.addView(icon, ip);
+
+        TextView name = new TextView(this);
+        name.setText(R.string.app_name);
+        name.setTextSize(16);
+        name.setTextColor(dark ? 0xFFE6E0E9 : 0xFF1D1B20);
+        name.setGravity(Gravity.CENTER);
+        box.addView(name);
+
+        root.addView(box, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        splash = box;
+    }
+
+    private void hideSplash() {
+        final View s = splash;
+        if (s == null) return;
+        splash = null;
+        s.animate().alpha(0f).setDuration(140).withEndAction(() -> {
+            if (s.getParent() != null) root.removeView(s);
+        }).start();
+    }
+
     // ---------------- 原生遮罩 ----------------
 
     private void showOverlayForInit() {
+        hideSplash();
         ensureOverlay();
         overlayError = false;
         overlay.setAlpha(1f);
@@ -813,6 +1048,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showOverlayError(String message) {
+        hideSplash();
         ensureOverlay();
         overlayError = true;
         overlay.setAlpha(1f);
@@ -826,6 +1062,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showFatal(String message, boolean retry) {
+        hideSplash();
         ensureOverlay();
         overlayError = true;
         overlay.setAlpha(1f);
@@ -1020,11 +1257,38 @@ public final class MainActivity extends Activity {
         }
 
         @Override
+        public void onPageFinished(WebView view, String url) {
+            // 启动图别压到页面已经画出来之后：onPageCommitVisible 在主线程忙时可能晚 300ms+，
+            // 而 load 事件（脚本已执行）通常更早。这里只负责把启动图淡出，错误/首启遮罩另有逻辑。
+            Log.i(TAG, "page finished in " + (SystemClock.elapsedRealtime() - startAt) + "ms");
+            hideSplash();
+        }
+
+        @Override
         public void onPageCommitVisible(WebView view, String url) {
             if (destroyed) return;
             pageLoaded = true;
             lastInteractionAt = SystemClock.elapsedRealtime();
             Log.i(TAG, "page commit in " + (lastInteractionAt - startAt) + "ms");
+            hideSplash();
+            // 首屏性能时间线：DOMContentLoaded / load / FCP / 首数据 mark。留着，改启动链路时对比用。
+            view.evaluateJavascript("(function(){try{var n=(performance.getEntriesByType('navigation')||[])[0]||{};"
+                + "var p=(performance.getEntriesByType('paint')||[]).map(function(x){return x.name+'='+Math.round(x.startTime)});"
+                + "var f=performance.getEntriesByName('zeeho-first-data')[0];"
+                + "return JSON.stringify({dcl:Math.round(n.domContentLoadedEventEnd||0),load:Math.round(n.loadEventEnd||0),"
+                + "paint:p,firstData:f?Math.round(f.startTime):null,now:Math.round(performance.now())});}catch(e){return ''}})()",
+                v -> Log.i(TAG, "page timing " + v));
+            // 首数据通常晚于 FCP：2.5 秒后再取一次 mark，才知道"数据真正上屏"的时刻。
+            main.postDelayed(() -> {
+                if (destroyed || webView == null) return;
+                webView.evaluateJavascript(
+                    "(function(){try{var f=performance.getEntriesByName('zeeho-first-data')[0];"
+                        + "var c=performance.getEntriesByName('zeeho-cached-data')[0];"
+                        + "return JSON.stringify({cached:c?Math.round(c.startTime):null,"
+                        + "firstData:f?Math.round(f.startTime):null,now:Math.round(performance.now())});"
+                        + "}catch(e){return ''}})()",
+                    v -> Log.i(TAG, "page timing late " + v));
+            }, 2500);
             hideOverlay();
             scheduleUpdateCheck(3000);
             main.postDelayed(() -> UpdateChecker.check(MainActivity.this), 3000);

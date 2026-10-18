@@ -154,6 +154,55 @@ final class ShellBridge {
         activity.postOpenSettings(kind);
     }
 
+    /** 后台自检：开关、前台服务、15 分钟任务、通知权限、电池优化、上次同步时间、鉴权状态。 */
+    @JavascriptInterface
+    public String backgroundStatus() {
+        return activity.backgroundStatusJson();
+    }
+
+    /** 一键修复后台：重排兜底任务并拉起前台服务。 */
+    @JavascriptInterface
+    public void restartBackground() {
+        activity.postRestartBackground();
+    }
+
+    // ---------------- 方案 3：VPN 自动抓取 ----------------
+
+    /** 请求 VPN 授权并启动自动抓取；页面轮询 captureStatus() 看进度。 */
+    @JavascriptInterface
+    public void startCapture() {
+        activity.postStartCapture();
+    }
+
+    @JavascriptInterface
+    public void stopCapture() {
+        activity.postStopCapture();
+    }
+
+    /** 指引确认后跳官方极核 App。 */
+    @JavascriptInterface
+    public void launchOfficialApp() {
+        activity.postLaunchOfficialApp();
+    }
+
+    /** {state, token, uid, error, at, installed}。 */
+    @JavascriptInterface
+    public String captureStatus() {
+        return activity.captureJson();
+    }
+
+    /** 页面用掉/放弃抓取结果后清掉。 */
+    @JavascriptInterface
+    public void clearCapture() {
+        activity.postClearCapture();
+    }
+
+    /** 页面第一次 render 完成：原生据此把启动图淡出（比 onPageFinished 早得多）。 */
+    @JavascriptInterface
+    public void pageReady() {
+        activity.postHideSplash();
+    }
+
     private static String safe(String s) {
         return s == null ? "" : s.trim();
     }

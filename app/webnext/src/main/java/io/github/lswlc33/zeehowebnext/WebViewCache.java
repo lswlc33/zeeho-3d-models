@@ -22,6 +22,10 @@ final class WebViewCache {
     private static final String TAG = "ZeehoWebNext";
     private static final long MAX_HTTP_CACHE_BYTES = 32L * 1024 * 1024;
     private static final int MAX_DEPTH = 8;
+    /** 缓存清理最多一周做一次：每次启动都递归 stat 上千个文件，是白花的启动时间。 */
+    private static final long TRIM_INTERVAL_MS = 7 * 24 * 3600_000L;
+    private static final String SP = "webnext";
+    private static final String K_LAST_TRIM = "last_trim_at";
 
     private WebViewCache() {
     }
@@ -31,10 +35,16 @@ final class WebViewCache {
     /**
      * 启动时在后台量缓存（递归 stat 上千个文件，别压在主线程上）。
      * 创建 WebView 前用 awaitTrim() 等一下，尽量维持"先修剪、后创建"的顺序。
+     * 一周内已经量过就直接跳过：正常启动不会再有这个线程，awaitTrim 立即返回。
      */
     static void trimAsync(Context context) {
         if (trimThread != null) return;
         final Context app = context.getApplicationContext();
+        android.content.SharedPreferences sp = app.getSharedPreferences(SP, Context.MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        if (now - sp.getLong(K_LAST_TRIM, 0L) < TRIM_INTERVAL_MS) return;
+        // 先落时间戳：进程中途被杀也不用下周之前反复扫。
+        sp.edit().putLong(K_LAST_TRIM, now).apply();
         Thread t = new Thread(() -> trim(app), "webview-cache-trim");
         trimThread = t;
         t.start();
@@ -53,6 +63,7 @@ final class WebViewCache {
 
     static void trim(Context context) {
         if (context == null) return;
+        long t0 = android.os.SystemClock.elapsedRealtime();
         try {
             File root = new File(context.getCacheDir(), "WebView");
             if (!root.isDirectory()) return;
@@ -65,6 +76,9 @@ final class WebViewCache {
             for (File f : caches) deleteTree(f);
         } catch (Exception e) {
             Log.w(TAG, "trim WebView cache failed", e);
+        } finally {
+            Log.i(TAG, "webview cache scan done in "
+                + (android.os.SystemClock.elapsedRealtime() - t0) + "ms");
         }
     }
 

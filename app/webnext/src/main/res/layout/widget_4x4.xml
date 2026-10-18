@@ -1,62 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  4x4：固定 250x250dp 基准。中间整行用 0dp/weight 吸收高度差异，
+  车图透明、无背景板；左右两列按权重分，不靠固定宽高拼。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/widget_card"
     android:orientation="vertical"
-    android:padding="18dp"
-    android:background="@drawable/widget_card">
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
+
         <TextView
             android:id="@+id/w_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:singleLine="true"
             android:ellipsize="end"
+            android:singleLine="true"
             android:text="@string/widget_title"
             android:textColor="@color/widget_text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
+
         <TextView
             android:id="@+id/w_updated"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
+            android:ellipsize="end"
             android:singleLine="true"
             android:text=""
             android:textColor="@color/widget_text_secondary"
-            android:textSize="8sp" />
+            android:textSize="9sp" />
+
         <TextView
             android:id="@+id/w_refresh"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="5dp"
             android:background="@drawable/widget_btn"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:text="@string/widget_refresh"
             android:textColor="@color/widget_accent"
-            android:textSize="8sp" />
+            android:textSize="9sp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
         android:baselineAligned="false"
         android:orientation="horizontal">
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -66,6 +75,7 @@
                 android:baselineAligned="false"
                 android:gravity="bottom"
                 android:orientation="horizontal">
+
                 <TextView
                     android:id="@+id/w_soc"
                     android:layout_width="wrap_content"
@@ -74,21 +84,25 @@
                     android:includeFontPadding="false"
                     android:text="@string/widget_soc_unknown"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="44sp" />
+                    android:textSize="42sp" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="1dp"
-                    android:layout_marginBottom="5dp"
+                    android:layout_marginBottom="4dp"
                     android:text="%"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
+
                 <TextView
                     android:id="@+id/w_voltage"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="5dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginBottom="4dp"
                     android:layout_weight="1"
+                    android:ellipsize="end"
                     android:gravity="end"
                     android:singleLine="true"
                     android:text=""
@@ -108,34 +122,40 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:baselineAligned="false"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
+
                 <TextView
                     android:id="@+id/w_charge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
                     android:singleLine="true"
                     android:text="@string/widget_no_data"
                     android:textColor="@color/widget_accent"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:textStyle="bold" />
+
                 <TextView
                     android:id="@+id/w_power"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="9dp"
+                    android:layout_marginStart="7dp"
+                    android:ellipsize="end"
                     android:singleLine="true"
                     android:text=""
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:textStyle="bold" />
+
                 <TextView
                     android:id="@+id/w_time"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:ellipsize="end"
                     android:gravity="end"
                     android:singleLine="true"
                     android:text=""
@@ -146,108 +166,124 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
+
                 <TextView
                     android:id="@+id/w_lock"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/widget_chip"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
+                    android:ellipsize="end"
+                    android:paddingStart="7dp"
+                    android:paddingEnd="7dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
                     android:singleLine="true"
                     android:text=""
                     android:textColor="@color/widget_text_primary"
                     android:textSize="9sp" />
+
                 <TextView
                     android:id="@+id/w_seat"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="5dp"
                     android:background="@drawable/widget_chip"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
+                    android:ellipsize="end"
+                    android:paddingStart="7dp"
+                    android:paddingEnd="7dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
                     android:singleLine="true"
                     android:text=""
                     android:textColor="@color/widget_text_primary"
                     android:textSize="9sp" />
-</LinearLayout>
-</LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/w_car_box"
-            android:layout_width="100dp"
-            android:layout_height="112dp"
-            android:layout_marginStart="12dp"
-            android:background="@drawable/widget_stage"
-            android:padding="8dp">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="10dp"
+            android:layout_weight="0.95">
+
             <ImageView
                 android:id="@+id/w_car"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/widget_title" />
+                android:contentDescription="@string/widget_title"
+                android:scaleType="fitCenter" />
         </FrameLayout>
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal">
+
         <TextView
             android:id="@+id/w_btn_unlock"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="34dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:drawableStart="@drawable/ic_widget_unlock"
             android:drawablePadding="3dp"
+            android:ellipsize="end"
             android:gravity="center"
+            android:singleLine="true"
             android:text="@string/widget_action_unlock"
             android:textColor="@color/widget_text_primary"
             android:textSize="9sp" />
+
         <TextView
             android:id="@+id/w_btn_lock"
             android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="7dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:drawableStart="@drawable/ic_widget_lock"
             android:drawablePadding="3dp"
+            android:ellipsize="end"
             android:gravity="center"
+            android:singleLine="true"
             android:text="@string/widget_action_lock"
             android:textColor="@color/widget_text_primary"
             android:textSize="9sp" />
+
         <TextView
             android:id="@+id/w_btn_horn"
             android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="7dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:drawableStart="@drawable/ic_widget_horn"
             android:drawablePadding="3dp"
+            android:ellipsize="end"
             android:gravity="center"
+            android:singleLine="true"
             android:text="@string/widget_action_horn"
             android:textColor="@color/widget_text_primary"
             android:textSize="9sp" />
+
         <TextView
             android:id="@+id/w_btn_seat"
             android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="7dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:drawableStart="@drawable/ic_widget_seat"
             android:drawablePadding="3dp"
+            android:ellipsize="end"
             android:gravity="center"
+            android:singleLine="true"
             android:text="@string/widget_action_seat"
             android:textColor="@color/widget_text_primary"
             android:textSize="9sp" />

@@ -27,15 +27,25 @@ final class WidgetCar {
     private static final int MAX_BYTES = 4 * 1024 * 1024;
     private static final int MAX_H = 280;
     private static final int MAX_W = 420;
+    /** 解码结果按「路径 + mtime + 长度」缓存：三套微件都绑定时，不必每次 bind 都重新解一张 420x280 的 PNG。 */
+    private static Bitmap cached;
+    private static String cachedKey = "";
 
     private WidgetCar() {
     }
 
-    static Bitmap load(Context c, String vin) {
+    static synchronized Bitmap load(Context c, String vin) {
         File f = file(c, vin);
         if (!f.isFile() || f.length() == 0) return null;
+        String key = f.getAbsolutePath() + "@" + f.lastModified() + "#" + f.length();
+        if (cached != null && key.equals(cachedKey)) return cached;
         try {
-            return BitmapFactory.decodeFile(f.getAbsolutePath());
+            Bitmap b = BitmapFactory.decodeFile(f.getAbsolutePath());
+            if (b != null) {
+                cached = b;
+                cachedKey = key;
+            }
+            return b;
         } catch (Exception e) {
             Log.w(TAG, "widget car decode failed", e);
             return null;

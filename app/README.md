@@ -249,10 +249,13 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 | `requestProximity()` / `proximityStop()` | 用户点眼睛/遮罩时申请「附近的设备」权限；离开首页或退后台停止扫描。 |
 | `syncSession(token, uid, vin, name)` | 页面每次加载后把登录态推给原生；换 token/车辆会清旧摘要。token 为空会停后台。 |
 | `syncStatus(json)` | 页面每轮刷新后的车辆摘要（电量/充电/锁/坐垫/在线/功率/消息未读）。原生只读它做通知和小组件，不反向改页面。 |
-| `autoTask()` / `setAutoTask(json)` | 读写 App 专属自动任务（开关、执行时间、发帖文案、间隔、上次结果）。 |
+| `autoTask()` / `setAutoTask(json)` | 读写 App 专属自动任务（开关、执行时间、发帖文案、间隔、上次结果）与三个车况提醒开关（`alertsLow`/`alertsOffline`/`alertsTire`）。 |
 | `background()` / `setBackground(on)` | 读写后台同步开关；关闭会停前台服务、取消 15 分钟兜底任务并清通知。 |
+| `backgroundStatus()` | 后台自检：返回开关/前台服务/15 分钟任务/通知权限/电池优化/上次同步/鉴权状态（JSON）。 |
+| `restartBackground()` | 一键修复后台：重排兜底任务并拉起前台服务。 |
+| `pageReady()` | 页面第一次 `render()` 完成时调用，原生据此淡出启动图（不要用 `onPageFinished`，它会等外链字体 CSS）。 |
 | `requestNotifications()` | 请求 Android 13+ 通知权限（已问过就不再弹）。 |
-| `openSettings(kind)` | 打开通知/自启动/应用详情设置（HyperOS 的自启动入口失败时退回应用详情）。 |
+| `openSettings(kind)` | 打开通知/自启动/**电池优化**/应用详情设置（HyperOS 的自启动入口失败时退回应用详情）。 |
 
 页面侧必须保留这些分支（改 `app.js` 时别删）：
 
@@ -364,6 +367,109 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
 - 自适应图标：`drawable-nodpi/ic_launcher_foreground.png`（原图裁切后的 Z 字标）+
   `ic_launcher_monochrome.png`（单色层），背景 `drawable/ic_launcher_background.xml`。
 - 源图与裁切中间产物在 `app/icon-work/`；改图标时从这里重新导出，别直接改 PNG 后忘了 monochrome。
+
+## 1.5.0：鉴权恢复、提醒与后台自检
+
+这一版修的是几个"会静默坏"的场景，并补上用户能自己看的后台状态：
+
+- **鉴权误判不再永久锁死**：`ApiClient.read()` 只认 HTTP 401 或**失败响应**里的明确文案，
+  不再扫成功响应的 raw 正文（一条正文写着"请重新登录"的普通消息以前能让后台永久停更）。
+  `Poller` 的 `authFailed` 改成 30 分钟冷却重试，任何一条接口成功都会立刻清除；通知只在第一次判定时发。
+- **充电状态未知时不写 `charging=0`**：车况超时、电池也没报状态时，旧代码会把正在充电的车写死，
+  触发假的"充电已停止"。现在只有真的拿到 `chargeState`/`whetherChargeState` 才落盘。
+- **旧响应不覆盖新状态**：`StatusFeed.apply` 丢弃 `at` 早于已存 `updatedAt` 的迟到 payload。
+- **轮询去重**：`Poller` 全局 `RUNNING` + 30 秒最小间隔；`MonitorService` 上一轮没回来就跳过这一拍。
+- **自动任务失败重试**：20 分钟一次、最多 3 次再排到明天；`onStopJob` 让系统接管时不再抢排，
+  避免一次断网丢掉当天签到。
+- **微件**：车图按 mtime 缓存解码（三套微件不再各自解一张 420×280 PNG）；超过 30 分钟显示
+  「MM-dd HH:mm 更新 · 可能已过期」；登录失效直接显示「登录已失效，打开 App」；
+  刷新按钮无论后台开关都会真打一次接口并 Toast 反馈；点微件加 `SINGLE_TOP`，不再重建 Activity/重载页面。
+- **更新流程**：下载框可取消（取消即删半截包），完成/失败前都判 Activity 存活。
+- **首启不再因标题卡死**：快照校验去掉 `<title>极核面板</title>` 精确匹配（保留 build meta + 长度下限）；
+  校验失败时直接打开在线版，而不是把用户钉在"页面校验失败"。
+- **电池优化**：`openSettings('battery')` 走 `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
+  （失败退回系统列表）；页面「后台自检」卡显示是否已加入白名单。
+- **后台自检桥**：`backgroundStatus()` / `restartBackground()`（见上表），页面显示开关/服务/任务/
+  通知/电池优化/上次同步，并给一键重排。
+- **可选车况提醒**（默认全关，任务面板逐项打开）：低电量（≤20% 且未充电，一次放电只提醒一次）、
+  车辆离线（在线→离线跃迁）、胎压异常（15 分钟兜底任务里查，<1.9 bar 或 warningType 非 0）。
+  没做「未锁车」：`headLockState` 是整车开关机，骑行途中就是"未锁"，按它提醒会每次骑车误报。
+- 微件正文最小字号从 8sp 提到 9sp；版本 **1.5.0 / versionCode 16**。
+
+## 1.5.1：开屏性能
+
+真机 Redmi K90、冷启动（`am start -W` + 壳自己的日志）：
+
+- WebView 创建 164~250ms（系统波动，占大头）；`loadUrl` 后 DCL 305~410ms；
+  页面 commit 575~780ms；页面首数据（缓存命中）`cached` mark 238~303ms。
+- 1.5.0 之前同口径：page commit 715ms、DCL 234~867ms、`firstData` 796~1202ms。
+
+改动：
+
+- **启动图**：`MainActivity.showSplash()` 画图标 + 名称，第一帧就有内容；
+  页面第一次 `render()` 调 `ZeehoShell.pageReady()` 淡出（比 `onPageFinished` 早，
+  后者会等 jsDelivr 的字体 CSS）。首启下载遮罩/错误页出现时也会收掉。
+- **前台杂活后移**：`onResume` 里的快捷方式、两个 Job 排程、前台服务、APK 更新检查、
+  BLE 扫描统一挪到 350ms 后（`backgroundWork`）；`Application.onCreate` 里的快捷方式/Job 也改到后台线程。
+- **缓存扫描一周一次**：`WebViewCache.trimAsync` 用 `webnext` prefs 的 `last_trim_at` 做 7 天闸门；
+  绝大多数启动 `awaitTrim()` 立即返回，只有每周那一次最多等 400ms。
+- **快捷方式不重复注册**：`ShortcutHelper.ensure` 用 `版本:secret` 签名 + `getDynamicShortcuts().size()` 判断，
+  同一进程只跑一次；以前 Application 和 onResume 每次启动都重建 4 个 ShortcutInfo 并 binder 写入。
+- **页面侧配套**（V5.96）：上一轮车况缓存先画、快慢两批接口、`pageReady()` 桥；详见网页 README。
+- **性能日志**（保留）：`webview ready: trimWait/create/total`、`loadUrl returned`、
+  `page ready`、`page finished`、`page commit`、`page timing {dcl,load,paint,firstData,cached}`。
+  改启动链路时直接 `adb logcat -s ZeehoWebNext` 对比。
+- **1.5.1 / versionCode 17**。
+
+## 1.5.2：桌面微件重做（2026-10-19）
+
+**尺寸**
+- 只有 2×2、4×2、4×4 三种：`resizeMode="none"`，`maxResizeWidth/Height` 与 `min` 相等，桌面不能拉成别的形状。
+- `res/xml/` 是 API <31 的标准尺寸（110×110 / 250×110 / 250×250dp）；
+  `res/xml-v31/` 覆盖 API 31+。v31 里的 2×2 故意写成 `258×55dp`、4×2 `250×55dp`、4×4 `250×165dp`：
+  Lawnchair 把 minWidth/minHeight 当 **px** 算，标准 110dp 会被它放成 1×3；这组值让它算出 2×2 / 2×2 / 2×4。
+  现代桌面认 `targetCellWidth/Height`（2×2 / 4×2 / 4×4），会盖掉这些 min 值。
+  ⚠️ Lawnchair 的 4 列还受它自己的屏幕宽度算法限制，4×2/4×4 在它上面仍可能显示成 2 列；这是桌面自身的问题，
+  不是 provider 配置能解决的（标准 250dp 也会被算成 2 列，写 546dp 又会被它当成超出屏幕而隐藏）。
+  别再为它改标准值；改之前先看 `dumpsys appwidget` 的 min/resizeMode 和桌面实际 span。
+- **预览**：`previewLayout` 指向静态样例布局（`widget_*_preview.xml`，跟随深/浅色），
+  `previewImage` 指向 `drawable-nodpi`/`drawable-night-nodpi` 的 PNG（老桌面用，不再是 App 图标）。
+- **布局**：所有尺寸都改用 `0dp + weight` 吸收桌面给的宽高差；2×2 也加了车图。
+  车图是 OSS 的透明 PNG，直接铺在卡片上；`widget_stage` 背景板已删除。
+- **数据准确性**：`NativeStore.Status` 新增 `chargeKnown`（页面/Poller 明确报了充电状态才写）；
+  没报过时不再显示"未充电"，而是车锁状态或"状态未知"。电压为 0/`--` 时隐藏；锁/坐垫未知时隐藏对应 chip；
+  微件不再用 `ChargeLog` 历史曲线外推"预计充满"（只显示接口真给的 eta/fullMin/已充时长）。
+  2×2 头部只显示短时间（`HH:mm 更新`，过期显示日期）。
+- **同步/刷新**：数据变化时 `StatusFeed` 重绘三套微件；无变化每 15 分钟补一次时间；开机/覆盖安装、
+  进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
+- **1.5.2 / versionCode 18**。
+
+## 1.5.3：方案 3 · VPN 自动抓取（2026-10-19）
+
+数据调试里新增“方案三、VPN 自动抓取（无需 root）”：点按钮 → 系统 VPN 授权 → 指引 →
+自动打开极核 App；用户在极核里点「我的 → 签到」后，本地代理从
+`https://h5.zeehoev.com/cfmotoservermine/H5/baseInfo` 拿到 token 和 userId，
+写入 NativeStore 并发通知；点通知回到面板，页面弹“使用并刷新”。
+
+实现：
+
+- `AutoCaptureService`（VpnService）：`addAllowedApplication("com.cfmoto")` + 只加一条 dummy 路由，
+  `setHttpProxy(127.0.0.1:<本地端口>)`。只代理极核 App，其他 App 完全不走这个 VPN。
+- `CaptureProxy`：本地 CONNECT 代理；对 `h5.zeehoev.com` 用 `res/raw/zeeho_capture.p12`
+  （自签名，SAN=DNS:h5.zeehoev.com）做 TLS 中间人，其他 HTTPS 盲转发；
+  强制 HTTP/1.1、`Accept-Encoding: identity`，从请求 Authorization 拿 token，
+  从响应 JSON/HTML 里找 userId（兼容 userId/user_id/uid/userNo/memberId）。
+  抓到后立刻停服务；120 秒没抓到就报错。
+- `ShellBridge`：`startCapture()` / `stopCapture()` / `launchOfficialApp()` /
+  `captureStatus()` / `clearCapture()`。状态：idle / vpn / waiting / success / error / denied。
+- 通知：`capture_wait`（LOW，前台服务）+ `capture_done`（DEFAULT，成功/失败）；
+  成功通知只显示打码后的账号 ID，不带 token，点通知回 MainActivity。
+- 页面（V5.97）：数据调试里的方案三区块、VPN 授权后弹指引、启动极核 App、
+  轮询状态、成功后弹“使用并刷新 / 复制 token / 忽略”；冷启动或回前台若已有成功结果也会弹。
+- **前提**：官方 App 对 h5 这条链路不校验系统 CA（用户已验证）。如果它改成校验证书，
+  代理会在握手时报“官方 App 拒绝了本地证书，可能需要安装 CA”，不会静默失败。
+- `autocapture` 的 VPN 需要用户每次授权（Android 会弹系统框）；抓取结束即停 VPN。
+- **1.5.3 / versionCode 19**。
 
 ## 测试
 

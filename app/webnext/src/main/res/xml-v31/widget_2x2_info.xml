@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 固定 2x2：不允许横向/纵向拉伸，避免桌面给出 2x3/3x2 之类形状。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="258dp"
+    android:minHeight="55dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="258dp"
+    android:maxResizeHeight="55dp"
+    android:initialLayout="@layout/widget_2x2"
+    android:previewLayout="@layout/widget_2x2_preview"
+    android:previewImage="@drawable/widget_preview_2x2"
+    android:description="@string/widget_2x2_desc"
+    android:updatePeriodMillis="0"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen" />

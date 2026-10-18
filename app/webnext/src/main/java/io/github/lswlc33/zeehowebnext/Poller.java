@@ -6,6 +6,8 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * 后台轮询：车况 + 电池 + 消息未读。前台页面每 30 秒自己会推一份，这里在前台且刚推过时跳过，
  * 避免同一份数据打两遍接口；退出后台后由服务/定时任务接手。
@@ -14,17 +16,55 @@ final class Poller {
 
     private static final String TAG = "ZeehoWebNext";
     private static final long PAGE_FRESH_MS = 90_000L;
+    /** 同一时刻只允许一轮在跑：前台服务和 15 分钟 Job 可能同时触发，重复打接口只会浪费。 */
+    private static final AtomicBoolean RUNNING = new AtomicBoolean();
+    /** 两轮之间的最小间隔：服务 tick 是 60 秒，Job 兜底是 15 分钟，30 秒足够挡住并发重复。 */
+    private static final long MIN_INTERVAL_MS = 30_000L;
+    /** 鉴权失败后的冷却：到点仍会重试一次，成功就自动恢复（以前一旦置位就永久停摆）。 */
+    private static final long AUTH_RETRY_MS = 30 * 60_000L;
+    private static volatile long lastAttemptAt;
 
     private Poller() {
     }
 
     static void poll(Context context) {
+        long now = System.currentTimeMillis();
+        if (now - lastAttemptAt < MIN_INTERVAL_MS) return;
+        if (!RUNNING.compareAndSet(false, true)) return;
+        lastAttemptAt = now;
+        try {
+            pollOnce(context, false);
+        } finally {
+            RUNNING.set(false);
+        }
+    }
+
+    /**
+     * 手动刷新（微件上的按钮）：绕过 30 秒节流和鉴权冷却，但仍然串行、不排队。
+     * 不依赖后台同步开关/前台服务——用户点的那一下就该真的打一次接口。
+     */
+    static void pollNow(Context context) {
+        if (!RUNNING.compareAndSet(false, true)) return;
+        lastAttemptAt = System.currentTimeMillis();
+        try {
+            pollOnce(context, true);
+        } finally {
+            RUNNING.set(false);
+        }
+    }
+
+    private static void pollOnce(Context context, boolean force) {
         Context c = context.getApplicationContext();
         String token = NativeStore.token(c);
         String vin = NativeStore.vin(c);
         String uid = NativeStore.uid(c);
         if (token.isEmpty() || vin.isEmpty()) return;
-        if (NativeStore.authFailed(c)) return;
+        // 冷却期内不再打网络，但到点必须retry：用同一条 token 重新登录、或上次是误判时，
+        // 这里能自己恢复；不再需要用户去改 token/VIN 才解冻。
+        if (!force && NativeStore.authFailed(c)
+            && System.currentTimeMillis() - NativeStore.authFailedAt(c) < AUTH_RETRY_MS) {
+            return;
+        }
         if (AppState.foreground && System.currentTimeMillis() - NativeStore.lastPageSync(c) < PAGE_FRESH_MS) {
             return;
         }
@@ -97,6 +137,8 @@ final class Poller {
                 current = ApiClient.intOr(b, "current", -1);
                 if (fullMin <= 0) fullMin = ApiClient.fullMinutes(b);
                 if (!chargeKnown) {
+                    boolean hasState = b.has("chargeState") || b.has("whetherChargeState")
+                        || b.has("chargeStateStr");
                     String bc = ApiClient.text(b, "chargeState");
                     if ("2".equals(bc)) charge = 2;
                     else if ("1".equals(bc) || "3".equals(bc)
@@ -106,11 +148,17 @@ final class Poller {
                         if (bt.contains("充满")) charge = 2;
                         else if (bt.contains("充电")) charge = 1;
                     }
+                    // 只有接口真的带了充电状态字段才算"知道"；没带就不能往下写 charging=0
+                    if (hasState) chargeKnown = true;
                 }
             }
-            if (soc >= 100 && charge == 1) charge = 2;
             if (soc >= 0) j.put("soc", soc);
-            j.put("charging", charge);
+            // ⚠️ 只有明确知道充电状态时才写。车况接口超时、电池也没报状态时，charge 仍是初始值 0——
+            // 以前无条件 put，会把正在充电的车写成"未充电"，StatusFeed 看到 1→0 就发假的"充电已停止"。
+            if (chargeKnown) {
+                if (soc >= 100 && charge == 1) charge = 2;
+                j.put("charging", charge);
+            }
             if (voltageText.isEmpty() && voltage >= 0) voltageText = String.valueOf(voltage);
             if (!voltageText.isEmpty()) j.put("voltageText", voltageText);
             if (voltage >= 0 && current != 0) {
@@ -143,6 +191,11 @@ final class Poller {
             }
             j.put("at", System.currentTimeMillis());
 
+            // 只要有一条接口真的成功，就说明 token 是好的（可能是上一次误判，或者用户重新登录了）：
+            // 立刻解除鉴权标记，别让后台继续停摆。
+            if (home.ok || battery.ok || (msg != null && msg.ok)) {
+                NativeStore.setAuthFailed(c, false);
+            }
             NativeStore.setLastPoll(c);
             StatusFeed.apply(c, j, false);
         } catch (Exception e) {
@@ -151,7 +204,9 @@ final class Poller {
     }
 
     private static void failedAuth(Context c) {
+        boolean was = NativeStore.authFailed(c);
         NativeStore.setAuthFailed(c, true);
-        Notify.auth(c);
+        // 冷却重试再次失败不重复弹：一次失效只提醒一次，恢复后（成功轮询）标记会自己清掉。
+        if (!was) Notify.auth(c);
     }
 }

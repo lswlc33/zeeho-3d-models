@@ -50,6 +50,12 @@
     <string name="channel_tasks_desc">每日自动任务的执行结果</string>
     <string name="channel_actions">快捷操作</string>
     <string name="channel_actions_desc">桌面快捷方式与小组件的执行结果</string>
+    <string name="channel_alerts">车况提醒</string>
+    <string name="channel_alerts_desc">低电量、车辆离线、胎压异常（默认关闭，可在任务面板打开）</string>
+    <string name="channel_capture_wait">自动抓取（等待）</string>
+    <string name="channel_capture_wait_desc">显示自动抓取正在等待极核 App</string>
+    <string name="channel_capture_done">自动抓取结果</string>
+    <string name="channel_capture_done_desc">抓到登录信息或抓取失败时提醒</string>
 
     <!-- 后台服务 -->
     <string name="monitor_running">几何面板正在后台同步</string>
@@ -75,6 +81,27 @@
     <string name="notify_charge_stop_text">当前电量 %1$d%% · 充电器已断开</string>
     <string name="notify_charge_stop_text_unknown">充电器已断开</string>
 
+    <!-- 可选车况提醒 -->
+    <string name="notify_low_title">电量偏低</string>
+    <string name="notify_low_text">当前电量 %1$d%%，建议尽快充电</string>
+    <string name="notify_offline_title">车辆离线</string>
+    <string name="notify_offline_text">%1$s 已离线，状态与充电可能停止更新</string>
+    <string name="notify_tire_title">胎压异常</string>
+    <string name="notify_tire_text">%1$s %2$s bar（%3$s），请检查轮胎</string>
+    <string name="tire_front">前轮</string>
+    <string name="tire_rear">后轮</string>
+    <string name="tire_reason_warn">车机报异常</string>
+    <string name="tire_reason_low">低于警戒值</string>
+
+    <!-- 方案 3：自动抓取 -->
+    <string name="capture_wait_title">正在等待极核 App 的登录信息…</string>
+    <string name="capture_wait_text">请打开极核 App，点「我的」并进入签到页</string>
+    <string name="capture_success_title">已抓取登录信息</string>
+    <string name="capture_success_text">账号 ID %1$s · 点此返回几何面板</string>
+    <string name="capture_success_text_unknown">点此返回几何面板</string>
+    <string name="capture_failed_title">自动抓取失败</string>
+    <string name="capture_failed_text">没有抓到登录信息，请重试</string>
+
     <!-- 自动任务 -->
     <string name="notify_task_ok_title">自动任务完成</string>
     <string name="notify_task_fail_title">自动任务失败</string>
@@ -93,9 +120,22 @@
     <string name="widget_2x2_label">几何面板 · 2×2</string>
     <string name="widget_4x2_label">几何面板 · 4×2</string>
     <string name="widget_4x4_label">几何面板 · 4×4</string>
+    <string name="widget_2x2_desc">电量、充电状态与车锁</string>
+    <string name="widget_4x2_desc">电量、充电功率、车锁与坐垫</string>
+    <string name="widget_4x4_desc">完整仪表与快捷车控</string>
     <string name="widget_title">几何面板</string>
     <string name="widget_no_data">打开 App 同步</string>
     <string name="widget_open">打开 App</string>
+    <string name="widget_state_unknown">状态未知</string>
+    <string name="widget_preview_title">极核 AE5i</string>
+    <string name="widget_preview_soc">68</string>
+    <string name="widget_preview_charge">充电中</string>
+    <string name="widget_preview_power">592 W</string>
+    <string name="widget_preview_time">预计 21:40 充满</string>
+    <string name="widget_preview_voltage">82.8 V</string>
+    <string name="widget_preview_lock">已锁车</string>
+    <string name="widget_preview_seat">坐垫已锁</string>
+    <string name="widget_preview_updated">21:40 更新</string>
     <string name="widget_charging">充电中</string>
     <string name="widget_full">已充满</string>
     <string name="widget_idle">未充电</string>
@@ -106,11 +146,17 @@
     <string name="widget_online">在线</string>
     <string name="widget_offline">离线</string>
     <string name="widget_soc_unknown">--</string>
+    <string name="widget_auth_failed">登录已失效，打开 App</string>
     <string name="widget_updated">%1$s 更新</string>
+    <string name="widget_updated_stale">%1$s 更新 · 可能已过期</string>
     <string name="widget_eta">预计 %1$s 充满</string>
     <string name="widget_voltage">电压 %1$s V</string>
     <string name="widget_charged">已充 %1$s</string>
     <string name="widget_refresh">刷新</string>
+    <string name="widget_refresh_no_token">先在 App 里登录，才能刷新</string>
+    <string name="widget_refresh_manual">已手动刷新（后台同步未开启）</string>
+    <string name="widget_refresh_running">正在刷新…</string>
+    <string name="bg_restarted">后台同步已重新拉起</string>
     <string name="widget_action_unlock">解锁</string>
     <string name="widget_action_lock">锁车</string>
     <string name="widget_action_horn">鸣笛</string>

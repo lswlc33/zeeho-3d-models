@@ -25,6 +25,8 @@ public final class BootReceiver extends BroadcastReceiver {
             MonitorScheduler.ensure(context);
             AutoTaskScheduler.ensure(context);
             MonitorService.start(context);
+            // 开机/覆盖安装后先用本地摘要把桌面微件重画一遍，别等下一轮轮询。
+            WidgetProviders.updateAll(context);
         } catch (Exception e) {
             Log.w(TAG, "boot restore failed", e);
         }

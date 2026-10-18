@@ -19,15 +19,31 @@ import java.util.List;
  */
 final class ShortcutHelper {
 
+    /** 快捷方式定义变了就 +1，强制重注册一次。 */
+    private static final int VERSION = 1;
+    private static final String SP = "webnext";
+    private static final String K_SIG = "shortcut_sig";
+    /** 同一进程里 Application 与 onResume 都会调，第二次直接返回。 */
+    private static volatile boolean done;
+
     private ShortcutHelper() {
     }
 
     static void ensure(Context context) {
-        if (Build.VERSION.SDK_INT < 25) return;
+        if (Build.VERSION.SDK_INT < 25 || done) return;
+        done = true;
         Context c = context.getApplicationContext();
         ShortcutManager sm = (ShortcutManager) c.getSystemService(Context.SHORTCUT_SERVICE);
         if (sm == null) return;
         String secret = NativeStore.shortcutSecret(c);
+        android.content.SharedPreferences sp = c.getSharedPreferences(SP, Context.MODE_PRIVATE);
+        String sig = VERSION + ":" + secret;
+        // 快捷方式会一直留在桌面；每次启动重新 setDynamicShortcuts 是一次没必要的 binder + 图标构建。
+        try {
+            if (sig.equals(sp.getString(K_SIG, "")) && sm.getDynamicShortcuts().size() >= 4) return;
+        } catch (Exception ignored) {
+            // 查询失败就继续重设
+        }
         List<ShortcutInfo> list = new ArrayList<>();
         add(c, list, "unlock", R.string.shortcut_unlock, R.drawable.ic_shortcut_unlock, "unlock", secret, 1);
         add(c, list, "lock", R.string.shortcut_lock, R.drawable.ic_shortcut_lock, "lock", secret, 2);
@@ -35,6 +51,7 @@ final class ShortcutHelper {
         add(c, list, "seat", R.string.shortcut_seat, R.drawable.ic_shortcut_seat, "seat", secret, 4);
         try {
             sm.setDynamicShortcuts(list);
+            sp.edit().putString(K_SIG, sig).apply();
         } catch (Exception ignored) {
             // 桌面不支持动态快捷方式 / 被限流：不影响 App 其它功能
         }

@@ -45,4 +45,14 @@ final class MonitorScheduler {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js != null) js.cancel(JOB);
     }
+
+    /** 后台自检用：15 分钟兜底任务是否真的排上了。 */
+    static boolean isScheduled(Context c) {
+        JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        try {
+            return js != null && js.getPendingJob(JOB) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
