@@ -725,7 +725,46 @@ const state = {
   currentPage: 'intro',
   loggedIn: false,
   loginReady: false,
+  // 从面板「投屏」入口带过来的 {token, vin}：有它就不走手机号登录/选车，直接出结果。
+  auto: null,
 };
+
+/**
+ * 面板「投屏」入口的登录态交接。
+ *
+ * 同源（线上/壳）：面板写 sessionStorage，token 不进 URL；
+ * 跨源（本机 Node 服务打开的面板）：面板把 token 放 hash（不发给服务器），这里读完立刻 replaceState 清掉。
+ * 只接受 `?auto=1`，普通打开这个页面还是原来的手机号登录流程。
+ */
+function readAutoHandoff() {
+  const query = new URLSearchParams(location.search);
+  if (query.get('auto') !== '1') return null;
+  let vin = query.get('vin') || '';
+  let token = '';
+  try {
+    const raw = sessionStorage.getItem('zeeho.vi.handoff');
+    if (raw) {
+      sessionStorage.removeItem('zeeho.vi.handoff');
+      const handoff = JSON.parse(raw);
+      if (handoff && handoff.token && Date.now() - Number(handoff.at || 0) < 120000) {
+        token = String(handoff.token);
+        vin = handoff.vin || vin;
+      }
+    }
+  } catch { /* 隐私模式：走 hash/本地 token 兜底 */ }
+  if (!token) {
+    const hash = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : '');
+    token = hash.get('token') || '';
+    vin = hash.get('vin') || vin;
+    if (token) {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch { /* 清不掉也不影响使用 */ }
+    }
+  }
+  if (!token) {
+    try { token = localStorage.getItem('zeeho.token') || ''; } catch { /* 隐私模式 */ }
+  }
+  return token ? { token, vin } : null;
+}
 
 const statusDot = byId('status-dot');
 const statusText = byId('status-text');
@@ -842,9 +881,43 @@ function currentApi() {
   return api;
 }
 
-async function startLogin() {
+/** 自动模式失败/超时：退回普通手机号登录，别把用户卡在隐藏的 iframe 上。 */
+function abandonAuto() {
+  if (!state.auto) return;
+  state.auto = null;
+  loginFrame.hidden = false;
+}
+
+/**
+ * 自动模式：iframe 里的 API 一就绪就把面板带过来的 token 塞进去，跳过登录页。
+ * 返回 true 表示已经接管；false 表示还没就绪（轮询继续）。
+ */
+function completeAutoLogin() {
+  const api = currentApi();
+  if (!api?.call || !state.auto?.token) return false;
+  clearInterval(state.framePoll);
+  state.framePoll = 0;
+  disconnectLoginObserver();
+  state.loginReady = true;
+  api.token = state.auto.token;
+  api.source = 'direct';
+  state.loggedIn = true;
+  installRawResponseSanitizer(api);
+  loginFrame.hidden = true;
+  byId('login-complete').hidden = false;
+  byId('clear-session').hidden = false;
+  byId('start-login').disabled = false;
+  showPage('vehicle');
+  setStatus(2, '正在读取车辆信息', 'working');
+  void continueAfterLogin();
+  return true;
+}
+
+async function startLogin(auto = false) {
   showPage('login');
-  if (state.loggedIn) {
+  // 自动模式是"直接出投屏资料"，别让标题停在"手机号登录"上。
+  if (auto) pageTitle.textContent = '投屏资料';
+  if (state.loggedIn && !auto) {
     loginFrame.hidden = true;
     byId('login-complete').hidden = false;
     byId('start-login').disabled = false;
@@ -852,13 +925,14 @@ async function startLogin() {
   }
 
   byId('login-complete').hidden = true;
-  setStatus(1, '正在准备手机号登录', 'working');
+  setStatus(1, auto ? '正在读取登录信息' : '正在准备手机号登录', 'working');
   setMessage('login-message', '');
   setMessage('frame-message', '正在载入登录页面');
 
   try {
-    loginFrame.hidden = false;
+    loginFrame.hidden = auto;
     if (state.loginReady && currentApi()) {
+      if (auto && completeAutoLogin()) return;
       setStatus(1, '等待手机号登录', 'working');
       watchForLogin();
       return;
@@ -877,6 +951,15 @@ async function startLogin() {
       const bridge = loginDocument.createElement('script');
       bridge.textContent = '(' + installLoginBridge.toString() + ')();';
       loginDocument.head.prepend(bridge);
+      // 自动模式：把 token 种进 iframe 的**内存 localStorage**（bridge 刚把它替换掉），
+      // 让 dashboard 的 API.init 一开始就是 direct 模式——不是等它初始化完再改 source，
+      // 否则会跟 init 的 async 结果抢（它可能把 source 又写回 demo）。
+      if (state.auto?.token) {
+        const seed = loginDocument.createElement('script');
+        seed.textContent = 'try{localStorage.setItem("zeeho.token",'
+          + JSON.stringify(state.auto.token) + ');}catch(e){}';
+        loginDocument.head.insertBefore(seed, bridge.nextSibling);
+      }
       const base = loginDocument.createElement('base');
       base.href = loginUrl.href;
       loginDocument.head.prepend(base);
@@ -886,6 +969,7 @@ async function startLogin() {
       handleFrameLoad();
     }
   } catch {
+    abandonAuto();
     setStatus(1, '登录页面载入失败', 'error');
     setMessage('login-message', '暂时无法打开登录页面，请刷新后重试。', 'error');
     byId('start-login').disabled = false;
@@ -901,15 +985,19 @@ function handleFrameLoad() {
   state.framePoll = window.setInterval(() => {
     attempts += 1;
     try {
-      ensureLoginSheet();
+      // 自动模式不操作登录面板；只有手动登录才需要把 iframe 的表单裁成手机号登录样式。
+      if (!state.auto) ensureLoginSheet();
       const api = currentApi();
       if (!loginFrame.contentWindow?.__vehicleInfoMemoryOnly) {
         clearInterval(state.framePoll);
+        abandonAuto();
         setStatus(1, '当前浏览器无法安全登录', 'error');
         setMessage('frame-message', '当前浏览器无法保护本次登录信息，请换一个浏览器后重试。', 'error');
         byId('start-login').disabled = false;
         return;
       }
+      // 自动模式：API 一就绪就塞 token，不要求登录面板已经渲染出来。
+      if (state.auto?.token && completeAutoLogin()) return;
       const loginDocument = loginFrame.contentDocument;
       const loginPanel = loginDocument?.querySelector('.sheet.show') || loginDocument?.querySelector('.sheet');
       const loginPanelReady = Boolean(loginPanel?.querySelector('#phoneInput') && loginPanel.querySelector('[data-act="sendcode"]'));
@@ -925,12 +1013,14 @@ function handleFrameLoad() {
       }
       if (attempts > 40) {
         clearInterval(state.framePoll);
+        abandonAuto();
         setStatus(1, '登录页面暂时无法打开', 'error');
         setMessage('frame-message', '请重新载入登录页面。', 'error');
         byId('start-login').disabled = false;
       }
     } catch {
       clearInterval(state.framePoll);
+      abandonAuto();
       setStatus(1, '登录页面打开失败', 'error');
       setMessage('frame-message', '请重新载入登录页面。', 'error');
       byId('start-login').disabled = false;
@@ -1091,21 +1181,50 @@ async function loadVehicles() {
   }
 }
 
+/**
+ * 自动模式拿到登录态后的分流：带 VIN 就直接取那台车；没带就拉列表，
+ * 只有一台时也直接取（省掉选车）；多台才停在选车页。
+ */
+async function continueAfterLogin() {
+  if (state.auto?.vin) {
+    await readVehicleByVin(state.auto.vin, '');
+    return;
+  }
+  await loadVehicles();
+  if (state.vehicles.length === 1) {
+    const only = state.vehicles[0];
+    await readVehicleByVin(only.vin, only.label, only);
+  }
+}
+
 async function readVehicle() {
   const selected = vehicleSelect.value === '' ? null : state.vehicles[Number(vehicleSelect.value)];
   if (!selected?.vin) {
     setMessage('vehicle-message', '请先选择车辆');
     return;
   }
+  await readVehicleByVin(selected.vin, selected.label, selected);
+}
 
+async function readVehicleByVin(vin, label, selectedOverride) {
+  // 自动模式没有列表项，用最小对象；车型/名称从 vehicle_home 的详情里取。
+  const selected = selectedOverride || { vin, label: label || vin };
+  const auto = !!state.auto;
   clearExport();
+  if (auto) {
+    // 直接落在结果页：先给一句"正在生成"，避免中间闪一下选车页。
+    showPage('result');
+    setStatus(3, '正在生成投屏资料', 'working');
+    byId('masked-preview').textContent = '正在生成投屏资料…';
+    byId('copy-json').disabled = true;
+  }
   byId('read-vehicle').disabled = true;
   vehicleSelect.disabled = true;
   vehicleOptions.querySelectorAll('input').forEach(input => { input.disabled = true; });
-  setStatus(2, '正在读取车辆信息', 'working');
+  if (!auto) setStatus(2, '正在读取车辆信息', 'working');
   setMessage('vehicle-message', '');
   try {
-    const detail = await apiCall('vehicle_home', { vin: selected.vin });
+    const detail = await apiCall('vehicle_home', { vin });
     const info = buildVehicleInfo(selected, detail || {});
     const code = await serializeVehicleInfo(info);
     state.exportInfo = info;
@@ -1113,9 +1232,12 @@ async function readVehicle() {
     byId('masked-preview').textContent = code;
     showPage('result');
     setStatus(3, '复制信息', 'ready');
+    byId('copy-json').disabled = false;
     setMessage('vehicle-message', '车辆信息已准备好，可以导入投屏 App。', 'success');
   } catch (error) {
     const incomplete = error instanceof VehicleInfoError;
+    if (auto) showPage('vehicle');
+    byId('copy-json').disabled = false;
     setStatus(2, incomplete ? '车辆信息不完整' : '读取车辆信息失败', 'error');
     const message = incomplete
       ? `${error.message} 请重试读取；仍然失败时，请在极核 App 中确认该车辆的信息是否可用。`
@@ -1152,6 +1274,8 @@ function clearSession() {
   byId('read-vehicle').disabled = true;
   state.loggedIn = false;
   state.loginReady = false;
+  state.auto = null;
+  byId('copy-json').disabled = false;
   clearExport();
   loginFrame.removeEventListener('load', handleFrameLoad);
   loginFrame.removeAttribute('srcdoc');
@@ -1166,7 +1290,11 @@ function clearSession() {
   showPage('intro');
 }
 
-byId('start-login').addEventListener('click', () => { void startLogin(); });
+byId('start-login').addEventListener('click', () => {
+  // 用户主动走手机号登录时，放弃自动交接（token 可能已失效，别在后台反复塞）。
+  state.auto = null;
+  void startLogin();
+});
 byId('back-step').addEventListener('click', () => {
   const previousPage = { login: 'intro', vehicle: 'login', result: 'vehicle' }[state.currentPage];
   if (previousPage) showPage(previousPage);
@@ -1187,9 +1315,16 @@ window.addEventListener('pagehide', () => {
   state.exportInfo = null;
   state.exportText = '';
   state.vehicles = [];
+  state.auto = null;
 });
 
-showPage('intro');
+// 面板「投屏」入口带了登录态 → 直接走自动流程；否则还是原来的介绍页 + 手机号登录。
+state.auto = readAutoHandoff();
+if (state.auto) {
+  void startLogin(true);
+} else {
+  showPage('intro');
+}
   </script>
 </body>
 </html>
