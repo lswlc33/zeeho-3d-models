@@ -1,6 +1,6 @@
 {
-  "versionCode": 25,
-  "versionName": "1.5.9",
+  "versionCode": 26,
+  "versionName": "1.5.10",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.9：免 root 抓取流程优化——方案三改成清晰的两步（触发签到页错误 / 粘贴地址），清理旧自动抓取文案；回来自动弹粘贴框，支持读剪贴板；超时提示改为用户可操作的说明。"
+  "notes": "1.5.10：抓取 token 改为独立全屏页——方案二保存下方入口；一次点击同时开代理并打开极核，签到错误页出现后复制地址回来粘贴，确认时关 VPN、验证 token 并刷新。方案三卡片及旧自动抓取文案已移除。"
 }
