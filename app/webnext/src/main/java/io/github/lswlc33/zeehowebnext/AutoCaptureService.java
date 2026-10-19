@@ -41,7 +41,7 @@ public final class AutoCaptureService extends VpnService {
 
     private final Runnable timeout = () ->
         fail("超时：没有抓到登录请求。请确认极核 App 已登录并进入「我的 → 签到」；"
-            + "如果其他工具能抓，它们通常也装了用户 CA（" + proxyStats() + "）");
+            + "conn=0 说明流量没进代理，只有 mitmFail 说明 h5 走了 HTTPS（" + proxyStats() + "）");
 
     static void start(Context c) {
         Intent i = new Intent(c, AutoCaptureService.class).setAction(ACTION_START);

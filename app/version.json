@@ -1,6 +1,6 @@
 {
-  "versionCode": 22,
-  "versionName": "1.5.6",
+  "versionCode": 23,
+  "versionName": "1.5.7",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.6：方案三抓取诊断——新增本机探针日志（连接/明文/CONNECT/MITM/请求头/响应结构，token 不写盘），数据调试里可查看并复制；补齐 Location/Set-Cookie/响应体提取，uid 缺失时也允许先用 token 登录。"
+  "notes": "1.5.7：方案三抓取诊断——本机探针日志（连接/明文/CONNECT/MITM/请求头/响应结构，token 不写盘），数据调试里可查看并复制；回面板不再误停抓取；补齐 Location/Set-Cookie/响应体提取，uid 缺失时也允许先用 token 登录。"
 }
