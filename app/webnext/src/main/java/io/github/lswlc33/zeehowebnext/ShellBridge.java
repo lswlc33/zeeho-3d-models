@@ -179,7 +179,13 @@ final class ShellBridge {
         activity.postStopCapture();
     }
 
-    /** 指引确认后跳官方极核 App。 */
+    /** 只打开官方极核 App（不开 VPN、不启动抓取），先停在「我的」页。 */
+    @JavascriptInterface
+    public void openOfficialApp() {
+        activity.postOpenOfficialApp();
+    }
+
+    /** 开启 VPN 并跳官方极核 App。 */
     @JavascriptInterface
     public void launchOfficialApp() {
         activity.postLaunchOfficialApp();

@@ -442,6 +442,11 @@ public final class MainActivity extends Activity {
         });
     }
 
+    /** 只打开官方 App：不开 VPN、不启动抓取，让用户先停在「我的」页。 */
+    void postOpenOfficialApp() {
+        main.post(this::launchOfficialNow);
+    }
+
     /** 指引确认后：先起 VPN 让代理就绪，再跳官方 App。 */
     void postLaunchOfficialApp() {
         main.post(() -> {
