@@ -90,6 +90,17 @@ final class CaptureProxy {
             + " captured=" + captured.get();
     }
 
+    /** 只准备 TLS 服务端证书（TUN 模式复用 MITM，不用本地代理端口）。 */
+    void prepareTls() throws Exception {
+        if (serverTls == null) serverTls = buildServerTls();
+    }
+
+    /** 把一个已经 accept 的客户端 TCP socket 包成 TLS 服务端，解析/转发一次 HTTP。 */
+    void mitmSocket(Socket client, String host, int port) throws Exception {
+        prepareTls();
+        mitm(client, host, port);
+    }
+
     /** 启动本地代理并返回端口；调用方随后把它交给 VpnService.Builder.setHttpProxy。 */
     int start() throws Exception {
         serverTls = buildServerTls();
@@ -790,15 +801,15 @@ final class CaptureProxy {
         String cookie = req.header("cookie");
         if (cookie != null) {
             Matcher m = Pattern.compile("(?i)(?:^|;\\s*)(?:token|access_token|satoken)=([^;]+)").matcher(cookie);
-            if (m.find()) return decode(m.group(1));
+            if (m.find()) return stripBearer(decode(m.group(1)));
         }
         String fromQuery = queryValue(req.path, new String[]{
             "token", "access_token", "accessToken", "satoken"});
-        if (!fromQuery.isEmpty()) return fromQuery;
+        if (!fromQuery.isEmpty()) return stripBearer(fromQuery);
         // 服务端 301 到 HTTPS 时，token 可能直接写在 Location 的 query 里。
         String fromLoc = queryValue(resp.header("location"), new String[]{
             "token", "access_token", "accessToken", "satoken"});
-        if (!fromLoc.isEmpty()) return fromLoc;
+        if (!fromLoc.isEmpty()) return stripBearer(fromLoc);
         // 响应 Set-Cookie 也可能是登录态 token 的来源。
         String respCookie = resp.setCookieText();
         if (respCookie != null) {
@@ -813,6 +824,11 @@ final class CaptureProxy {
 
     private static String decode(String s) {
         try { return java.net.URLDecoder.decode(s, "UTF-8"); } catch (Exception e) { return s; }
+    }
+
+    private static String stripBearer(String s) {
+        if (s == null) return "";
+        return s.trim().replaceFirst("(?i)^bearer\\s+", "");
     }
 
     private static String extractUid(Req req, Resp resp, byte[] body) {

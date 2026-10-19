@@ -444,6 +444,20 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.8：免 root 抓取改为「错误页 + 手动粘贴」（2026-10-19）
+
+K90 真机确认官方签到页是 **HTTPS**，URL 里带 `token`；自签证书/用户 CA 都被 WebView 拒绝，
+被动 TUN 只能看到 SNI，抓不到 path/query。于是改成免 root、免证书的两段式：
+
+- 壳用 catch-all TUN（WebView 在 isolated sandbox UID，必须全量路由）+ 自签证书只 MITM
+  `h5.zeehoev.com:443`；官方 WebView 拒绝证书后会显示「网页无法打开」，错误页里带**完整 URL**。
+- `TunCapture` 的回调新增 `onManualPage()`；`AutoCaptureService` 收到后写 state=`manual`、
+  通知「请复制签到页地址」，2 秒后自动拆 VPN；错误页不会消失。
+- 页面新增「粘贴签到页地址」：用户长按复制错误页 URL（或 token）粘贴，前端解析
+  `token`/`userId`（strip `bearer `、URL decode），复用原有 `capApply` 保存并刷新。
+- 不做证书安装、不需要 root；代价是用户要手动复制一次地址，且签到页会短暂失败。
+- **1.5.8 / versionCode 24**。
+
 ## 1.5.7：方案三诊断的最终构建（2026-10-19）
 
 1.5.6 的探针在设备上验证后补了四处：

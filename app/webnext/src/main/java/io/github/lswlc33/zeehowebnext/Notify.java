@@ -291,6 +291,22 @@ final class Notify {
         notify(c, ID_CAPTURE_DONE, b.build());
     }
 
+    /** 抓取转人工：错误页已显示带 token 的 URL，提示用户复制。 */
+    static void captureManual(Context c) {
+        if (!allowed(c)) return;
+        String title = "请复制签到页地址";
+        String text = "极核显示「网页无法打开」后，长按复制错误页里的网址，回到面板粘贴。";
+        Notification.Builder b = base(c, CH_CAPTURE_DONE, R.string.capture_success_title, 0)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(false)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PRIVATE);
+        notify(c, ID_CAPTURE_DONE, b.build());
+    }
+
     static void captureFailed(Context c, String message) {
         if (!allowed(c)) return;
         String text = message == null || message.isEmpty()
