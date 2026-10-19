@@ -38,12 +38,13 @@ final class Notify {
     static final String CH_SERVICE = "service";
     static final String CH_MSG = "messages";
     static final String CH_CHARGE = "charging";
-    static final String CH_CHARGE_EVENT = "charge_events";
-    static final String CH_TASK = "tasks";
+    // 重要事件渠道升级为 v2（HIGH）：Android 渠道重要性创建后不可改，必须换 ID 才能让老用户生效。
+    static final String CH_CHARGE_EVENT = "charge_events_v2";
+    static final String CH_TASK = "tasks_v2";
     static final String CH_ACTION = "actions";
-    static final String CH_ALERTS = "alerts";
+    static final String CH_ALERTS = "alerts_v2";
     static final String CH_CAPTURE_WAIT = "capture_wait";
-    static final String CH_CAPTURE_DONE = "capture_done";
+    static final String CH_CAPTURE_DONE = "capture_done_v2";
 
     private Notify() {
     }
@@ -59,17 +60,26 @@ final class Notify {
         channel(nm, CH_CHARGE, c.getString(R.string.channel_charging),
             c.getString(R.string.channel_charging_desc), NotificationManager.IMPORTANCE_LOW, true);
         channel(nm, CH_CHARGE_EVENT, c.getString(R.string.channel_charge_events),
-            c.getString(R.string.channel_charge_events_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
+            c.getString(R.string.channel_charge_events_desc), NotificationManager.IMPORTANCE_HIGH, true);
         channel(nm, CH_TASK, c.getString(R.string.channel_tasks),
-            c.getString(R.string.channel_tasks_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
+            c.getString(R.string.channel_tasks_desc), NotificationManager.IMPORTANCE_HIGH, true);
         channel(nm, CH_ACTION, c.getString(R.string.channel_actions),
             c.getString(R.string.channel_actions_desc), NotificationManager.IMPORTANCE_LOW, false);
         channel(nm, CH_ALERTS, c.getString(R.string.channel_alerts),
-            c.getString(R.string.channel_alerts_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
+            c.getString(R.string.channel_alerts_desc), NotificationManager.IMPORTANCE_HIGH, true);
         channel(nm, CH_CAPTURE_WAIT, c.getString(R.string.channel_capture_wait),
             c.getString(R.string.channel_capture_wait_desc), NotificationManager.IMPORTANCE_LOW, false);
         channel(nm, CH_CAPTURE_DONE, c.getString(R.string.channel_capture_done),
-            c.getString(R.string.channel_capture_done_desc), NotificationManager.IMPORTANCE_DEFAULT, true);
+            c.getString(R.string.channel_capture_done_desc), NotificationManager.IMPORTANCE_HIGH, true);
+        // 旧渠道（DEFAULT，没有横幅）已经不再使用；删掉，避免设置里留下两个同名开关。
+        delete(nm, "charge_events");
+        delete(nm, "tasks");
+        delete(nm, "alerts");
+        delete(nm, "capture_done");
+    }
+
+    private static void delete(NotificationManager nm, String id) {
+        try { nm.deleteNotificationChannel(id); } catch (Exception ignored) { }
     }
 
     private static void channel(NotificationManager nm, String id, String name, String desc,
@@ -78,7 +88,8 @@ final class Notify {
         ch.setDescription(desc);
         if (!sound) ch.setSound(null, null);
         ch.setShowBadge(importance >= NotificationManager.IMPORTANCE_DEFAULT);
-        if (CH_MSG.equals(id) || CH_CHARGE.equals(id) || CH_CHARGE_EVENT.equals(id)) {
+        if (sound || importance >= NotificationManager.IMPORTANCE_HIGH
+            || CH_MSG.equals(id) || CH_CHARGE.equals(id)) {
             ch.enableVibration(true);
         }
         nm.createNotificationChannel(ch);
@@ -136,7 +147,8 @@ final class Notify {
             .setTimeoutAfter(60_000L)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_STATUS)
-            .setVisibility(Notification.VISIBILITY_PUBLIC);
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH);
         notify(c, ID_START, b.build());
     }
 
@@ -177,6 +189,7 @@ final class Notify {
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH)
             .setOnlyAlertOnce(false);
         return notify(c, ID_FULL, b.build());
     }
@@ -192,6 +205,7 @@ final class Notify {
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH)
             .setOnlyAlertOnce(false);
         return notify(c, ID_STOP, b.build());
     }
@@ -204,7 +218,8 @@ final class Notify {
             .setContentText(c.getString(R.string.notify_low_text, s.soc))
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
-            .setVisibility(Notification.VISIBILITY_PUBLIC);
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH);
         return notify(c, ID_LOW, b.build());
     }
 
@@ -217,7 +232,8 @@ final class Notify {
                 NativeStore.name(c).isEmpty() ? c.getString(R.string.app_name) : NativeStore.name(c)))
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
-            .setVisibility(Notification.VISIBILITY_PUBLIC);
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH);
         return notify(c, ID_OFFLINE, b.build());
     }
 
@@ -231,7 +247,8 @@ final class Notify {
                 c.getString(warn > 0 ? R.string.tire_reason_warn : R.string.tire_reason_low)))
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
-            .setVisibility(Notification.VISIBILITY_PUBLIC);
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setPriority(Notification.PRIORITY_HIGH);
         return notify(c, ID_TIRE, b.build());
     }
 
@@ -269,6 +286,7 @@ final class Notify {
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_STATUS)
+            .setPriority(Notification.PRIORITY_HIGH)
             .setVisibility(Notification.VISIBILITY_PRIVATE);
         notify(c, ID_CAPTURE_DONE, b.build());
     }
@@ -283,7 +301,8 @@ final class Notify {
             .setStyle(new Notification.BigTextStyle().bigText(text))
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
-            .setCategory(Notification.CATEGORY_ERROR);
+            .setCategory(Notification.CATEGORY_ERROR)
+            .setPriority(Notification.PRIORITY_HIGH);
         notify(c, ID_CAPTURE_DONE, b.build());
     }
 
@@ -322,7 +341,8 @@ final class Notify {
             .setContentText(result)
             .setStyle(new Notification.BigTextStyle().bigText(result))
             .setAutoCancel(true)
-            .setCategory(Notification.CATEGORY_STATUS);
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setPriority(Notification.PRIORITY_HIGH);
         notify(c, ID_TASK, b.build());
     }
 

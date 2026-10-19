@@ -444,6 +444,19 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.5：重要通知升级为横幅（2026-10-19）
+
+- 充电完成/中途停止、自动抓取成功/失败、低电量/离线/胎压提醒、自动任务结果
+  四个渠道改为 `IMPORTANCE_HIGH`：默认有**横幅（悬浮）+ 声音 + 震动**。
+- **Android 渠道重要性创建后不能修改**，所以这四个渠道换了新 ID：
+  `charge_events_v2` / `capture_done_v2` / `alerts_v2` / `tasks_v2`；
+  启动时删除旧的 `charge_events` / `capture_done` / `alerts` / `tasks`，避免设置里出现两份。
+- 通知 Builder 同时带 `PRIORITY_HIGH`，兼容部分 OEM 的判断。
+- 充电进度（`charging`，LOW）、车辆消息（`messages`，DEFAULT）、快捷操作（LOW）、
+  后台常驻（MIN）、抓取等待（LOW）保持原级别，不抢占横幅。
+- 用户仍可在系统通知设置里单独把某个渠道调成静音/关横幅——这是系统权限，App 不能强制。
+- **1.5.5 / versionCode 21**。
+
 ## 1.5.4：方案三修明文网页抓取（2026-10-19）
 
 用户抓包确认：官方 App 的 `h5.zeehoev.com/cfmotoservermine/H5/baseInfo` 是 **WebView 网页**，
