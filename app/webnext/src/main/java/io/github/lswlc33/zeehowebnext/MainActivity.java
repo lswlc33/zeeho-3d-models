@@ -2,6 +2,9 @@ package io.github.lswlc33.zeehowebnext;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
@@ -219,10 +222,11 @@ public final class MainActivity extends Activity {
         main.post(idleTick);
         applyBarAppearance(dark);
         AppState.foreground = true;
-        // 用户没有等抓取完成就回到面板：先停 VPN，保证面板自己的 WebView 不被代理影响。
+        // 面板自己的 WebView 不在 VPN 允许列表里，回到前台不会受代理影响。
+        // 早先这里一回到面板就停抓取，会把官方 App 正在返回的 baseInfo 请求一起掐掉；
+        // 现在让服务继续跑到成功/120s 超时，用户可随时点「取消抓取」。
         if (AutoCaptureService.isRunning() && "waiting".equals(NativeStore.captureState(this))) {
-            AutoCaptureService.stop(this);
-            NativeStore.setCaptureState(this, "error", "已回到面板，抓取已停止；可以重新开始");
+            CaptureLog.add(this, "ui", "panel resumed while waiting; keep capture running");
         }
         // 首帧优先：这些系统调用（快捷方式、JobScheduler、前台服务、更新检查、BLE）全部后移。
         main.removeCallbacks(backgroundWork);
@@ -378,6 +382,8 @@ public final class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQ_VPN) return;
+        CaptureLog.add(this, "ui", "vpn permission result="
+            + (resultCode == RESULT_OK ? "ok" : "denied/cancel"));
         if (resultCode == RESULT_OK) {
             // 只记“已授权”；VPN 要等用户确认指引、点“启动极核 App”时才建立——
             // 避免本应用自己的 WebView 在用户眼前被 VPN 代理影响。
@@ -394,6 +400,8 @@ public final class MainActivity extends Activity {
     void postStartCapture() {
         main.post(() -> {
             if (destroyed || isFinishing()) return;
+            CaptureLog.begin(this, "start capture clicked");
+            CaptureLog.add(this, "ui", "start capture clicked");
             NativeStore.setCaptureState(this, "vpn", null);
             Intent prep = VpnService.prepare(this);
             if (prep != null) {
@@ -402,27 +410,33 @@ public final class MainActivity extends Activity {
                     return;
                 } catch (Exception e) {
                     Log.w(TAG, "vpn permission intent failed", e);
+                    CaptureLog.add(this, "ui", "vpn permission intent failed: " + e.getMessage());
                     NativeStore.setCaptureState(this, "error", "无法打开 VPN 授权界面");
                     Notify.captureFailed(this, "无法打开 VPN 授权界面");
                     return;
                 }
             }
+            CaptureLog.add(this, "ui", "vpn already authorized");
             NativeStore.setCaptureState(this, "ready", null);
         });
     }
 
     private void startCaptureService() {
         if (getPackageManager().getLaunchIntentForPackage("com.cfmoto") == null) {
+            CaptureLog.add(this, "ui", "com.cfmoto launch intent missing");
             NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
             Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
             return;
         }
+        CaptureLog.add(this, "ui", "starting capture service");
         NativeStore.setCaptureState(this, "waiting", null);
         AutoCaptureService.start(this);
     }
 
     void postStopCapture() {
         main.post(() -> {
+            CaptureLog.add(this, "ui", "stop capture clicked running="
+                + AutoCaptureService.isRunning());
             if (AutoCaptureService.isRunning()) AutoCaptureService.stop(this);
             NativeStore.setCaptureState(this, "idle", null);
         });
@@ -432,6 +446,7 @@ public final class MainActivity extends Activity {
     void postLaunchOfficialApp() {
         main.post(() -> {
             String state = NativeStore.captureState(this);
+            CaptureLog.add(this, "ui", "launch official clicked state=" + state);
             if ("ready".equals(state) || "vpn".equals(state)) {
                 startCaptureService();
                 if ("error".equals(NativeStore.captureState(this))) return;
@@ -445,6 +460,7 @@ public final class MainActivity extends Activity {
     private void launchOfficialNow() {
         Intent i = getPackageManager().getLaunchIntentForPackage("com.cfmoto");
         if (i == null) {
+            CaptureLog.add(this, "ui", "launch official: intent null");
             NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
             Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
             return;
@@ -452,8 +468,10 @@ public final class MainActivity extends Activity {
         try {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
+            CaptureLog.add(this, "ui", "official app launched");
         } catch (Exception e) {
             Log.w(TAG, "launch cfmoto failed", e);
+            CaptureLog.add(this, "ui", "launch official failed: " + e.getMessage());
             NativeStore.setCaptureState(this, "error", "无法启动极核 App");
         }
     }
@@ -478,6 +496,40 @@ public final class MainActivity extends Activity {
         } catch (Exception e) {
             return NativeStore.captureJson(this);
         }
+    }
+
+    /**
+     * 方案三的诊断日志：只包含连接主机、请求路径（query 值已打码）、响应结构和提取结果，
+     * 不包含 token 原文。用户复制后发给开发者即可定位卡在哪一步。
+     */
+    String captureDiag() {
+        String log = CaptureLog.read(this);
+        if (log == null || log.trim().isEmpty()) {
+            return "state=" + NativeStore.captureState(this)
+                + "\n（还没有抓取日志。先点「开启自动抓取」，按指引进入极核「我的 → 签到」；"
+                + "失败后回来点这个按钮复制。）";
+        }
+        return "state=" + NativeStore.captureState(this) + "\n" + log;
+    }
+
+    void postCopyCaptureDiag() {
+        main.post(() -> {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(
+                    ClipData.newPlainText("Zeeho capture diag", captureDiag()));
+                Toast.makeText(this, "诊断日志已复制", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "复制失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    void postClearCaptureDiag() {
+        main.post(() -> {
+            CaptureLog.clear(this);
+            Toast.makeText(this, "诊断日志已清空", Toast.LENGTH_SHORT).show();
+        });
     }
 
     /** 网页任务面板的 App 专属设置：自动执行开关/时间/任务参数。 */

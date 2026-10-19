@@ -444,6 +444,33 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.6：方案三探针日志（2026-10-19）
+
+用户反馈 1.5.4 修完明文转发后，官方 H5 页能打开但抓不到结果。现有信息无法区分是
+「流量没进代理 / 进了但 h5 走 HTTPS 且证书被拒 / 命中 baseInfo 但字段不在我们找的位置 /
+状态没回传」，所以先加可导出的诊断日志，不靠猜。
+
+- 新增 `CaptureLog`：应用私有文件 `files/capture-diag.log`（192KB 环形，每轮抓取先清空），
+  同时写 logcat。**token 原文不落盘**，只记录来源与长度；URL query 值、Authorization、Cookie
+  值全部打码，响应体只留打码后的短预览和 JSON 键名。
+- 记录内容：
+  - 每个连接的首行（CONNECT 主机、明文绝对 URL 的路径与 query 键）；
+  - h5 的 CONNECT 是 MITM 成功还是证书被拒，失败时带异常类型；
+  - baseInfo 的请求头名字/关键头存在性/cookie 名、响应码/类型/长度/Location、
+    响应体 JSON 键名与 token/uid 键是否存在；
+  - token/uid 的提取来源（query/header/cookie/Location/body）与长度。
+- 数据调试的方案三区块新增「查看抓取诊断日志」：弹层展示日志，可「复制全部」到剪贴板
+  （原生 `ClipboardManager`，不依赖网页剪贴板权限）或清空。失败弹层里也有入口。
+- 提取逻辑补强：301 `Location` 的 query、响应 `Set-Cookie`、响应体里不带引号的
+  `userId:123` / 表单 `token=...` 都能识别；`data.id` 优先于其他层级的 `id`。
+  **uid 缺失不再直接判失败**：token 有效时先成功（页面会从 `vehicle_home.bindingUserId` 补账号 id），
+  日志里记 `uid missing, accept token-only`。
+- 超时错误文案附带代理统计（`conn/plain/connect/mitmOk/mitmFail`），用户不复制日志也能先看出
+  代理到底有没有收到流量。
+- **回到面板不再自动停抓取**：面板自己的 WebView 不在 VPN 允许列表里，回前台不受影响；
+  继续等到成功/120 秒超时（或用户点「取消抓取」），避免把官方 App 正在返回的 baseInfo 掐掉。
+- **1.5.6 / versionCode 22**。
+
 ## 1.5.5：重要通知升级为横幅（2026-10-19）
 
 - 充电完成/中途停止、自动抓取成功/失败、低电量/离线/胎压提醒、自动任务结果

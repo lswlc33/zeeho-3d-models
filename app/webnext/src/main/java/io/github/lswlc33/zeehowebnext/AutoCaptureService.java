@@ -41,7 +41,7 @@ public final class AutoCaptureService extends VpnService {
 
     private final Runnable timeout = () ->
         fail("超时：没有抓到登录请求。请确认极核 App 已登录并进入「我的 → 签到」；"
-            + "如果其他工具能抓，它们通常也装了用户 CA");
+            + "如果其他工具能抓，它们通常也装了用户 CA（" + proxyStats() + "）");
 
     static void start(Context c) {
         Intent i = new Intent(c, AutoCaptureService.class).setAction(ACTION_START);
@@ -72,6 +72,7 @@ public final class AutoCaptureService extends VpnService {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? "" : intent.getAction();
         if (ACTION_STOP.equals(action)) {
+            CaptureLog.add(this, "service", "stop requested");
             done.set(true);
             NativeStore.setCaptureState(this, "idle", null);
             shutdown();
@@ -82,11 +83,14 @@ public final class AutoCaptureService extends VpnService {
         // 上一轮 success/error 后 VpnService 可能还被系统 bind 着没销毁；再来一轮要允许重新开始。
         done.set(false);
 
+        CaptureLog.add(this, "session", "capture service start (log 从点击按钮开始保留)");
         try {
             startForeground(Notify.ID_CAPTURE_WAIT, Notify.captureWaiting(this));
             foreground = true;
+            CaptureLog.add(this, "service", "foreground waiting notification shown");
         } catch (Exception e) {
             Log.w(TAG, "capture foreground failed", e);
+            CaptureLog.add(this, "service", "foreground failed: " + e.getMessage());
             fail("无法显示抓取通知：" + e.getMessage());
             return START_NOT_STICKY;
         }
@@ -112,16 +116,22 @@ public final class AutoCaptureService extends VpnService {
             b.addRoute("10.111.222.0", 24);
             b.setHttpProxy(ProxyInfo.buildDirectProxy("127.0.0.1", port));
             b.addAllowedApplication("com.cfmoto");
+            CaptureLog.add(this, "vpn", "establish proxy=127.0.0.1:" + port + " allowed=com.cfmoto");
             tun = b.establish();
             if (tun == null) {
+                CaptureLog.add(this, "vpn", "establish returned null");
                 fail("VPN 建立失败（系统没有返回隧道）");
                 return START_NOT_STICKY;
             }
             running = true;
             main.postDelayed(timeout, TIMEOUT_MS);
             Log.i(TAG, "capture vpn established on port " + port);
+            CaptureLog.add(this, "vpn", "established; waiting up to "
+                + (TIMEOUT_MS / 1000) + "s " + proxyStats());
         } catch (Exception e) {
             Log.w(TAG, "capture vpn setup failed", e);
+            CaptureLog.add(this, "vpn", "setup failed: " + e.getClass().getSimpleName()
+                + ": " + e.getMessage());
             String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
             if (msg.contains("NameNotFoundException") || msg.contains("com.cfmoto")) {
                 msg = "未安装极核 App（com.cfmoto）";
@@ -131,9 +141,16 @@ public final class AutoCaptureService extends VpnService {
         return START_NOT_STICKY;
     }
 
+    private String proxyStats() {
+        CaptureProxy p = proxy;
+        return p == null ? "proxy=null" : p.stats();
+    }
+
     private void success(String token, String uid) {
         if (!done.compareAndSet(false, true)) return;
         main.removeCallbacks(timeout);
+        CaptureLog.add(this, "service", "success uid=" + (uid == null || uid.isEmpty() ? "?" : "yes")
+            + " tokenLen=" + (token == null ? 0 : token.length()) + " " + proxyStats());
         NativeStore.setCaptureSuccess(this, token, uid);
         Notify.captureSuccess(this, uid);
         Log.i(TAG, "capture success, uid=" + (uid == null || uid.isEmpty() ? "?" : uid));
@@ -147,6 +164,7 @@ public final class AutoCaptureService extends VpnService {
     private void fail(String message) {
         if (!done.compareAndSet(false, true)) return;
         main.removeCallbacks(timeout);
+        CaptureLog.add(this, "service", "fail: " + message + " " + proxyStats());
         NativeStore.setCaptureState(this, "error", message);
         Notify.captureFailed(this, message);
         Log.w(TAG, "capture failed: " + message);
@@ -161,6 +179,7 @@ public final class AutoCaptureService extends VpnService {
      */
     private void shutdown() {
         running = false;
+        CaptureLog.add(this, "service", "shutdown " + proxyStats());
         if (proxy != null) {
             proxy.stop();
             proxy = null;
@@ -178,6 +197,7 @@ public final class AutoCaptureService extends VpnService {
     /** 用户在系统里关掉 VPN，或系统撤销：本轮结束。 */
     @Override
     public void onRevoke() {
+        CaptureLog.add(this, "service", "vpn revoked by system");
         if (!done.get()) fail("VPN 被系统关闭");
         stopSelf();
         super.onRevoke();
@@ -185,6 +205,7 @@ public final class AutoCaptureService extends VpnService {
 
     @Override
     public void onDestroy() {
+        CaptureLog.add(this, "service", "onDestroy done=" + done.get() + " " + proxyStats());
         main.removeCallbacks(timeout);
         shutdown();
         if (!done.get()) {

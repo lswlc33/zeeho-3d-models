@@ -197,6 +197,22 @@ final class ShellBridge {
         activity.postClearCapture();
     }
 
+    /** 方案三诊断日志（不含 token 原文）；页面在失败弹层里展示/复制。 */
+    @JavascriptInterface
+    public String captureDiag() {
+        return activity.captureDiag();
+    }
+
+    @JavascriptInterface
+    public void copyCaptureDiag() {
+        activity.postCopyCaptureDiag();
+    }
+
+    @JavascriptInterface
+    public void clearCaptureDiag() {
+        activity.postClearCaptureDiag();
+    }
+
     /** 页面第一次 render 完成：原生据此把启动图淡出（比 onPageFinished 早得多）。 */
     @JavascriptInterface
     public void pageReady() {
