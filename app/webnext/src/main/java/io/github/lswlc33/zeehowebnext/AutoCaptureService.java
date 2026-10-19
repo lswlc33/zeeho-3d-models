@@ -37,8 +37,8 @@ public final class AutoCaptureService extends VpnService {
     private boolean foreground;
 
     private final Runnable timeout = () ->
-        fail("超时：没有抓到登录请求。请确认极核 App 已登录并进入「我的 → 签到」；"
-            + "tcp=0 说明流量没进 VPN，tcp>0 但 http=0 可能是 h5 走了 HTTPS（" + captureStats() + "）");
+        fail("没有等到签到页。请确认在极核里点了「我的」→「签到」；"
+            + "如果签到页没有出现「网页无法打开」，可以重试一次。");
 
     static void start(Context c) {
         Intent i = new Intent(c, AutoCaptureService.class).setAction(ACTION_START);
