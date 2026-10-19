@@ -44,16 +44,43 @@ final class ShellBridge {
         return UpdateChecker.query(activity);
     }
 
+    /**
+     * 异步手动检查 APK 更新：起后台任务立即返回，页面用 {@link #pollAppUpdate()} 轮询取果。
+     * 同步版（上面那个）会让 JS 主线程冻在网络超时上，新页面不再调用。
+     */
+    @JavascriptInterface
+    public void beginAppUpdate() {
+        UpdateChecker.beginQuery(activity);
+    }
+
+    /** 取一次异步 APK 检查的结果：{done, json?}。 */
+    @JavascriptInterface
+    public String pollAppUpdate() {
+        return UpdateChecker.pollQuery();
+    }
+
     /** 页面点了「下载软件」：走原生下载/校验/安装进度。 */
     @JavascriptInterface
     public void downloadAppUpdate() {
         UpdateChecker.downloadLatest(activity);
     }
 
-    /** 手动检查页面版本；返回当前/远端 build，不下载。 */
+    /** 手动检查页面版本；返回当前/远端 build，不下载。旧页面兜底用（同步网络，会冻 JS）。 */
     @JavascriptInterface
     public String checkPageUpdate() {
         return activity.checkPageUpdate();
+    }
+
+    /** 异步手动检查页面版本：起后台任务立即返回，页面用 {@link #pollPageUpdate()} 轮询取果。 */
+    @JavascriptInterface
+    public void beginPageUpdate() {
+        activity.beginPageUpdate();
+    }
+
+    /** 取一次异步面板检查的结果：{done, json?}。 */
+    @JavascriptInterface
+    public String pollPageUpdate() {
+        return activity.pollPageUpdate();
     }
 
     /** 重启页面：有已下载快照就应用，否则先检查/下载再 reload。 */

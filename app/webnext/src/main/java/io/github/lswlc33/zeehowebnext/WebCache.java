@@ -51,6 +51,8 @@ final class WebCache {
     private static final String SP = "webnext";
     private static final String K_ACTIVE = "active_id";
     private static final String K_PENDING = "pending_id";
+    /** 后台静默检查面板更新的最近一次时间（epoch ms）：节流用，见 backgroundCheck()。 */
+    private static final String K_BG_CHECK_AT = "bg_panel_check_at";
     private static final String META = "meta.json";
     private static final String INDEX = "index.html";
     private static final String VERSION = "version.json";
@@ -239,6 +241,32 @@ final class WebCache {
             } catch (Exception e) {
                 Log.w(TAG, "update check failed", e);
                 cb.onError(readable(e));
+            }
+        });
+    }
+
+    /** 后台静默检查的最小间隔：30 分钟一次，别把节流外的流量花在 version.json 上。 */
+    private static final long BG_CHECK_INTERVAL_MS = 30 * 60_000L;
+
+    /**
+     * 后台静默更新面板（2026-10-19）：由 MonitorService 的周期 tick 调用。
+     * 检查远端 build → 不同就整包下载成 pending → 用户下次空闲（页面无弹层/无输入）时
+     * 由 MainActivity 的 idleTick 自动切过去并 reload——全程无感，不打扰使用。
+     * 30 分钟节流（K_BG_CHECK_AT）；已有 pending 时只刷新时间戳、不重复下载。
+     */
+    void backgroundCheck() {
+        long now = System.currentTimeMillis();
+        long last = prefs.getLong(K_BG_CHECK_AT, 0L);
+        if (now - last < BG_CHECK_INTERVAL_MS) return;
+        prefs.edit().putLong(K_BG_CHECK_AT, now).apply();
+        if (hasPending()) return;   // 已有就绪的更新等着应用，不用再查
+        checkForUpdateAsync(new UpdateCallback() {
+            @Override public void onUpdateReady(String build) {
+                Log.i(TAG, "background panel update ready: " + build + "（空闲时自动应用）");
+            }
+            @Override public void onNoUpdate() { /* 已是最新：静默 */ }
+            @Override public void onError(String message) {
+                Log.w(TAG, "background panel check failed: " + message);
             }
         });
     }

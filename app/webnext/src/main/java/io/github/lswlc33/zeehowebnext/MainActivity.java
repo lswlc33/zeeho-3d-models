@@ -72,7 +72,7 @@ import java.util.Locale;
 public final class MainActivity extends Activity {
 
     private static final String TAG = "ZeehoWebNext";
-    private static final String PROD_BASE = "https://lswlc33.github.io/zeeho-3d-models/";
+    static final String PROD_BASE_FOR_CACHE = "https://lswlc33.github.io/zeeho-3d-models/";
     private static final String PREFS = "webnext";
     private static final String K_DARK = "last_dark";
     private static final String K_CHECK = "last_check_at";
@@ -103,7 +103,7 @@ public final class MainActivity extends Activity {
     private WebView webView;
     private WebCache cache;
     private ShellBridge bridge;
-    private String baseUrl = PROD_BASE;
+    private String baseUrl = PROD_BASE_FOR_CACHE;
     private String versionName = "1.0";
     private int versionCode;
     private boolean debugBuild;
@@ -713,9 +713,74 @@ public final class MainActivity extends Activity {
     }
 
     /**
-     * 页面「面板版本」的手动检查：同步抓远端 version.json 的 build，不下载。
-     * 在 JavaBridge 线程执行，最长等 WebCache 的 20 秒读超时。
+     * 页面「面板版本」的手动检查：**异步版**（2026-10-19）。
+     * 旧的 checkPageUpdate() 在 JavaBridge 线程同步抓远端 version.json（20 秒读超时）——
+     * JS 主线程会停在调用行等返回，弱网下整页点击最长冻 20 秒。现在改成：
+     * beginPageUpdate() 起后台任务（只查 build，不下载），pollPageUpdate() 轮询取果。
      */
+    private volatile String pageQueryResult = "";
+    private final java.util.concurrent.atomic.AtomicInteger pageQueryState =
+        new java.util.concurrent.atomic.AtomicInteger(0);   // 0=空闲 1=进行中 2=完成
+
+    void beginPageUpdate() {
+        if (!pageQueryState.compareAndSet(0, 1)) return;    // 已有一轮在跑
+        pageQueryResult = "";
+        if (cache == null) {
+            pageQueryResult = "{\"ok\":false,\"error\":\"缓存未就绪\"}";
+            pageQueryState.set(2);
+            return;
+        }
+        cache.checkForUpdateAsync(new WebCache.UpdateCallback() {
+            @Override public void onUpdateReady(String build) {
+                pageQueryResult = resultJson(true, build);
+                pageQueryState.set(2);
+            }
+            @Override public void onNoUpdate() {
+                pageQueryResult = resultJson(true, currentBuild());
+                pageQueryState.set(2);
+            }
+            @Override public void onError(String message) {
+                pageQueryResult = "{\"ok\":false,\"error\":"
+                    + JSONObject.quote(message == null ? "网络不可用" : message) + "}";
+                pageQueryState.set(2);
+            }
+        });
+    }
+
+    private String resultJson(boolean ok, String remote) {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("ok", ok);
+            out.put("current", currentBuild());
+            out.put("remote", remote == null ? "" : remote);
+            out.put("pending", cache != null && cache.pendingBuild() != null ? cache.pendingBuild() : "");
+            out.put("hasUpdate", remote != null && !remote.isEmpty() && !remote.equals(currentBuild()));
+        } catch (Exception ignored) { }
+        return out.toString();
+    }
+
+    private String currentBuild() {
+        return cache != null && cache.active() != null ? cache.active().build : "";
+    }
+
+    /** 取一次异步面板检查的结果：done=true 时带 json，取走即复位。 */
+    String pollPageUpdate() {
+        JSONObject out = new JSONObject();
+        try {
+            int s = pageQueryState.get();
+            out.put("done", s == 2);
+            if (s == 2) {
+                pageQueryState.set(0);
+                out.put("json", pageQueryResult);
+            }
+        } catch (Exception ignored) { }
+        return out.toString();
+    }
+
+    /**
+     * 同步版面板检查：只留给旧页面兜底，新页面不再调用（会冻 JS 主线程最长 20 秒）。
+     */
+    @Deprecated
     String checkPageUpdate() {
         JSONObject out = new JSONObject();
         try {

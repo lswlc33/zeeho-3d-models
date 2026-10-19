@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +61,9 @@ final class UpdateChecker {
     private static volatile String latestUrl;
     private static volatile String latestName;
     private static volatile long latestCode;
+    /** 手动检查的异步状态：0=空闲 1=进行中 2=完成（结果在 manualResult）。 */
+    private static final AtomicInteger manualState = new AtomicInteger(0);
+    private static volatile String manualResult = "";
 
     private UpdateChecker() {
     }
@@ -111,6 +115,10 @@ final class UpdateChecker {
     /**
      * 页面「软件版本」点击后的手动检查：同步返回 JSON，由网页自己弹结果面板。
      * 不弹原生对话框、不改 checked；网络失败也返回 ok=false 而不是阻塞。
+     * ⚠️ 这是**同步网络**桥（fetchText 15s/20s 超时）：JavascriptInterface 有返回值的调用
+     * 会让 JS 主线程停在调用行等 Java 返回——弱网下整页点击最长冻 15~35 秒。
+     * 网页 1.5.12+ 走 {@link #beginQuery}/{@link #pollQuery}（异步，见那边的注释）；
+     * 这个同步版只留给旧页面的兼容兜底，不再被新页面调用。
      */
     static String query(Activity activity) {
         latestUrl = null;
@@ -149,6 +157,48 @@ final class UpdateChecker {
             } catch (Exception ignored) {
             }
         }
+        return out.toString();
+    }
+
+    /**
+     * 页面手动检查的**异步**入口：后台线程跑 {@link #query}（网络 15-35s 超时也不碍事），
+     * 结果存 manualResult；网页随后用 {@link #pollQuery} 轮询取果。
+     * 为什么需要它：JavascriptInterface 有返回值的调用会让 JS 主线程停在调用行等 Java 返回，
+     * 同步网络桥在弱网下会把整页点击冻住 15~35 秒（用户要求不允许任何"点击失效/延迟"）。
+     */
+    static void beginQuery(Activity activity) {
+        if (!manualState.compareAndSet(0, 1)) return;   // 已有一轮在跑：轮询会拿到它的结果
+        manualResult = "";
+        final Activity act = activity;
+        new Thread(() -> {
+            String r;
+            try {
+                r = query(act);
+            } catch (Exception e) {
+                Log.w(TAG, "async update query failed", e);
+                JSONObject out = new JSONObject();
+                try {
+                    out.put("ok", false);
+                    out.put("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                } catch (Exception ignored) { }
+                r = out.toString();
+            }
+            manualResult = r;
+            manualState.set(2);
+        }, "zeeho-manual-query").start();
+    }
+
+    /** 取一次异步手动检查的结果：0=还没好（done=false）2=好了（done=true，json 为结果）。 */
+    static String pollQuery() {
+        JSONObject out = new JSONObject();
+        try {
+            int s = manualState.get();
+            out.put("done", s == 2);
+            if (s == 2) {
+                manualState.set(0);      // 结果取走就复位；页面拿到后不再轮询
+                out.put("json", manualResult);
+            }
+        } catch (Exception ignored) { }
         return out.toString();
     }
 

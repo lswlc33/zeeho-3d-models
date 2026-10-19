@@ -52,6 +52,15 @@ public final class MonitorService extends Service {
                     }
                 });
             }
+            // 后台静默更新面板：每拍都调一次，内部 30 分钟节流（检查→下载→用户空闲时自动应用）。
+            // 服务里没有现成的 WebCache 实例（那是 MainActivity 的），这里新建一个——
+            // 构造只是读两个 prefs 键，不碰网络；面板源固定走线上生产地址（debug base 只影响主进程）。
+            try {
+                WebCache wc = new WebCache(MonitorService.this, MainActivity.PROD_BASE_FOR_CACHE);
+                wc.backgroundCheck();
+            } catch (Exception e) {
+                Log.w(TAG, "background panel check failed", e);
+            }
             main.postDelayed(this, TICK_MS);
         }
     };
