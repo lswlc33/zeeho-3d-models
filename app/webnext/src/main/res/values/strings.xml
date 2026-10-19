@@ -36,6 +36,7 @@
     <string name="page_update_failed">页面更新失败：%1$s</string>
     <string name="location_permission_denied">需要定位权限才能显示我的位置；可在系统设置里允许后重试</string>
     <string name="nearby_permission_denied">需要「附近的设备」权限才能检测车辆距离；可在系统设置里允许后重试</string>
+    <string name="file_chooser_failed">无法打开相册选择器</string>
 
     <!-- 通知渠道 -->
     <string name="channel_service">后台同步</string>

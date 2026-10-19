@@ -444,6 +444,17 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.12：网页可选文件（onShowFileChooser，2026-10-19）
+
+- 面板 V6.13 新增「抓取账号 id」：从相册选**个人名片二维码图**解码出内部用户 id
+  （官方名片二维码的内容是 `personalCenter?userId=<base64(id)>`，明文 Base64，纯本地解码）。
+- 壳此前没实现 `WebChromeClient.onShowFileChooser`，网页 `<input type=file>` 点了没反应——
+  1.5.12 补上：`ACTION_GET_CONTENT image/*` 系统选择器 + `REQ_FILE_CHOOSER` 回传；
+  **取消/失败也必须 `onReceiveValue(null)` 回调一次**（扣着不还是网页 file input 永久卡死的根因），
+  `onDestroy` 里同样还掉挂起的回调。
+- 失败文案 `file_chooser_failed`；没有新增权限（系统选择器不需要）。
+- **1.5.12 / versionCode 28**。
+
 ## 1.5.11：抓取顺序调整（2026-10-19）
 
 - 页面改为三步：**1. 先打开极核 App（不开 VPN）进入「我的」** →

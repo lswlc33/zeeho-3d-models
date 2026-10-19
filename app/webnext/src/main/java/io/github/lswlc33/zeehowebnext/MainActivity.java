@@ -39,6 +39,7 @@ import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.GeolocationPermissions;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.ValueCallback;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -81,6 +82,8 @@ public final class MainActivity extends Activity {
     private static final int REQ_LOCATION = 1002;
     private static final int REQ_PROXIMITY = 1003;
     private static final int REQ_VPN = 1004;
+    /** 网页 <input type=file>（抓取账号 id 选二维码图）的请求码；不能与上面重复。 */
+    private static final int REQ_FILE_CHOOSER = 1005;
 
     private static final String BACK_JS =
         "(function(){try{"
@@ -121,6 +124,8 @@ public final class MainActivity extends Activity {
     private boolean backInFlight;
     private long lastBackAt;
     private boolean idleApplyInFlight;
+    /** onShowFileChooser 挂起的回调：选完图（或取消）必须回调一次，否则网页的 file input 会永久卡死。 */
+    private ValueCallback<Uri[]> pendingFileUpload;
     private long lastCheckAt;
     private String pendingGeoOrigin;
     private GeolocationPermissions.Callback pendingGeoCallback;
@@ -253,6 +258,11 @@ public final class MainActivity extends Activity {
     protected void onDestroy() {
         destroyed = true;
         main.removeCallbacksAndMessages(null);
+        // 页面没了还挂着的选图回调必须还掉，否则 WebView 端那个 file input 永远卡在"等待中"
+        if (pendingFileUpload != null) {
+            pendingFileUpload.onReceiveValue(null);
+            pendingFileUpload = null;
+        }
         if (cache != null) cache.shutdown();
         if (webView != null) {
             if (root != null) root.removeView(webView);
@@ -381,6 +391,18 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_FILE_CHOOSER) {
+            ValueCallback<Uri[]> cb = pendingFileUpload;
+            pendingFileUpload = null;
+            if (cb == null) return;
+            Uri[] uris = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                uris = new Uri[]{ data.getData() };
+            }
+            // 取消（resultCode != OK）也要回调 null：WebView 在等这一次回话才恢复 file input
+            cb.onReceiveValue(uris);
+            return;
+        }
         if (requestCode != REQ_VPN) return;
         CaptureLog.add(this, "ui", "vpn permission result="
             + (resultCode == RESULT_OK ? "ok" : "denied/cancel"));
@@ -1449,6 +1471,35 @@ public final class MainActivity extends Activity {
     }
 
     private final class Chrome extends WebChromeClient {
+
+        /**
+         * 网页 <input type=file> 的落地：抓取账号 id 要从相册选二维码图。
+         * 不实现这个回调时点击无反应（WebView 默认丢弃）；返回 false = "不支持"，
+         * 网页的 change 事件永远不会来。
+         */
+        @Override
+        public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                         FileChooserParams params) {
+            if (pendingFileUpload != null) {
+                // 上一次还没回来又点了一次：先把旧的回调干净地还掉（回调一次是契约，不能扣着）
+                pendingFileUpload.onReceiveValue(null);
+            }
+            pendingFileUpload = callback;
+            try {
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+                pick.addCategory(Intent.CATEGORY_OPENABLE);
+                pick.setType("image/*");
+                Intent chooser = Intent.createChooser(pick, null);
+                startActivityForResult(chooser, REQ_FILE_CHOOSER);
+                return true;
+            } catch (Exception e) {
+                Log.w(TAG, "file chooser failed", e);
+                pendingFileUpload = null;
+                callback.onReceiveValue(null);
+                Toast.makeText(MainActivity.this, R.string.file_chooser_failed, Toast.LENGTH_LONG).show();
+                return true;
+            }
+        }
 
         @Override
         public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture,
