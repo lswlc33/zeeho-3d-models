@@ -101,6 +101,8 @@
     <string name="capture_success_text_unknown">点此返回几何面板</string>
     <string name="capture_failed_title">自动抓取失败</string>
     <string name="capture_failed_text">没有抓到登录信息，请重试</string>
+    <string name="capture_cancel">停止抓取</string>
+    <string name="capture_stop_retry">关闭 VPN 并重试</string>
 
     <!-- 自动任务 -->
     <string name="notify_task_ok_title">自动任务完成</string>

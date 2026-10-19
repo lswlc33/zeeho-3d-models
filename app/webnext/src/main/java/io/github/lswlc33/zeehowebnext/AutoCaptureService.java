@@ -22,8 +22,16 @@ public final class AutoCaptureService extends VpnService {
 
     private static final String TAG = "ZeehoWebNext";
     private static final String ACTION_START = "io.github.lswlc33.zeehowebnext.CAPTURE_START";
-    private static final String ACTION_STOP = "io.github.lswlc33.zeehowebnext.CAPTURE_STOP";
+    static final String ACTION_STOP = "io.github.lswlc33.zeehowebnext.CAPTURE_STOP";
     private static final long TIMEOUT_MS = 120_000L;
+    /** 抓到后别立刻拆 VPN：WebView 还要跟着 301 走完 HTTPS，代理已标记 captured 会盲转发。 */
+    private static final long KEEP_ALIVE_MS = 15_000L;
+    /** 给 Activity/页面做“是否还有活动抓取”的判断；shutdown 会清掉。 */
+    private static volatile boolean running;
+
+    static boolean isRunning() {
+        return running;
+    }
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final AtomicBoolean done = new AtomicBoolean();
@@ -32,7 +40,8 @@ public final class AutoCaptureService extends VpnService {
     private boolean foreground;
 
     private final Runnable timeout = () ->
-        fail("超时：没有抓到登录请求（请在极核里进入「我的 → 签到」页面）");
+        fail("超时：没有抓到登录请求。请确认极核 App 已登录并进入「我的 → 签到」；"
+            + "如果其他工具能抓，它们通常也装了用户 CA");
 
     static void start(Context c) {
         Intent i = new Intent(c, AutoCaptureService.class).setAction(ACTION_START);
@@ -108,6 +117,7 @@ public final class AutoCaptureService extends VpnService {
                 fail("VPN 建立失败（系统没有返回隧道）");
                 return START_NOT_STICKY;
             }
+            running = true;
             main.postDelayed(timeout, TIMEOUT_MS);
             Log.i(TAG, "capture vpn established on port " + port);
         } catch (Exception e) {
@@ -127,8 +137,11 @@ public final class AutoCaptureService extends VpnService {
         NativeStore.setCaptureSuccess(this, token, uid);
         Notify.captureSuccess(this, uid);
         Log.i(TAG, "capture success, uid=" + (uid == null || uid.isEmpty() ? "?" : uid));
-        shutdown();
-        stopSelf();
+        // 先留着 VPN 让 H5 页面完成 301 -> HTTPS 的加载，10 秒后再拆。
+        main.postDelayed(() -> {
+            shutdown();
+            stopSelf();
+        }, KEEP_ALIVE_MS);
     }
 
     private void fail(String message) {
@@ -147,6 +160,7 @@ public final class AutoCaptureService extends VpnService {
      * 隧道不关，状态栏的 VPN 图标和“等待中”通知就会一直挂着。
      */
     private void shutdown() {
+        running = false;
         if (proxy != null) {
             proxy.stop();
             proxy = null;

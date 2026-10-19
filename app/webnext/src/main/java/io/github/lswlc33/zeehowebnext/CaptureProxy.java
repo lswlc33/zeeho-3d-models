@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +63,8 @@ final class CaptureProxy {
     private final Callback cb;
     private final AtomicBoolean captured = new AtomicBoolean();
     private volatile boolean stopped;
+    /** 官方 App 不认本地证书时置位：后续 h5 的 CONNECT 直接盲转发，至少让页面能打开。 */
+    private volatile boolean mitmFailed;
     private ServerSocket server;
     private ExecutorService pool;
     private SSLContext serverTls;
@@ -130,8 +133,9 @@ final class CaptureProxy {
                 return;
             }
             if (!"CONNECT".equalsIgnoreCase(parts[0])) {
-                // 明文代理请求不是这次的目标；直接关掉，别当开放代理。
-                close(client);
+                // WebView 的网页请求是明文 HTTP（代理形式是绝对 URL）：必须转发，
+                // 否则官方 App 的 H5 页会直接打不开；token/userId 往往就在这个 URL 里。
+                handlePlain(client, in, out, head);
                 return;
             }
             String hostPort = parts[1];
@@ -145,11 +149,18 @@ final class CaptureProxy {
             out.write("HTTP/1.1 200 Connection Established\r\n\r\n".getBytes("ISO-8859-1"));
             out.flush();
             if (TARGET_HOST.equalsIgnoreCase(host)) {
+                // 已经从明文网页 URL/请求头拿到凭据后，不再 MITM：盲转发，页面才能正常加载。
+                if (captured.get() || mitmFailed) {
+                    tunnel(client, host, port);
+                    return;
+                }
                 try {
                     mitm(client, host, port);
                 } catch (javax.net.ssl.SSLException e) {
-                    Log.w(TAG, "capture TLS handshake failed", e);
-                    cb.onError("官方 App 拒绝了本地证书，可能需要安装 CA");
+                    // 官方 App 校验证书时先别把整轮判死：标记后后续连接盲转发，
+                    // 至少 H5 页面能打开；能不能抓到就看明文那次有没有带 token/userId。
+                    Log.w(TAG, "capture TLS handshake failed; fallback to blind tunnel", e);
+                    mitmFailed = true;
                     close(client);
                 }
             } else {
@@ -157,6 +168,73 @@ final class CaptureProxy {
             }
         } catch (Exception e) {
             if (!stopped) Log.w(TAG, "capture connection failed: " + e.getMessage());
+            close(client);
+        }
+    }
+
+    /**
+     * 明文 HTTP 代理请求（WebView 的网页导航就是这种：请求行是绝对 URL）。
+     * 原样转发到目标 80 端口；如果就是 h5 的 baseInfo 页面，从 **请求 URL/头** 里拿
+     * token/userId（服务端随后会 301 到 HTTPS，那一跳不再需要解密）。
+     */
+    private void handlePlain(Socket client, BufferedInputStream in, OutputStream out, String head) {
+        Socket up = null;
+        try {
+            Req req = Req.parse(head);
+            URL u = new URL(req.path);
+            if (!"http".equalsIgnoreCase(u.getProtocol())) {
+                close(client);
+                return;
+            }
+            String host = u.getHost();
+            if (host == null || host.isEmpty()) {
+                close(client);
+                return;
+            }
+            int port = u.getPort() > 0 ? u.getPort() : 80;
+            String path = u.getFile();
+            if (path == null || path.isEmpty()) path = "/";
+            byte[] reqBody = readRequestBody(in, req.headers);
+
+            up = new Socket(host, port);
+            up.setSoTimeout(20_000);
+            Req fwd = new Req();
+            fwd.method = req.method;
+            fwd.path = path;
+            fwd.headers.putAll(req.headers);
+            writeRequest(up.getOutputStream(), host, fwd, reqBody);
+
+            BufferedInputStream uin = new BufferedInputStream(up.getInputStream());
+            String respHead = readHead(uin);
+            if (respHead.isEmpty()) {
+                close(client);
+                return;
+            }
+            Resp resp = Resp.parse(respHead);
+            byte[] respBody = readBody(uin, resp.headers);
+            // 先把 301/页面回给 WebView，再报抓取成功：服务端还有 10 秒才拆代理，
+            // WebView 有时间跟着 Location 走完 HTTPS。
+            writeResponse(out, resp, respBody);
+            out.flush();
+
+            if (TARGET_HOST.equalsIgnoreCase(host)
+                && path.toLowerCase(Locale.US).contains("/h5/baseinfo")) {
+                String token = extractToken(req, resp, respBody);
+                String uid = extractUid(req, resp, respBody);
+                if (token != null && !token.isEmpty() && uid != null && !uid.isEmpty()) {
+                    if (captured.compareAndSet(false, true)) {
+                        Log.i(TAG, "capture success from plain http, uid=" + uid);
+                        cb.onCaptured(token, uid);
+                    }
+                } else {
+                    Log.w(TAG, "plain baseInfo missing token/uid; path=" + path
+                        + " body=" + preview(respBody));
+                }
+            }
+        } catch (Exception e) {
+            if (!stopped) Log.w(TAG, "capture plain http failed: " + e.getMessage());
+        } finally {
+            close(up);
             close(client);
         }
     }
@@ -191,7 +269,7 @@ final class CaptureProxy {
         if (req.path != null && req.path.contains("/H5/baseInfo")
             && resp.code >= 200 && resp.code < 300) {
             String token = extractToken(req, resp, respBody);
-            String uid = extractUid(resp, respBody);
+            String uid = extractUid(req, resp, respBody);
             if (token != null && !token.isEmpty() && uid != null && !uid.isEmpty()) {
                 if (captured.compareAndSet(false, true)) {
                     Log.i(TAG, "capture success, uid=" + uid);
@@ -472,13 +550,19 @@ final class CaptureProxy {
             auth = auth.trim().replaceFirst("(?i)^bearer\\s+", "");
             if (!auth.isEmpty()) return auth;
         }
+        // WebView.loadUrl(url, headers) 也可能把 token 放在自定义头里。
+        for (String k : new String[]{"token", "access_token", "satoken", "x-token"}) {
+            String v = req.header(k);
+            if (v != null && !v.trim().isEmpty()) return v.trim();
+        }
         // 有些 h5 页面把 token 放在 cookie 或 URL query 里，不一定是 Authorization。
         String cookie = req.header("cookie");
         if (cookie != null) {
             Matcher m = Pattern.compile("(?i)(?:^|;\\s*)(?:token|access_token|satoken)=([^;]+)").matcher(cookie);
             if (m.find()) return decode(m.group(1));
         }
-        Matcher q = Pattern.compile("[?&](?:token|access_token)=([^&]+)").matcher(req.path == null ? "" : req.path);
+        Matcher q = Pattern.compile("[?&](?:token|access_token|accessToken|satoken)=([^&]+)",
+            Pattern.CASE_INSENSITIVE).matcher(req.path == null ? "" : req.path);
         if (q.find()) return decode(q.group(1));
         String fromBody = findInBody(body, resp.header("content-encoding"),
             new String[]{"token", "access_token", "accessToken", "h5Token", "h5_token"});
@@ -490,7 +574,21 @@ final class CaptureProxy {
         try { return java.net.URLDecoder.decode(s, "UTF-8"); } catch (Exception e) { return s; }
     }
 
-    private static String extractUid(Resp resp, byte[] body) {
+    private static String extractUid(Req req, Resp resp, byte[] body) {
+        // 明文网页的 URL 往往直接带 userId（这就是 HttpCanary 无证书能看到的原因）。
+        String path = req.path == null ? "" : req.path;
+        Matcher q = Pattern.compile("[?&](?:userId|user_id|uid|userid|accountId|account_id)=([^&]+)",
+            Pattern.CASE_INSENSITIVE).matcher(path);
+        if (q.find()) return decode(q.group(1));
+        for (String k : new String[]{"userId", "user_id", "uid", "accountId"}) {
+            String v = req.header(k);
+            if (v != null && !v.trim().isEmpty()) return v.trim();
+        }
+        String reqCookie = req.header("cookie");
+        if (reqCookie != null) {
+            Matcher m = Pattern.compile("(?i)(?:userId|user_id|uid)=([^;,\\s]+)").matcher(reqCookie);
+            if (m.find()) return decode(m.group(1));
+        }
         // baseInfo 的 data 是用户档案：内部用户 id 在 data.id（实测 ...353），不是 bindingUserId。
         // id 放最后当兜底；前面的专用键优先。
         String fromBody = findInBody(body, resp.header("content-encoding"),

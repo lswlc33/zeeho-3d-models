@@ -444,6 +444,26 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.4：方案三修明文网页抓取（2026-10-19）
+
+用户抓包确认：官方 App 的 `h5.zeehoev.com/cfmotoservermine/H5/baseInfo` 是 **WebView 网页**，
+先走**明文 HTTP**（token/userId 在 URL/请求头里），服务端再 301 到 HTTPS；所以 HttpCanary
+这类工具**不需要 CA**也能看到第一跳。1.5.3 的代理只处理 CONNECT，把明文 HTTP 直接关掉，
+于是既抓不到、官方 H5 页也打不开。
+
+1.5.4 改动：
+
+- `CaptureProxy.handlePlain()`：接收代理形式的绝对 URL（`GET http://host/path HTTP/1.1`），
+  转发到目标 80 端口，把 301/页面原样回给 WebView；从请求 **URL query / 自定义头 / cookie**
+  提取 `token` 和 `userId/user_id/uid/access_token`，命中后置 captured。
+- 抓到后 h5 的 HTTPS CONNECT **盲转发**（不再 MITM）；如果第一轮没抓到、MITM 又被官方 App
+  拒绝证书，则置 `mitmFailed`，后续也盲转发——页面至少能打开，错误文案会说明 CA 边界。
+- 抓到后 VPN 再保留 **15 秒**让 WebView 完成 301→HTTPS 加载，然后自动拆 VPN/停止代理。
+- 流程改为：点“开启自动抓取”只申请 VPN 权限（state=ready），指引里点“启动极核 App”才真正
+  建立 VPN；提前回到面板会自动停 VPN；等待通知加“停止抓取”动作；原生错误页的按钮改成
+  “关闭 VPN 并重试”。这样面板自己的 WebView 不会在 VPN 生效期间被代理影响。
+- **1.5.4 / versionCode 20**。
+
 ## 1.5.3：方案 3 · VPN 自动抓取（2026-10-19）
 
 数据调试里新增“方案三、VPN 自动抓取（无需 root）”：点按钮 → 系统 VPN 授权 → 指引 →

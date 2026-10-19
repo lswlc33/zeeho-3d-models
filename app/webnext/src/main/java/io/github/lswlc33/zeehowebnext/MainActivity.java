@@ -197,6 +197,12 @@ public final class MainActivity extends Activity {
 
         cache.promotePendingAtStartup();
         cache.ensureOptionalAssetsAsync();
+        // 进程重启后如果还停在 vpn/waiting，但抓取服务已经不在了（同一进程，跟着一起死了），
+        // 说明这一轮已经中断；留成 error 让页面提示，别让用户以为还在等。
+        String capState = NativeStore.captureState(this);
+        if (("vpn".equals(capState) || "waiting".equals(capState)) && !AutoCaptureService.isRunning()) {
+            NativeStore.setCaptureState(this, "error", "抓取被中断（App 进程重启）");
+        }
         if (cache.hasActive()) {
             loadPage();
         } else {
@@ -213,6 +219,11 @@ public final class MainActivity extends Activity {
         main.post(idleTick);
         applyBarAppearance(dark);
         AppState.foreground = true;
+        // 用户没有等抓取完成就回到面板：先停 VPN，保证面板自己的 WebView 不被代理影响。
+        if (AutoCaptureService.isRunning() && "waiting".equals(NativeStore.captureState(this))) {
+            AutoCaptureService.stop(this);
+            NativeStore.setCaptureState(this, "error", "已回到面板，抓取已停止；可以重新开始");
+        }
         // 首帧优先：这些系统调用（快捷方式、JobScheduler、前台服务、更新检查、BLE）全部后移。
         main.removeCallbacks(backgroundWork);
         main.postDelayed(backgroundWork, 350);
@@ -368,7 +379,9 @@ public final class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQ_VPN) return;
         if (resultCode == RESULT_OK) {
-            startCaptureService();
+            // 只记“已授权”；VPN 要等用户确认指引、点“启动极核 App”时才建立——
+            // 避免本应用自己的 WebView 在用户眼前被 VPN 代理影响。
+            NativeStore.setCaptureState(this, "ready", null);
         } else {
             NativeStore.setCaptureState(this, "denied", "你拒绝了 VPN 授权");
             Notify.captureFailed(this, "你拒绝了 VPN 授权");
@@ -377,7 +390,7 @@ public final class MainActivity extends Activity {
 
     // ---------------- 方案 3：VPN 自动抓取 ----------------
 
-    /** 页面按钮：先弹系统 VPN 授权，授权后启动 AutoCaptureService。 */
+    /** 页面按钮：先弹系统 VPN 授权；授权后进入 ready，等指引确认再起 VPN。 */
     void postStartCapture() {
         main.post(() -> {
             if (destroyed || isFinishing()) return;
@@ -394,7 +407,7 @@ public final class MainActivity extends Activity {
                     return;
                 }
             }
-            startCaptureService();
+            NativeStore.setCaptureState(this, "ready", null);
         });
     }
 
@@ -409,31 +422,51 @@ public final class MainActivity extends Activity {
     }
 
     void postStopCapture() {
-        main.post(() -> AutoCaptureService.stop(this));
+        main.post(() -> {
+            if (AutoCaptureService.isRunning()) AutoCaptureService.stop(this);
+            NativeStore.setCaptureState(this, "idle", null);
+        });
     }
 
-    /** 指引确认后跳到官方 App；VPN 已在后台等待。 */
+    /** 指引确认后：先起 VPN 让代理就绪，再跳官方 App。 */
     void postLaunchOfficialApp() {
         main.post(() -> {
-            Intent i = getPackageManager().getLaunchIntentForPackage("com.cfmoto");
-            if (i == null) {
-                NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
-                Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
-                return;
-            }
-            try {
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(i);
-            } catch (Exception e) {
-                Log.w(TAG, "launch cfmoto failed", e);
-                NativeStore.setCaptureState(this, "error", "无法启动极核 App");
+            String state = NativeStore.captureState(this);
+            if ("ready".equals(state) || "vpn".equals(state)) {
+                startCaptureService();
+                if ("error".equals(NativeStore.captureState(this))) return;
+                main.postDelayed(this::launchOfficialNow, 700);
+            } else {
+                launchOfficialNow();
             }
         });
+    }
+
+    private void launchOfficialNow() {
+        Intent i = getPackageManager().getLaunchIntentForPackage("com.cfmoto");
+        if (i == null) {
+            NativeStore.setCaptureState(this, "error", "未安装极核 App（com.cfmoto）");
+            Notify.captureFailed(this, "未安装极核 App（com.cfmoto）");
+            return;
+        }
+        try {
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            Log.w(TAG, "launch cfmoto failed", e);
+            NativeStore.setCaptureState(this, "error", "无法启动极核 App");
+        }
     }
 
     /** 页面取走抓取结果后清掉，避免下次开屏又弹一次。 */
     void postClearCapture() {
         main.post(() -> NativeStore.clearCapture(this));
+    }
+
+    private boolean captureActive() {
+        String s = NativeStore.captureState(this);
+        return "vpn".equals(s) || "ready".equals(s) || "waiting".equals(s)
+            || "error".equals(s) || "denied".equals(s);
     }
 
     /** 给页面轮询的状态：state/token/uid/error + 官方 App 是否已安装。 */
@@ -874,7 +907,16 @@ public final class MainActivity extends Activity {
         Log.i(TAG, "load page, active=" + (cache == null || cache.active() == null
             ? "none" : cache.active().build));
         long t = SystemClock.elapsedRealtime();
-        webView.loadUrl(baseUrl);
+        // URL 带上快照 build：WebView 会按 URL 缓存主文档，快照更新后 URL 不变会继续用旧页。
+        // 带 build 查询后，新快照就是一个新 URL，页面更新才真的能生效（查询不影响拦截/同源）。
+        String url = baseUrl;
+        if (cache != null && cache.active() != null) {
+            String build = cache.active().build;
+            if (build != null && !build.isEmpty()) {
+                url += (url.contains("?") ? "&" : "?") + "b=" + Uri.encode(build);
+            }
+        }
+        webView.loadUrl(url);
         // 兜底：旧版页面没有 pageReady 桥，onPageFinished 又可能被外链字体拖到 1s+。
         // 650ms 后无论如何收掉启动图，最多挡住"本来就要显示的内容"一小会儿。
         main.postDelayed(this::hideSplash, 650);
@@ -1057,8 +1099,8 @@ public final class MainActivity extends Activity {
             ? R.string.network_hint_cached : R.string.network_hint);
         overlayProgress.setVisibility(View.GONE);
         overlayRetry.setVisibility(View.VISIBLE);
-        overlayRetry.setText(cache != null && cache.hasActive()
-            ? R.string.reload : R.string.init_retry);
+        overlayRetry.setText(captureActive() ? R.string.capture_stop_retry
+            : (cache != null && cache.hasActive() ? R.string.reload : R.string.init_retry));
     }
 
     private void showFatal(String message, boolean retry) {
@@ -1144,6 +1186,14 @@ public final class MainActivity extends Activity {
         overlayRetry.setTextColor(bgColor());
         overlayRetry.setVisibility(View.GONE);
         overlayRetry.setOnClickListener(v -> {
+            // 页面打不开又刚好有抓取/VPN 挂着：先停 VPN 再重载，别让用户被困在代理里。
+            if (captureActive()) {
+                if (AutoCaptureService.isRunning()) AutoCaptureService.stop(this);
+                NativeStore.setCaptureState(this, "idle", null);
+                hideOverlay();
+                main.postDelayed(this::loadPage, 800);
+                return;
+            }
             if (cache != null && cache.hasActive()) {
                 hideOverlay();
                 loadPage();

@@ -244,6 +244,10 @@ final class NativeStore {
             .apply();
     }
 
+    static String captureState(Context c) {
+        return sp(c).getString(K_CAPTURE_STATE, "idle");
+    }
+
     /** 给页面轮询的结果；token 只在本地桥里返回，通知/日志不碰它。 */
     static String captureJson(Context c) {
         SharedPreferences p = sp(c);

@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.provider.Settings;
 
@@ -244,6 +245,13 @@ final class Notify {
             .setPriority(Notification.PRIORITY_MIN)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setShowWhen(false);
+        // 页面打不开/卡住时，用户仍能从通知栏一键停 VPN，恢复网络。
+        Intent stop = new Intent(c, AutoCaptureService.class).setAction(AutoCaptureService.ACTION_STOP);
+        PendingIntent sp = PendingIntent.getService(c, 501, stop,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        b.addAction(new Notification.Action.Builder(
+            Icon.createWithResource(c, R.drawable.ic_notify),
+            c.getString(R.string.capture_cancel), sp).build());
         return b.build();
     }
 
