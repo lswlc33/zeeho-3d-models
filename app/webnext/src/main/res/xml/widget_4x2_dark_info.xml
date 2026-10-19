@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 车辆状态（黑） · 4x2（API < 31 的标准声明；现代桌面用 xml-v31 里的变体）。
+     resizeMode 双向：用户可以拖拽改格子，bind 按实际格子数换布局档。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="280dp"
+    android:minHeight="140dp"
+    android:initialLayout="@layout/widget_4x2"
+    android:previewLayout="@layout/widget_4x2_preview_dark"
+    android:previewImage="@drawable/widget_preview_4x2"
+    android:description="@string/widget_4x2_desc"
+    android:updatePeriodMillis="0"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

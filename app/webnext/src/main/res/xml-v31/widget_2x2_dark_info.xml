@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- API < 31 的标准尺寸（现代桌面用 xml-v31 里的 targetCell 变体）。 -->
+<!-- 车辆状态（黑） · 2x2（API 31+：targetCell 让选择器/添加时按格子对齐；resize 双向，分档换布局）。 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="110dp"
-    android:minHeight="110dp"
+    android:minWidth="140dp"
+    android:minHeight="140dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
+    android:maxResizeWidth="160dp"
+    android:maxResizeHeight="160dp"
     android:initialLayout="@layout/widget_2x2"
-    android:previewLayout="@layout/widget_2x2_preview"
+    android:previewLayout="@layout/widget_2x2_preview_dark"
     android:previewImage="@drawable/widget_preview_2x2"
     android:description="@string/widget_2x2_desc"
     android:updatePeriodMillis="0"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

@@ -22,6 +22,9 @@ final class Poller {
     private static final long MIN_INTERVAL_MS = 30_000L;
     /** 鉴权失败后的冷却：到点仍会重试一次，成功就自动恢复（以前一旦置位就永久停摆）。 */
     private static final long AUTH_RETRY_MS = 30 * 60_000L;
+    /** 4x4 微件扩展数据的拉取间隔：最近骑行/积分 10 分钟、胎压 20 分钟（都是慢变量）。 */
+    static final long RIDE_INTERVAL_MS = 10 * 60_000L;
+    static final long TIRE_INTERVAL_MS = 20 * 60_000L;
     private static volatile long lastAttemptAt;
 
     private Poller() {
@@ -86,6 +89,47 @@ final class Poller {
         if (msg != null && msg.auth) {
             failedAuth(c);
             return;
+        }
+        // 4x4 微件的扩展数据（最近骑行/积分）与胎压：非关键路径，失败静默（各自独立 try），
+        // 频率也不跟 60 秒轮询——骑行/积分 10 分钟一次、胎压 20 分钟一次，够新且省流量。
+        JSONObject ride = null;
+        try {
+            long now = System.currentTimeMillis();
+            if (!uid.isEmpty() && now - NativeStore.rideFetchedAt(c) > RIDE_INTERVAL_MS) {
+                ApiClient.Result rh = api.rideHome(vin);
+                if (!rh.auth && rh.ok) {
+                    NativeStore.setRideFetchedAt(c, now);
+                    ride = ApiClient.obj(rh);
+                } else if (rh.auth) {
+                    failedAuth(c);
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        JSONObject score = null;
+        try {
+            long now = System.currentTimeMillis();
+            if (!uid.isEmpty() && now - NativeStore.scoreFetchedAt(c) > RIDE_INTERVAL_MS) {
+                ApiClient.Result it = api.integralTotal(uid);
+                if (!it.auth && it.ok) {
+                    NativeStore.setScoreFetchedAt(c, now);
+                    score = ApiClient.obj(it);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        JSONObject tire = null;
+        try {
+            long now = System.currentTimeMillis();
+            if (now - NativeStore.tireFetchedAt(c) > TIRE_INTERVAL_MS) {
+                ApiClient.Result tm = api.tireMonitor(vin);
+                if (!tm.auth && tm.ok) {
+                    NativeStore.setTireFetchedAt(c, now);
+                    tire = ApiClient.obj(tm);
+                }
+            }
+        } catch (Exception ignored) {
         }
 
         JSONObject j = new JSONObject();
@@ -189,6 +233,41 @@ final class Poller {
                     }
                 }
             }
+
+            // ---- 4x4 微件扩展（都拿不到就不写键，微件那边按 -1/空整块收起） ----
+            if (ride != null) {
+                // homeRideInfo：今日里程（km，字符串）+ 上一次骑行里程/时长
+                double today = parseKm(ApiClient.text(ride, "rideMileageDay"));
+                if (today >= 0) j.put("todayMile", (int) Math.round(today * 1000));
+                double lastM = parseKm(ApiClient.text(ride, "lastRideMileage"));
+                if (lastM >= 0) j.put("lastRideMile", (int) Math.round(lastM * 1000));
+                int lastMin = ApiClient.intOr(ride, "lastRidingTimeUnitMinute", -1);
+                if (lastMin >= 0) j.put("lastRideMin", lastMin);
+            }
+            if (score != null) {
+                int total = ApiClient.intOr(score, "integralTotal", -1);
+                if (total >= 0) j.put("integral", total);
+            }
+            if (tire != null) {
+                // realTimeData[]：sensorPosition 1=前 2=后，tirePressure/bar，tireTemp/℃
+                JSONArray sensors = tire.optJSONArray("realTimeData");
+                if (sensors != null) {
+                    for (int i = 0; i < sensors.length(); i++) {
+                        JSONObject st = sensors.optJSONObject(i);
+                        if (st == null) continue;
+                        double bar = st.optDouble("tirePressure", -1);
+                        int temp = st.optInt("tireTemp", -1);
+                        if (bar < 0) continue;
+                        if (st.optInt("sensorPosition", 0) == 1) {
+                            j.put("tireFront", bar);
+                            if (temp >= 0) j.put("tireTempFront", temp);
+                        } else if (st.optInt("sensorPosition", 0) == 2) {
+                            j.put("tireRear", bar);
+                            if (temp >= 0) j.put("tireTempRear", temp);
+                        }
+                    }
+                }
+            }
             j.put("at", System.currentTimeMillis());
 
             // 只要有一条接口真的成功，就说明 token 是好的（可能是上一次误判，或者用户重新登录了）：
@@ -208,5 +287,18 @@ final class Poller {
         NativeStore.setAuthFailed(c, true);
         // 冷却重试再次失败不重复弹：一次失效只提醒一次，恢复后（成功轮询）标记会自己清掉。
         if (!was) Notify.auth(c);
+    }
+
+    /** "0.328" / "" / null → km；解析不出返回 -1（调用方按"没数据"收）。 */
+    private static double parseKm(String s) {
+        if (s == null) return -1;
+        String t = s.trim();
+        if (t.isEmpty() || "-".equals(t) || "--".equals(t)) return -1;
+        try {
+            double v = Double.parseDouble(t.replaceAll("[^0-9.]", ""));
+            return v >= 0 ? v : -1;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 }

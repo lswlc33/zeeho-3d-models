@@ -119,13 +119,12 @@
     <string name="shortcut_horn">寻车鸣笛</string>
     <string name="shortcut_seat">打开坐垫</string>
 
-    <!-- 小组件 -->
-    <string name="widget_2x2_label">几何面板 · 2×2</string>
-    <string name="widget_4x2_label">几何面板 · 4×2</string>
-    <string name="widget_4x4_label">几何面板 · 4×4</string>
-    <string name="widget_2x2_desc">电量、充电状态与车锁</string>
-    <string name="widget_4x2_desc">电量、充电功率、车锁与坐垫</string>
-    <string name="widget_4x4_desc">完整仪表与快捷车控</string>
+    <!-- 小组件：8 个「车辆状态」（4 尺寸 × 黑白），label 统一；描述按尺寸区分 -->
+    <string name="widget_label">车辆状态</string>
+    <string name="widget_1x1_desc">车辆状态（电量与电压）</string>
+    <string name="widget_2x2_desc">车辆状态（电量、充电与锁车坐垫）</string>
+    <string name="widget_4x2_desc">车辆状态（完整车况、立绘与车控）</string>
+    <string name="widget_4x4_desc">车辆状态（完整车况、最近骑行、积分与车控）</string>
     <string name="widget_title">几何面板</string>
     <string name="widget_no_data">打开 App 同步</string>
     <string name="widget_open">打开 App</string>
@@ -136,6 +135,21 @@
     <string name="widget_preview_power">592 W</string>
     <string name="widget_preview_time">预计 21:40 充满</string>
     <string name="widget_preview_voltage">82.8 V</string>
+    <string name="widget_preview_tire">胎压 2.4 / 2.4 bar</string>
+    <string name="widget_preview_today">3.2</string>
+    <string name="widget_preview_last">1.9</string>
+    <string name="widget_preview_last_time">8 分</string>
+    <string name="widget_preview_integral">2371</string>
+    <string name="widget_today_ride">最近骑行（今日）</string>
+    <string name="widget_last_ride">上一次骑行</string>
+    <string name="widget_integral">积分</string>
+    <string name="widget_integral_unit">分</string>
+    <string name="widget_no_ride">最近没骑</string>
+    <string name="widget_tire">胎压 %1$s / %2$s bar</string>
+    <string name="widget_minutes">%1$d 分</string>
+    <string name="widget_minutes_h">%1$d 时 %2$d 分</string>
+    <string name="widget_icon_unlock">🔓</string>
+    <string name="widget_icon_horn">📢</string>
     <string name="widget_preview_lock">已锁车</string>
     <string name="widget_preview_seat">坐垫已锁</string>
     <string name="widget_preview_updated">21:40 更新</string>

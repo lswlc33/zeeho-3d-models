@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_card_dark" android:orientation="horizontal" android:padding="10dp">
+    <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
+        android:layout_weight="1.2" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="@string/widget_preview_title" android:textColor="#F5F6F8" android:textSize="12sp" android:textStyle="bold"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="4dp" android:text="@string/widget_preview_updated"
+                android:textColor="#9AA0A6" android:textSize="8sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="5dp" android:background="@drawable/widget_btn"
+                android:paddingStart="6dp" android:paddingEnd="6dp" android:paddingTop="2dp" android:paddingBottom="2dp"
+                android:text="@string/widget_refresh" android:textColor="#7FB0FF" android:textSize="8sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp" android:baselineAligned="false" android:gravity="bottom" android:orientation="horizontal">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                android:text="@string/widget_preview_soc" android:textColor="#F5F6F8" android:textSize="28sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="1dp" android:layout_marginBottom="2dp" android:text="%"
+                android:textColor="#9AA0A6" android:textSize="9sp"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="5dp"
+                android:layout_marginBottom="2dp" android:layout_weight="1" android:gravity="end"
+                android:text="@string/widget_preview_voltage" android:textColor="#9AA0A6" android:textSize="9sp"/>
+        </LinearLayout>
+        <ProgressBar style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="3dp" android:layout_marginTop="2dp"
+            android:progress="68" android:progressBackgroundTint="#262C36" android:progressTint="#7FB0FF"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp" android:baselineAligned="false" android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/widget_preview_charge" android:textColor="#7FB0FF" android:textSize="9sp" android:textStyle="bold"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="5dp" android:text="@string/widget_preview_power"
+                android:textColor="#F5F6F8" android:textSize="9sp" android:textStyle="bold"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:gravity="end" android:text="@string/widget_preview_time" android:textColor="#9AA0A6" android:textSize="8sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:background="@drawable/widget_chip" android:paddingStart="6dp" android:paddingEnd="6dp"
+                android:paddingTop="1dp" android:paddingBottom="1dp" android:text="@string/widget_preview_lock"
+                android:textColor="#F5F6F8" android:textSize="8sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="4dp" android:background="@drawable/widget_chip"
+                android:paddingStart="6dp" android:paddingEnd="6dp" android:paddingTop="1dp" android:paddingBottom="1dp"
+                android:text="@string/widget_preview_seat" android:textColor="#F5F6F8" android:textSize="8sp"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp"
+                android:layout_weight="1" android:gravity="end" android:text="@string/widget_preview_tire"
+                android:textColor="#9AA0A6" android:textSize="8sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="5dp" android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1"
+                android:background="@drawable/widget_btn" android:gravity="center"
+                android:text="@string/widget_action_lock" android:textColor="#F5F6F8" android:textSize="9sp"/>
+            <TextView android:layout_width="0dp" android:layout_height="26dp" android:layout_marginStart="5dp"
+                android:layout_weight="1" android:background="@drawable/widget_btn" android:gravity="center"
+                android:text="@string/widget_action_seat" android:textColor="#F5F6F8" android:textSize="9sp"/>
+        </LinearLayout>
+    </LinearLayout>
+    <ImageView android:layout_width="0dp" android:layout_height="match_parent" android:layout_marginStart="6dp"
+        android:layout_weight="0.75" android:scaleType="fitCenter" android:src="@drawable/widget_car_preview"
+        android:contentDescription="@string/widget_title"/>
+</LinearLayout>

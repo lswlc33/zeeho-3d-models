@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 固定 4x2：不允许拉伸成 4x3/5x2 等形状。 -->
+<!-- 车辆状态（黑） · 4x2（API 31+：targetCell 让选择器/添加时按格子对齐；resize 双向，分档换布局）。 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="250dp"
-    android:minHeight="55dp"
+    android:minWidth="280dp"
+    android:minHeight="140dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
-    android:maxResizeWidth="250dp"
-    android:maxResizeHeight="55dp"
+    android:maxResizeWidth="300dp"
+    android:maxResizeHeight="160dp"
     android:initialLayout="@layout/widget_4x2"
-    android:previewLayout="@layout/widget_4x2_preview"
+    android:previewLayout="@layout/widget_4x2_preview_dark"
     android:previewImage="@drawable/widget_preview_4x2"
     android:description="@string/widget_4x2_desc"
     android:updatePeriodMillis="0"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

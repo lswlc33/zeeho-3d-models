@@ -78,6 +78,20 @@ final class ApiClient {
         return call("GET", "/v1.0/app/cfmotoserverapp/batteryInfo/" + vin, null, null);
     }
 
+    /** 最近骑行（homeRideInfo）：今日里程 + 上一次骑行里程/时长。4x4 微件用。 */
+    Result rideHome(String vin) {
+        Map<String, String> q = new TreeMap<>();
+        q.put("vinNo", vin);
+        return call("GET", "/v1.0/app/cfmotoserverapp/homeRideInfo", q, null);
+    }
+
+    /** 积分总数（totalIntegral）。4x4 微件用；失败不影响其它数据。 */
+    Result integralTotal(String uid) {
+        Map<String, String> q = new TreeMap<>();
+        q.put("userId", uid);
+        return call("GET", "/v1.0/mine/cfmotoservermine/integral/totalIntegral", q, null);
+    }
+
     /** 胎压（只在 15 分钟兜底任务里查一次，不进 60 秒轮询）。 */
     Result tireMonitor(String vin) {
         Map<String, String> q = new TreeMap<>();

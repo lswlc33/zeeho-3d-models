@@ -101,6 +101,15 @@ final class NativeStore {
         String msgId = "";
         String msgTime = "";
         long updatedAt = 0;
+        // 4x4 微件扩展（2026-10-20）：胎压/今日里程/上次骑行/积分。-1/空串 = 没拿到，界面整块收起。
+        float tireFront = -1;
+        float tireRear = -1;
+        int tireTempFront = -1;
+        int tireTempRear = -1;
+        int todayMile = -1;          // 今日里程，米（接口给 km，带一位小数）
+        int lastRideMile = -1;       // 上一次骑行里程，米
+        int lastRideMin = -1;        // 上一次骑行时长，分钟
+        int integral = -1;           // 积分总数
 
         Status copy() {
             Status s = new Status();
@@ -111,6 +120,10 @@ final class NativeStore {
             s.eta = eta; s.charged = charged; s.voltageText = voltageText;
             s.msgTitle = msgTitle; s.msgId = msgId;
             s.msgTime = msgTime; s.updatedAt = updatedAt;
+            s.tireFront = tireFront; s.tireRear = tireRear;
+            s.tireTempFront = tireTempFront; s.tireTempRear = tireTempRear;
+            s.todayMile = todayMile; s.lastRideMile = lastRideMile; s.lastRideMin = lastRideMin;
+            s.integral = integral;
             return s;
         }
 
@@ -122,7 +135,11 @@ final class NativeStore {
                 && current == o.current && lock == o.lock && seat == o.seat && online == o.online
                 && noRead == o.noRead && fullMin == o.fullMin && chargedMin == o.chargedMin
                 && eq(eta, o.eta) && eq(charged, o.charged) && eq(voltageText, o.voltageText)
-                && eq(msgTitle, o.msgTitle) && eq(msgId, o.msgId) && eq(msgTime, o.msgTime);
+                && eq(msgTitle, o.msgTitle) && eq(msgId, o.msgId) && eq(msgTime, o.msgTime)
+                && Float.compare(tireFront, o.tireFront) == 0 && Float.compare(tireRear, o.tireRear) == 0
+                && tireTempFront == o.tireTempFront && tireTempRear == o.tireTempRear
+                && todayMile == o.todayMile && lastRideMile == o.lastRideMile
+                && lastRideMin == o.lastRideMin && integral == o.integral;
         }
 
         private static boolean eq(String a, String b) {
@@ -151,7 +168,14 @@ final class NativeStore {
             if (j.has("msgTitle")) msgTitle = j.optString("msgTitle", msgTitle);
             if (j.has("msgId")) msgId = j.optString("msgId", msgId);
             if (j.has("msgTime")) msgTime = j.optString("msgTime", msgTime);
-            if (j.has("at") && !j.isNull("at")) updatedAt = j.optLong("at", updatedAt);
+            if (j.has("tireFront")) tireFront = (float) j.optDouble("tireFront", tireFront);
+            if (j.has("tireRear")) tireRear = (float) j.optDouble("tireRear", tireRear);
+            if (j.has("tireTempFront")) tireTempFront = j.optInt("tireTempFront", tireTempFront);
+            if (j.has("tireTempRear")) tireTempRear = j.optInt("tireTempRear", tireTempRear);
+            if (j.has("todayMile")) todayMile = j.optInt("todayMile", todayMile);
+            if (j.has("lastRideMile")) lastRideMile = j.optInt("lastRideMile", lastRideMile);
+            if (j.has("lastRideMin")) lastRideMin = j.optInt("lastRideMin", lastRideMin);
+            if (j.has("integral")) integral = j.optInt("integral", integral);
         }
     }
 
@@ -197,6 +221,18 @@ final class NativeStore {
     static void setLastPoll(Context c) {
         sp(c).edit().putLong(K_LAST_POLL, System.currentTimeMillis()).apply();
     }
+
+    // ---- 4x4 微件扩展数据的上次拉取时刻（Poller 节流用；0 = 从没拉过，第一次就查） ----
+    private static final String K_RIDE_AT = "ride_fetch_at";
+    private static final String K_SCORE_AT = "score_fetch_at";
+    private static final String K_TIRE_AT = "tire_fetch_at";
+
+    static long rideFetchedAt(Context c) { return sp(c).getLong(K_RIDE_AT, 0L); }
+    static void setRideFetchedAt(Context c, long at) { sp(c).edit().putLong(K_RIDE_AT, at).apply(); }
+    static long scoreFetchedAt(Context c) { return sp(c).getLong(K_SCORE_AT, 0L); }
+    static void setScoreFetchedAt(Context c, long at) { sp(c).edit().putLong(K_SCORE_AT, at).apply(); }
+    static long tireFetchedAt(Context c) { return sp(c).getLong(K_TIRE_AT, 0L); }
+    static void setTireFetchedAt(Context c, long at) { sp(c).edit().putLong(K_TIRE_AT, at).apply(); }
 
     static boolean authFailed(Context c) {
         return sp(c).getBoolean(K_AUTH_FAILED, false);
