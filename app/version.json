@@ -1,6 +1,6 @@
 {
-  "versionCode": 37,
-  "versionName": "1.5.21",
+  "versionCode": 38,
+  "versionName": "1.5.22",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.21：修重复检查更新。1.5.20 去掉了「请求前先置位」的旧写法，但两个触发点（onResume / 页面加载完成）在首轮还没返回时会同时通过闸门、各发一次请求。现在加在途计数，同一时刻只跑一轮；失败仍保留重试。"
+  "notes": "1.5.22：应用内更新不再比对签名（设备有核心破解，可直接覆盖安装）。仍校验包名与 versionCode 必须更高；签名一致性交给系统安装器判断。"
 }
