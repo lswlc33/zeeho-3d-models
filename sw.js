@@ -9,8 +9,14 @@
 //     页面里的 history.replaceState 只清地址栏、清不掉它（v2 的坑，v3 起按这条禁掉）。
 //
 // 改了缓存内容记得改 CACHE 版本号，否则老缓存不会被清掉（v2→v3 就是要把已经存下的带 token 条目一起清掉）。
+//
+// v3→v4（2026-10-20）：线上出现过「打开就是黑屏」，排查后确认产物本身完整、
+// 最可能是拿到了**旧缓存**：页面是纯空壳，index.html 与它内联的脚本必须同版本；
+// 一旦 SW 回了一份过期的 index.html，或者网络中断时拿到半截，页面就没有任何内容可画。
+// v4 起换缓存名强制清空一次；同时 index.html 内加了静态兜底文案，
+// 真出问题时用户至少看到「页面没能加载完成 + 重新加载」，而不是纯黑。
 
-const CACHE = 'zeeho-dashboard-v3';
+const CACHE = 'zeeho-dashboard-v4';
 const PRECACHE = [
   './',
   './index.html',
