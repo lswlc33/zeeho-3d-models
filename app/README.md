@@ -444,6 +444,35 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.17：小组件不更新 / 刷新无反应 / 开锁报 VIN 缺失（2026-10-20）
+
+这三个是同一轮报障，根因分别在**数据落盘**、**手动刷新被短路**、**请求体缺字段**三处：
+
+- **开锁报「vinNo不能为空」**：`ApiClient.netUnlock` 只发了 `{secret}`。服务端要三件套，
+  2026-10-20 用真 token 实测：只发 secret → `40004 vinNo不能为空`；补 vinNo → `40004 lockFlag不能为空`；
+  三个都带 → `10000 操作成功`。页面侧（`app.js:sendSteps`）一直是三件套，所以只有小组件/快捷方式坏。
+  **根本原因**是照抄了官方 App 的抓包 —— 它只带 secret，但它另有一组客户端标识头走另一条分支，
+  而我们不带那组头（带了会被 WAF 430 拦），必须自己补字段。
+- **微件「更新于」永远不动**：`NativeStore.Status.apply()` 从来没有解析过 `at`，
+  而 `updatedAt` 只在 `StatusFeed` 里 `if (s.updatedAt <= 0)` 时被赋一次值——所以它永远停在
+  第一次写入的那一天。连带 `StatusFeed` 里那条「丢迟到旧响应」的判断（`at < old.updatedAt`）也一起失效。
+- **4×4 的今日/上一次骑行、积分、胎压永远是 0.0 / —**：`Status` 里明明解析了这些字段，
+  但 `status()` 与 `saveStatus()` **两个方法都漏了它们**（只写内存、不落盘、也不读回），
+  微件每次 bind 拿到的都是 -1。顺带修了两处：`Poller` 里 `homeRideInfo` 只需要 `vinNo` 却被
+  `!uid.isEmpty()` 卡住（没填账号 id 就永远不查）；页面 `syncNative` 也把这几项带上，不再只靠后台轮询。
+- **刷新按钮点了没反应**，三条叠加：
+  ① `Poller.pollOnce` 里「页面刚同步过就跳过网络」那条没区分 force——而用户点刷新时，
+     通常正开着面板，`lastPageSync` 刚更新过，于是整轮什么都没做；
+  ② `ride/score/tire` 的 10/20 分钟节流也没让 force 通过；
+  ③ `WidgetRefreshReceiver` 先 `MonitorService.start()` 再 `pollNow()`，服务的 tick 先抢到 `RUNNING`，
+     `pollNow` 直接 return。现在：先发刷新再拉服务，且被抢到时用 `PENDING_FORCE` 在那一轮结束后补跑。
+  另外手动刷新现在**无条件落盘并重绘**（`StatusFeed.apply(..., manual)`）：数据没变时 `changed=false`、
+  `idleRefresh` 要等 15 分钟，用户点完看不出任何变化，只会判断成「按钮坏了」。
+- **页面推空 VIN 会停掉原生后台**：首屏车辆列表还没回来时，`syncNative` 以前会 `syncSession(token,'', '', ...)`，
+  原生据此判成「未配置」（后台服务停、车控报 VIN 缺失）。现在没有 VIN 就跳过这一帧，
+  `ActionActivity` 也把「没登录」与「没 VIN」分开报（`action_need_vin`）。
+- **1.5.17 / versionCode 33**。
+
 ## 1.5.16：一轮静态审查修复（2026-10-20）
 
 - **`BaseWidget.has()` 以前等于没写**：实现是 `viewId != 0`（永远 true），而 RemoteViews 对不存在的
