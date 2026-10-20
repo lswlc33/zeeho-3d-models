@@ -41,7 +41,12 @@ public final class ActionActivity extends Activity {
             return;
         }
         if (!NativeStore.isConfigured(this)) {
-            Toast.makeText(this, R.string.action_need_login, Toast.LENGTH_LONG).show();
+            // 分开报：没 token 是"没登录"，有 token 但没 VIN 是"车辆信息还没同步下来"。
+            // 以前两种都回一句「请先打开几何面板并登录」，而用户明明已经登录着——
+            // 真正缺的是 VIN（页面在演示数据/还没选到车时会 syncSession(token,'', '', ...)）。
+            boolean noVin = !NativeStore.token(this).isEmpty() && NativeStore.vin(this).isEmpty();
+            Toast.makeText(this, noVin ? R.string.action_need_vin : R.string.action_need_login,
+                Toast.LENGTH_LONG).show();
             openMain();
             finish();
             return;
@@ -113,7 +118,15 @@ public final class ActionActivity extends Activity {
             Toast.LENGTH_SHORT).show();
         Notify.action(this, ok, message != null ? message.getText().toString() : "");
         if (r != null && r.auth) NativeStore.setAuthFailed(this, true);
-        message.postDelayed(this::finish, 1100);
+        // 1.1 秒后自动关：这期间用户可能已经按返回/切走（isFinishing / isDestroyed），
+        // 直接 finish() 会打在已经结束的 Activity 上（不崩，但会在日志里留一条
+        // "Activity has leaked ... / Finishing" 之类的噪音，而且真机上有极低概率
+        // 触发 WindowLeaked 警告）。这里先确认还活着。
+        if (message != null) {
+            message.postDelayed(() -> {
+                if (!isFinishing() && !isDestroyed()) finish();
+            }, 1100);
+        }
     }
 
     private ApiClient.Result run(String action) {

@@ -27,7 +27,9 @@ public final class WidgetRefreshReceiver extends BroadcastReceiver {
         // 以前只调 MonitorService.start：后台同步关着/登录失效时它直接 return，按钮点下去毫无反应。
         // 现在无论开关状态都真打一次接口；后台同步没开时顺带告诉用户这只是手动的一次。
         if (!NativeStore.backgroundEnabled(app)) toast(app, R.string.widget_refresh_manual);
-        MonitorService.start(app);
+        else toast(app, R.string.widget_refresh_running);
+        // **先**发强制刷新，"拉起服务"放后面：反过来的话服务 tick 会先抢到 Poller 的 RUNNING，
+        // 我们这次 pollNow 只能排队等（见 Poller 的 PENDING_FORCE），用户看到的就是"点了没反应"。
         new Thread(() -> {
             try {
                 Poller.pollNow(app);
@@ -35,6 +37,7 @@ public final class WidgetRefreshReceiver extends BroadcastReceiver {
                 WidgetProviders.updateAll(app);
             }
         }, "widget-refresh").start();
+        MonitorService.start(app);
     }
 
     private static void toast(Context c, int res) {

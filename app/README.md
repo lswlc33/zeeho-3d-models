@@ -444,6 +444,30 @@ chunk 明文：每 16 字节一条（long 时间 / short 电压×10 / short 电�
   进程启动、页面 `syncSession` 都会先按本地摘要重绘一次，避免桌面停在旧数据。
 - **1.5.2 / versionCode 18**。
 
+## 1.5.16：一轮静态审查修复（2026-10-20）
+
+- **`BaseWidget.has()` 以前等于没写**：实现是 `viewId != 0`（永远 true），而 RemoteViews 对不存在的
+  id 是静默忽略的——往 1×1 布局里 `setText(w_title)` / `setBackgroundResource(w_lock)` 全都被丢掉，
+  一句日志都没有。现在按布局档位维护真实 id 集合（`IDS`，与 `res/layout/widget_*.xml` 对齐），
+  **加/删布局里的 id 必须同步改那张表**，否则这段判断又退化成永远 true/false。
+- **1×1 微件会被画成 2×2**：`sizeOf()` 用 `minWidth/60` 反推列数，而 1×1 的 `maxResizeWidth=90dp`
+  算出来是 2 列 → 选了 1×1 却拿到 2×2 布局（多出来的芯片被裁掉一半）。现在 1×1 provider 恒为 1×1。
+  （API 31 那个「权威格子数」`OPTION_APPWIDGET_MIN_COLS` 是 @hide，公开 SDK 编不进去，所以只能这样收口。）
+- **快照下载不再「两份都没了」**：原来先 `deleteTree(finalDir)` 再 `renameTo`，改名失败就既没有旧快照
+  也没有新快照（离线首启白屏）。现在旧目录先改名成 `.bak-<id>` → 新目录转正 → 删 `.bak`，
+  中途失败会把旧的换回来；`.bak-*` 的残留由 `cleanupTmp()` 顺手清掉。
+- **active 快照文件丢了不再白屏**：`intercept` 对 `index.html` 的 `fileResponse` 返回 null 时现在放行网络
+  （原来是直接 return null，prefs 里有 active、磁盘上文件被清理工具删了就一直白屏到下次下载成功）。
+- **空闲刷新判忙补全**：`IDLE_JS` 以前只认 INPUT/TEXTAREA，contenteditable、`<select>`、
+  「输入法开着但 activeElement 已经不是 input」都会被判成 idle，新快照在用户填东西时 reload 会丢表单。
+- **渲染进程崩过之后按返回不再直接退出**：`onRenderProcessGone` 重建 WebView 后 `pageLoaded=false`，
+  以前按返回走 `super.onBackPressed()` = 退出 App。现在只在「渲染进程崩过且还没 commit」时重载页面；
+  离线且没有快照（页面永远 commit 不了）仍然照常退出，不会把用户锁在重试里。
+- **`ActionActivity` 自动关闭前先确认还活着**（`isFinishing()/isDestroyed()`），避免打在已结束的 Activity 上。
+- **清理死代码**：`WidgetTheme.isDark()` / `fallbackOf()` / `previewLayoutFor()` 没有任何调用点，
+  而且和 8 个 provider 自己的 `dark()`/`nominal()` 是同一份信息的第二份抄写——删掉，改档位请改 provider。
+- **1.5.16 / versionCode 32**。
+
 ## 1.5.12：网页可选文件（onShowFileChooser，2026-10-19）
 
 - 面板 V6.13 新增「抓取账号 id」：从相册选**个人名片二维码图**解码出内部用户 id

@@ -46,6 +46,16 @@ final class NativeStore {
     private static final String K_MSG_TIME = "msg_time";
     private static final String K_UPDATED = "updated_at";
 
+    /** 4x4 微件扩展（2026-10-20，Poller 的 10/20 分钟慢数据）：与上面的 K_SOC 等同一批，见 Status。 */
+    private static final String K_TIRE_FRONT = "tire_front";
+    private static final String K_TIRE_REAR = "tire_rear";
+    private static final String K_TIRE_TEMP_F = "tire_temp_f";
+    private static final String K_TIRE_TEMP_R = "tire_temp_r";
+    private static final String K_TODAY_MILE = "today_mile";
+    private static final String K_LAST_RIDE_MILE = "last_ride_mile";
+    private static final String K_LAST_RIDE_MIN = "last_ride_min";
+    private static final String K_INTEGRAL = "integral";
+
     private static final String K_SEEN_NOREAD = "seen_no_read";
     private static final String K_NOTIFIED_MSG = "notified_msg";
     private static final String K_FULL_NOTIFIED = "full_notified";
@@ -148,6 +158,14 @@ final class NativeStore {
 
         void apply(JSONObject j) {
             if (j == null) return;
+            // "at" 是这次采样的时刻（页面 syncStatus 与后台 Poller 都带）。
+            // 以前这里**根本没解析它**，updatedAt 只在"第一次写入"时被赋一次值，
+            // 之后永远停在那一天——微件上的「HH:mm 更新」不再前进，
+            // StatusFeed 里那条 at < old.updatedAt 的"迟到旧响应"判断也一起失效。
+            if (j.has("at") && !j.isNull("at")) {
+                long at = j.optLong("at", 0L);
+                if (at > 0) updatedAt = at;
+            }
             if (j.has("soc") && !j.isNull("soc")) soc = j.optInt("soc", soc);
             if (j.has("charging") && !j.isNull("charging")) {
                 charge = j.optInt("charging", charge);
@@ -333,7 +351,10 @@ final class NativeStore {
             .remove(K_CHARGED).remove(K_CHARGED_MIN).remove(K_NOREAD).remove(K_MSG_TITLE)
             .remove(K_MSG_ID).remove(K_MSG_TIME).remove(K_UPDATED)
             .remove(K_SEEN_NOREAD).remove(K_NOTIFIED_MSG).remove(K_FULL_NOTIFIED).remove(K_STOP_NOTIFIED)
-            .remove(K_LOW_NOTIFIED).remove(K_TIRE_NOTIFIED);
+            .remove(K_LOW_NOTIFIED).remove(K_TIRE_NOTIFIED)
+            // 4x4 扩展数据：换车/换号必须一起清，否则微件会显示上一台车的胎压与里程
+            .remove(K_TIRE_FRONT).remove(K_TIRE_REAR).remove(K_TIRE_TEMP_F).remove(K_TIRE_TEMP_R)
+            .remove(K_TODAY_MILE).remove(K_LAST_RIDE_MILE).remove(K_LAST_RIDE_MIN).remove(K_INTEGRAL);
     }
 
     static Status status(Context c) {
@@ -358,6 +379,18 @@ final class NativeStore {
         s.msgId = p.getString(K_MSG_ID, "");
         s.msgTime = p.getString(K_MSG_TIME, "");
         s.updatedAt = p.getLong(K_UPDATED, 0L);
+        // 4x4 微件的扩展字段。**这两个方法（status/saveStatus）以前都漏了它们**：
+        // Poller 与页面把今日里程/上次骑行/积分/胎压解析进 Status 之后，只在内存里活了一轮，
+        // 既没落盘也没读回——微件每次 bind 拿到的都是 -1，
+        // 于是「最近骑行」永远 0.0、「上一次骑行」永远 —、「积分」永远 —、胎压行永远没有。
+        s.tireFront = p.getFloat(K_TIRE_FRONT, -1f);
+        s.tireRear = p.getFloat(K_TIRE_REAR, -1f);
+        s.tireTempFront = p.getInt(K_TIRE_TEMP_F, -1);
+        s.tireTempRear = p.getInt(K_TIRE_TEMP_R, -1);
+        s.todayMile = p.getInt(K_TODAY_MILE, -1);
+        s.lastRideMile = p.getInt(K_LAST_RIDE_MILE, -1);
+        s.lastRideMin = p.getInt(K_LAST_RIDE_MIN, -1);
+        s.integral = p.getInt(K_INTEGRAL, -1);
         return s;
     }
 
@@ -371,6 +404,10 @@ final class NativeStore {
             .putString(K_ETA, s.eta).putString(K_CHARGED, s.charged).putString(K_VOLTAGE_TEXT, s.voltageText)
             .putString(K_MSG_TITLE, s.msgTitle).putString(K_MSG_ID, s.msgId)
             .putString(K_MSG_TIME, s.msgTime).putLong(K_UPDATED, s.updatedAt)
+            .putFloat(K_TIRE_FRONT, s.tireFront).putFloat(K_TIRE_REAR, s.tireRear)
+            .putInt(K_TIRE_TEMP_F, s.tireTempFront).putInt(K_TIRE_TEMP_R, s.tireTempRear)
+            .putInt(K_TODAY_MILE, s.todayMile).putInt(K_LAST_RIDE_MILE, s.lastRideMile)
+            .putInt(K_LAST_RIDE_MIN, s.lastRideMin).putInt(K_INTEGRAL, s.integral)
             .apply();
     }
 

@@ -31,12 +31,6 @@ final class WidgetTheme {
     private WidgetTheme() {
     }
 
-    /** 黑主题 provider 用的深色配色；白主题用浅色。颜色 id 全部经 resolveColor 查表。 */
-    static boolean isDark(Class<?> provider) {
-        return provider == Widget1x1Dark.class || provider == Widget2x2Dark.class
-            || provider == Widget4x2Dark.class || provider == Widget4x4Dark.class;
-    }
-
     /**
      * 按当前实例的实际格子数决定布局档。
      * API < 31 桌面不报 cell 数（bundle 里没有），此时用 provider 声明的 target 档——
@@ -45,6 +39,12 @@ final class WidgetTheme {
     static Size sizeOf(Context c, AppWidgetManager m, int id, Size fallback) {
         Bundle o = m == null ? null : m.getAppWidgetOptions(id);
         if (o == null) return fallback;
+
+        // 只有像素值（minWidth / maxHeight，单位 dp）。API 31 那个"权威格子数"
+        // （OPTION_APPWIDGET_MIN_COLS/MAX_ROWS）是 @hide，编不进公开 SDK，所以不碰它。
+        // 用像素反推格子数有个已知偏差：像素是桌面按自己的格子算法凑出来的，1×1 声明
+        // maxResizeWidth=90dp 时 90/60 四舍五入是 2 列——1×1 微件会被画成 2×2 布局，
+        // 多出来的芯片/锁位在 2×2 的框里被裁掉一半。见下面的 ③。
         int cw = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1);
         int ch = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, -1);
         if (cw <= 0 || ch <= 0) return fallback;
@@ -52,16 +52,15 @@ final class WidgetTheme {
         final int CELL = 60;
         int cols = Math.max(1, Math.round(cw / (float) CELL));
         int rows = Math.max(1, Math.round(ch / (float) CELL));
+        // ③ 1×1 provider 永远是 1×1：它的 maxResize 上限就是 90dp（约一格），算出来的 2 列
+        //    只可能是"把格子的余量算进去了"。真要更大的微件，用户会去选 2×2 那个 provider。
+        if (fallback == Size.S1) return Size.S1;
         return classify(cols, rows, fallback);
     }
 
-    /** provider 的标称档（onUpdate 第一次画、以及旧桌面拿不到 cell 数时用）。 */
-    static Size fallbackOf(Class<?> provider) {
-        if (provider == Widget1x1Dark.class || provider == Widget1x1Light.class) return Size.S1;
-        if (provider == Widget4x2Dark.class || provider == Widget4x2Light.class) return Size.W4x2;
-        if (provider == Widget4x4Dark.class || provider == Widget4x4Light.class) return Size.W4x4;
-        return Size.S2;
-    }
+    // （原来的 fallbackOf()/isDark()/previewLayoutFor() 三个静态表都删了：它们跟各 provider
+    //  自己实现的 nominal()/dark() 是同一份信息的第二份抄写，谁也没调用——留着只会让人以为
+    //  "改这里就够了"，实际改不到。要加档位/主题请改 BaseWidget 的子类。）
 
     /** 实际格子数 → 布局档。容差按"最近档"走，2x3/3x2 这类拉伸形状都能落到一个合理布局。 */
     static Size classify(int cols, int rows, Size fallback) {
@@ -84,15 +83,6 @@ final class WidgetTheme {
         }
     }
 
-    /** 档位 → 预览（选择器）布局。 */
-    static int previewLayoutFor(Size s, boolean dark) {
-        switch (s) {
-            case S1:   return dark ? R.layout.widget_1x1_preview_dark : R.layout.widget_1x1_preview_light;
-            case W4x2: return dark ? R.layout.widget_4x2_preview_dark : R.layout.widget_4x2_preview_light;
-            case W4x4: return dark ? R.layout.widget_4x4_preview_dark : R.layout.widget_4x4_preview_light;
-            default:   return dark ? R.layout.widget_2x2_preview_dark : R.layout.widget_2x2_preview_light;
-        }
-    }
 
     /**
      * 主题配色。布局里的颜色不再用 values/colors.xml 的资源（那套跟随系统深浅模式，

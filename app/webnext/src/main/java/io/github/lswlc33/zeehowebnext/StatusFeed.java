@@ -37,7 +37,18 @@ final class StatusFeed {
         });
     }
 
-    static synchronized void apply(Context c, JSONObject j, boolean foreground) {
+    /** 页面同步 / 后台轮询（非手动）。 */
+    static void apply(Context c, JSONObject j, boolean foreground) {
+        apply(c, j, foreground, false);
+    }
+
+    /**
+     * @param manual 用户手动刷新（微件上的按钮）。**手动那一拍必须落盘并重绘**：
+     *   数据没变时 changed=false、idleRefresh 又要等 15 分钟，于是"点了刷新，
+     *   微件上的「更新于 11:20」一动都不动"——用户只能判断成"按钮坏了"。
+     *   手动刷新的语义就是"我要看到它变"，所以这一刻无条件写一次并重绘。
+     */
+    static synchronized void apply(Context c, JSONObject j, boolean foreground, boolean manual) {
         NativeStore.Status old = NativeStore.status(c);
         // 页面同步与后台轮询是两个写者。迟到的旧响应（尤其页面在 IO 队列里排过队）不能把
         // 新状态倒回去，否则会出现 1→0→1 的假跃迁，进而发"充电已停止"之类的假通知。
@@ -75,7 +86,7 @@ final class StatusFeed {
         final long nowMs = System.currentTimeMillis();
         final boolean changed = !s.sameData(old);
         final boolean idleRefresh = nowMs - lastWidgetAt > WIDGET_IDLE_REFRESH_MS;
-        if (changed || idleRefresh) {
+        if (changed || idleRefresh || manual) {
             NativeStore.saveStatus(c, s);
             WidgetProviders.updateAll(c);
             lastWidgetAt = nowMs;

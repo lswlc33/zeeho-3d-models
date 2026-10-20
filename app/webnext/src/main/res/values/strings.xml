@@ -114,6 +114,9 @@
     <string name="action_sent">指令已发送</string>
     <string name="action_failed">发送失败：%1$s</string>
     <string name="action_need_login">请先打开几何面板并登录</string>
+    <!-- 有 token 但没有 VIN：页面还没把车辆同步下来（演示数据/没选到车）。跟"没登录"分开报，
+         否则用户明明登录着，却被告知去登录（2026-10-20 排障踩到）。 -->
+    <string name="action_need_vin">车辆信息还没同步：打开几何面板停几秒再试</string>
     <string name="shortcut_lock">锁定车辆</string>
     <string name="shortcut_unlock">解锁车辆</string>
     <string name="shortcut_horn">寻车鸣笛</string>

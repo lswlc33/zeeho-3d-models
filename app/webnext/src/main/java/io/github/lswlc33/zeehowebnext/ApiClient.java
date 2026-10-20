@@ -210,10 +210,23 @@ final class ApiClient {
         return call("POST", "/v1.0/app/cfmotoserverapp/dbpoint/send", null, body.toString());
     }
 
+    /**
+     * 云解锁。**body 必须是 secret + vinNo + lockFlag 三件套**。
+     *
+     * 2026-10-20 实测（真 token 打线上）：只发 `{secret}` → `40004 vinNo不能为空`；
+     * 补上 vinNo → `40004 lockFlag不能为空`；三个都带 → `10000 操作成功`。
+     * 页面侧（app.js 的 sendSteps）一直是按三件套发的，所以网页版开锁正常；
+     * 这里以前只发了 secret，于是"小组件/快捷方式开锁"永远回一句
+     * 「操作失败：vinNo不能为空」——用户看到的就是"VIN 缺失"。
+     * 官方 App 的抓包里只有 secret，是因为它另带一组客户端标识头、走的是另一条服务端分支，
+     * 我们不带那组头（带了会被 WAF 430 拦掉，见 README），就必须自己把两个字段补上。
+     */
     Result netUnlock(String vin, int lockFlag) {
         JSONObject body = new JSONObject();
         try {
             body.put("secret", unlockSecret(vin, lockFlag));
+            body.put("vinNo", vin);
+            body.put("lockFlag", lockFlag);
         } catch (Exception e) {
             Result r = new Result();
             r.message = "云解锁加密失败";

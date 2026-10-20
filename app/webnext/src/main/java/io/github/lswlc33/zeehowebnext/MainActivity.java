@@ -95,9 +95,18 @@ public final class MainActivity extends Activity {
             + "if(t){t.click();return 'home';}}"
             + "return 'exit';}catch(e){return 'exit';}})()";
 
+    /**
+     * 空闲判定：**有弹层就算忙**（用户正看着一层东西，别在这时候整页 reload 把内容抽走），
+     * 或者**焦点在任何一个可编辑元素上**。
+     *
+     * 以前只认 INPUT / TEXTAREA 两个 tagName：contenteditable、<select>、以及"输入法开着但
+     * activeElement 已经不是 input"的情况都会被判成 idle，于是新快照会在用户正在填东西时
+     * 提为 active 并 reload——表单内容直接丢掉。现在用 isContentEditable + tagName 一起判。
+     */
     private static final String IDLE_JS =
         "(function(){var a=document.activeElement;var t=a&&a.tagName;"
-            + "return (document.querySelector('.sheet.show')||t==='INPUT'||t==='TEXTAREA')?'busy':'idle';})()";
+            + "var edit=!!a&&(a.isContentEditable===true||t==='INPUT'||t==='TEXTAREA'||t==='SELECT');"
+            + "return (document.querySelector('.sheet.show')||document.querySelector('dialog[open]')||edit)?'busy':'idle';})()";
 
     private FrameLayout root;
     private WebView webView;
@@ -122,6 +131,8 @@ public final class MainActivity extends Activity {
     private long lastInteractionAt;
     private long startAt;
     private boolean backInFlight;
+    /** 渲染进程崩过、还没等到新的 page commit（见 onRenderProcessGone / onBackPressed）。 */
+    private boolean rendererDied;
     private long lastBackAt;
     private boolean idleApplyInFlight;
     /** onShowFileChooser 挂起的回调：选完图（或取消）必须回调一次，否则网页的 file input 会永久卡死。 */
@@ -277,7 +288,21 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView == null || !pageLoaded) {
+        if (webView == null) {
+            super.onBackPressed();
+            return;
+        }
+        // **只在"渲染进程崩过、新 WebView 还没 commit"时把页面重新载起来**：那种情况下
+        // pageLoaded 被置成 false，直接走 super 会让用户以为"点一下 App 就没了"。
+        // 不能对所有 !pageLoaded 都 reload：离线且没有快照时页面永远 commit 不了，
+        // 那样每按一次返回都在重试，用户根本退不出去。
+        if (rendererDied && !pageLoaded) {
+            rendererDied = false;
+            backInFlight = false;
+            loadPage();
+            return;
+        }
+        if (!pageLoaded) {
             super.onBackPressed();
             return;
         }
@@ -1462,6 +1487,7 @@ public final class MainActivity extends Activity {
         public void onPageCommitVisible(WebView view, String url) {
             if (destroyed) return;
             pageLoaded = true;
+            rendererDied = false;
             lastInteractionAt = SystemClock.elapsedRealtime();
             Log.i(TAG, "page commit in " + (lastInteractionAt - startAt) + "ms");
             hideSplash();
@@ -1525,6 +1551,7 @@ public final class MainActivity extends Activity {
             view.destroy();
             webView = null;
             pageLoaded = false;
+            rendererDied = true;   // 让返回键知道"该重载而不是退出"（见 onBackPressed）
             if (createWebView()) {
                 webView.addJavascriptInterface(bridge, "ZeehoShell");
                 loadPage();

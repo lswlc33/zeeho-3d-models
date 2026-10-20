@@ -311,8 +311,13 @@ final class WebCache {
 
         if (rel.isEmpty() || INDEX.equals(rel)) {
             Snapshot s = active;
+            // fileResponse 在文件不见了/读不了时返回 null = 放行网络。以前这里直接 return，
+            // 于是"prefs 里有 active、磁盘上的 index.html 却被清理工具删了"会一直白屏到
+            // 下次下载成功（valid() 只在构造时查过一次）。放行网络至少能打开在线版。
             if (s == null) return null;
-            return fileResponse(new File(s.dir, INDEX), "text/html");
+            WebResourceResponse r = fileResponse(new File(s.dir, INDEX), "text/html");
+            if (r == null) Log.w(TAG, "active snapshot index missing, fall back to network: " + s.dir);
+            return r;
         }
         if (VERSION.equals(rel)) {
             Snapshot s = active;
@@ -394,7 +399,12 @@ final class WebCache {
         try {
             deleteTree(tmp);
             if (!tmp.mkdirs()) throw new IOException("无法创建缓存目录");
-            deleteTree(finalDir);
+            // ⚠️ 不在这里删 finalDir。以前是先 deleteTree(finalDir) 再 rename：
+            // 万一 renameTo 失败（目标目录被占、权限、桌面同步工具锁文件……），
+            // 临时目录被清掉、正式目录也已经没了 —— 下次启动既没有旧快照可回退，
+            // 也没有新快照可用，只能重新下载（离线首启就是白屏）。
+            // 现在改成「先删旧的备份 → 旧目录改名成 .bak-<id> → tmp 改名成正式名 →
+            // 成功后再删备份」，任何一步失败都能把 .bak 改回来。
 
             long indexBytes = 0;
             // 首启（withOptional=false）不下载可选资源，进度条按 100% 算；
@@ -433,7 +443,16 @@ final class WebCache {
                 os.write(meta.toString().getBytes(StandardCharsets.UTF_8));
             }
 
-            if (!tmp.renameTo(finalDir)) throw new IOException("缓存目录改名失败");
+            File bak = new File(snapshots, ".bak-" + id);
+            deleteTree(bak);
+            boolean hadOld = finalDir.isDirectory();
+            if (hadOld && !finalDir.renameTo(bak)) throw new IOException("旧快照暂存失败");
+            if (!tmp.renameTo(finalDir)) {
+                // 把旧的那份换回去：宁可继续用旧快照，也不要两份都没有
+                if (hadOld) bak.renameTo(finalDir);
+                throw new IOException("缓存目录改名失败");
+            }
+            deleteTree(bak);
             Log.i(TAG, "snapshot ready: " + build
                 + " wireBytes=" + indexBytes
                 + " htmlBytes=" + new File(finalDir, INDEX).length());
@@ -642,7 +661,15 @@ final class WebCache {
     private void cleanupTmp() {
         File[] fs = root.listFiles();
         if (fs == null) return;
-        for (File f : fs) if (f.getName().startsWith(".tmp-")) deleteTree(f);
+        for (File f : fs) {
+            if (f.getName().startsWith(".tmp-")) deleteTree(f);
+        }
+        // 换快照时临时改名的旧目录（.bak-*）：正常情况下 rename 成功就立刻删了，
+        // 这里只是兜住"删到一半进程被杀"的残留，别让它一直占着 0.7MB。
+        File[] bs = snapshots.listFiles();
+        if (bs != null) {
+            for (File f : bs) if (f.getName().startsWith(".bak-")) deleteTree(f);
+        }
     }
 
     /** 只保留 active/pending；旧快照不再留一份回退，省约 0.7MB（用户 2026-10-18 定的取舍）。 */

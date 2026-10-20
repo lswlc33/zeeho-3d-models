@@ -39,6 +39,7 @@ final class Poller {
             pollOnce(context, false);
         } finally {
             RUNNING.set(false);
+            drainPendingForce(context);
         }
     }
 
@@ -47,7 +48,34 @@ final class Poller {
      * 不依赖后台同步开关/前台服务——用户点的那一下就该真的打一次接口。
      */
     static void pollNow(Context context) {
-        if (!RUNNING.compareAndSet(false, true)) return;
+        if (!RUNNING.compareAndSet(false, true)) {
+            // 已经有一轮在跑（多半是刚被 MonitorService.start 拉起的 60 秒 tick）。
+            // **不能就这么 return**：那一轮是"非 force"，会把「页面刚同步过就跳过」
+            // 和 ride/score/tire 的 10/20 分钟节流踩满，用户点的那一下等于没点。
+            // 记一个"跑完再来一次强制轮"的标记，由正在跑的那轮在 finally 里接手。
+            PENDING_FORCE = true;
+            return;
+        }
+        lastAttemptAt = System.currentTimeMillis();
+        try {
+            pollOnce(context, true);
+        } finally {
+            RUNNING.set(false);
+            drainPendingForce(context);
+        }
+    }
+
+    /** 手动刷新被"正在跑的一轮"挡下时的待办标记（见 pollNow）。 */
+    private static volatile boolean PENDING_FORCE;
+
+    /** 上一轮结束后补跑那次被挡下的强制刷新；只跑一次，不排队。 */
+    private static void drainPendingForce(Context context) {
+        if (!PENDING_FORCE) return;
+        PENDING_FORCE = false;
+        if (!RUNNING.compareAndSet(false, true)) {
+            PENDING_FORCE = true;    // 又被别人抢到了，留给下一轮
+            return;
+        }
         lastAttemptAt = System.currentTimeMillis();
         try {
             pollOnce(context, true);
@@ -68,7 +96,12 @@ final class Poller {
             && System.currentTimeMillis() - NativeStore.authFailedAt(c) < AUTH_RETRY_MS) {
             return;
         }
-        if (AppState.foreground && System.currentTimeMillis() - NativeStore.lastPageSync(c) < PAGE_FRESH_MS) {
+        // 页面刚推过一份数据时跳过网络（避免同一份数据打两遍）。
+        // ⚠️ **手动刷新（force）必须绕过它**：微件刷新按钮最常被按的时候，就是用户正开着面板
+        // 看着微件——那一刻 AppState.foreground 为 true、lastPageSync 刚更新过，于是
+        // pollNow 走完全程什么都没做，微件"点了没反应"。force 的语义就是"用户要的那一下"。
+        if (!force && AppState.foreground
+            && System.currentTimeMillis() - NativeStore.lastPageSync(c) < PAGE_FRESH_MS) {
             return;
         }
 
@@ -95,7 +128,9 @@ final class Poller {
         JSONObject ride = null;
         try {
             long now = System.currentTimeMillis();
-            if (!uid.isEmpty() && now - NativeStore.rideFetchedAt(c) > RIDE_INTERVAL_MS) {
+            // homeRideInfo 的参数只有 vinNo，**不需要账号 id**：以前这里跟着积分一起被判了
+            // `!uid.isEmpty()`，用户没填账号 id 时「今日/上一次骑行」就永远是 0.0 与「今天还没骑」。
+            if (force || now - NativeStore.rideFetchedAt(c) > RIDE_INTERVAL_MS) {
                 ApiClient.Result rh = api.rideHome(vin);
                 if (!rh.auth && rh.ok) {
                     NativeStore.setRideFetchedAt(c, now);
@@ -110,7 +145,8 @@ final class Poller {
         JSONObject score = null;
         try {
             long now = System.currentTimeMillis();
-            if (!uid.isEmpty() && now - NativeStore.scoreFetchedAt(c) > RIDE_INTERVAL_MS) {
+            // 积分接口按 userId 查，没填账号 id 就查不了（不是缺陷，是接口口径）。
+            if (!uid.isEmpty() && (force || now - NativeStore.scoreFetchedAt(c) > RIDE_INTERVAL_MS)) {
                 ApiClient.Result it = api.integralTotal(uid);
                 if (!it.auth && it.ok) {
                     NativeStore.setScoreFetchedAt(c, now);
@@ -122,7 +158,7 @@ final class Poller {
         JSONObject tire = null;
         try {
             long now = System.currentTimeMillis();
-            if (now - NativeStore.tireFetchedAt(c) > TIRE_INTERVAL_MS) {
+            if (force || now - NativeStore.tireFetchedAt(c) > TIRE_INTERVAL_MS) {
                 ApiClient.Result tm = api.tireMonitor(vin);
                 if (!tm.auth && tm.ok) {
                     NativeStore.setTireFetchedAt(c, now);
@@ -276,7 +312,7 @@ final class Poller {
                 NativeStore.setAuthFailed(c, false);
             }
             NativeStore.setLastPoll(c);
-            StatusFeed.apply(c, j, false);
+            StatusFeed.apply(c, j, false, force);
         } catch (Exception e) {
             Log.w(TAG, "poll parse failed", e);
         }

@@ -12,8 +12,13 @@ import android.view.View;
 import android.widget.RemoteViews;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 八个「车辆状态」微件共用的绘制逻辑（2026-10-20 重做）。
@@ -89,13 +94,17 @@ abstract class BaseWidget extends AppWidgetProvider {
 
         // 底色与控件底全部按主题重涂：布局 XML 里的 @color 引用只是预览兜底，
         // 那套资源跟随系统夜间模式，会把用户挑好的黑白主题劫持掉。
-        applyRootColor(c, rv, t);
+        applyRootColor(c, rv, t, size);
 
         String name = NativeStore.name(c);
         if (name.isEmpty()) name = c.getString(R.string.widget_title);
-        text(rv, R.id.w_title, name, t.muted, 10);
-        text(rv, R.id.w_updated, hasData ? updated(c, s, size == WidgetTheme.Size.S1 || size == WidgetTheme.Size.S2) : "", t.muted, 8);
-        if (has(R.id.w_refresh)) {
+        // 1×1 没有 w_title（空间只够电量和电压），这里必须跳过——见 has() 的注释。
+        if (has(size, R.id.w_title)) text(rv, R.id.w_title, name, t.muted, 10);
+        if (has(size, R.id.w_updated)) {
+            text(rv, R.id.w_updated, hasData
+                ? updated(c, s, size == WidgetTheme.Size.S1 || size == WidgetTheme.Size.S2) : "", t.muted, 8);
+        }
+        if (has(size, R.id.w_refresh)) {
             text(rv, R.id.w_refresh, c.getString(R.string.widget_refresh), t.accent, 8);
             rv.setOnClickPendingIntent(R.id.w_refresh, refresh(c));
         }
@@ -109,11 +118,12 @@ abstract class BaseWidget extends AppWidgetProvider {
             rv.setViewVisibility(R.id.w_progress, View.GONE);
         }
         // 进度条颜色沿用布局 XML 里的 accent tint（两套主题 accent 都是蓝系，无需按主题换）。
-        rv.setTextViewText(R.id.w_unit, "%");
+        // 1×1 没有 w_unit（它把 % 直接省了），同样要跳过。
+        if (has(size, R.id.w_unit)) rv.setTextViewText(R.id.w_unit, "%");
 
         // ---- 电压（1×1 只显示电量和电压，其余档位也都有）----
         String voltage = voltage(c, s);
-        if (has(R.id.w_voltage)) {
+        if (has(size, R.id.w_voltage)) {
             text(rv, R.id.w_voltage, voltage, t.muted, 9);
             rv.setViewVisibility(R.id.w_voltage, voltage.isEmpty() ? View.GONE : View.VISIBLE);
         }
@@ -123,23 +133,23 @@ abstract class BaseWidget extends AppWidgetProvider {
             // 1×1：状态就用一行小字（充电中/已锁车/离线），空间只够它
             text(rv, R.id.w_state, state(c, s, hasData), stateColor(t, s, hasData), 9);
         } else {
-            if (has(R.id.w_charge)) {
+            if (has(size, R.id.w_charge)) {
                 text(rv, R.id.w_charge, state(c, s, hasData), stateColor(t, s, hasData), 9);
             }
             boolean charging = s.chargeKnown && s.charge == 1 && s.online != 0;
-            if (has(R.id.w_power)) text(rv, R.id.w_power, charging ? power(s) : "", t.text, 9);
-            if (has(R.id.w_time)) text(rv, R.id.w_time, charging ? time(c, s) : "", t.muted, 8);
-            if (has(R.id.w_lock)) {
+            if (has(size, R.id.w_power)) text(rv, R.id.w_power, charging ? power(s) : "", t.text, 9);
+            if (has(size, R.id.w_time)) text(rv, R.id.w_time, charging ? time(c, s) : "", t.muted, 8);
+            if (has(size, R.id.w_lock)) {
                 String lk = lock(c, s);
                 text(rv, R.id.w_lock, lk, t.text, 8);
                 rv.setViewVisibility(R.id.w_lock, lk.isEmpty() ? View.GONE : View.VISIBLE);
             }
-            if (has(R.id.w_seat)) {
+            if (has(size, R.id.w_seat)) {
                 String st = seat(c, s);
                 text(rv, R.id.w_seat, st, t.text, 8);
                 rv.setViewVisibility(R.id.w_seat, st.isEmpty() ? View.GONE : View.VISIBLE);
             }
-            if (has(R.id.w_tire)) {
+            if (has(size, R.id.w_tire)) {
                 String tire = tire(c, s);
                 text(rv, R.id.w_tire, tire, t.text, 8);
                 rv.setViewVisibility(R.id.w_tire, tire.isEmpty() ? View.GONE : View.VISIBLE);
@@ -149,7 +159,7 @@ abstract class BaseWidget extends AppWidgetProvider {
         // ---- 4×4 扩展区：最近骑行 / 上一次骑行 / 积分 ----
         if (size == WidgetTheme.Size.W4x4) {
             boolean charging = s.chargeKnown && s.charge == 1 && s.online != 0;
-            bind4x4Extra(c, rv, t, s, hasData, charging);
+            bind4x4Extra(c, rv, t, s, hasData, charging, size);
             rv.setOnClickPendingIntent(R.id.w_btn_unlock, action(c, "unlock", 301));
             rv.setOnClickPendingIntent(R.id.w_btn_lock, action(c, "lock", 302));
             rv.setOnClickPendingIntent(R.id.w_btn_horn, action(c, "horn", 303));
@@ -162,7 +172,7 @@ abstract class BaseWidget extends AppWidgetProvider {
         }
 
         // 车图：2×2/1×1 不放立绘（空间不够，用户指定 2×2 只展示数据）；4×2/4×4 放透明立绘。
-        if (has(R.id.w_car_box)) {
+        if (has(size, R.id.w_car_box)) {
             if (size == WidgetTheme.Size.W4x2 || size == WidgetTheme.Size.W4x4) {
                 Bitmap car = WidgetCar.load(c, NativeStore.vin(c));
                 if (car != null) {
@@ -187,7 +197,7 @@ abstract class BaseWidget extends AppWidgetProvider {
 
     /** 4×4 底部扩展：最近骑行 / 上一次骑行 / 积分，三格统计。 */
     private static void bind4x4Extra(Context c, RemoteViews rv, T t, NativeStore.Status s,
-                                     boolean hasData, boolean charging) {
+                                     boolean hasData, boolean charging, WidgetTheme.Size size) {
         // 最近骑行 = 今日里程；接口没给就显示 0.0（"今天没骑"是真实状态，不算缺数据）。
         text(rv, R.id.w_today_mile, hasData && s.todayMile >= 0 ? km(s.todayMile) : "0.0", t.text, 13);
         text(rv, R.id.w_today_unit, "km", t.muted, 8);
@@ -199,7 +209,7 @@ abstract class BaseWidget extends AppWidgetProvider {
         text(rv, R.id.w_integral, hasData && s.integral >= 0 ? String.valueOf(s.integral) : "—", t.text, 13);
         text(rv, R.id.w_integral_unit, c.getString(R.string.widget_integral_unit), t.muted, 8);
         // 充电时那一格显示功率/预计，跟 4×2 的状态行互补
-        if (has(R.id.w_extra_hint)) {
+        if (has(size, R.id.w_extra_hint)) {
             String hint = charging
                 ? (power(s).isEmpty() ? "" : power(s) + (time(c, s).isEmpty() ? "" : " · " + time(c, s)))
                 : "";
@@ -211,17 +221,17 @@ abstract class BaseWidget extends AppWidgetProvider {
     // ---------------- 主题着色 ----------------
 
     /** 布局 XML 里的 @color 引用在绑定时不被 RemoteViews 直接替换，逐个 view 显式涂色。 */
-    private static void applyRootColor(Context c, RemoteViews rv, T t) {
+    private static void applyRootColor(Context c, RemoteViews rv, T t, WidgetTheme.Size size) {
         // 背景：RemoteViews 没有 setDrawableTint，用布局里两个现成的 bg drawable + 颜色区分。
         // 布局根节点的 background 只写了浅色；黑主题这里换成深色圆角。
         rv.setInt(R.id.w_root, "setBackgroundResource",
             t.dark ? R.drawable.widget_card_dark : R.drawable.widget_card);
         // 芯片/按钮的底色跟主题走（widget_chip/widget_btn 各有一份深色变体）
-        if (has(R.id.w_lock)) rv.setInt(R.id.w_lock, "setBackgroundResource", t.dark ? R.drawable.widget_chip_dark : R.drawable.widget_chip);
-        if (has(R.id.w_seat)) rv.setInt(R.id.w_seat, "setBackgroundResource", t.dark ? R.drawable.widget_chip_dark : R.drawable.widget_chip);
+        if (has(size, R.id.w_lock)) rv.setInt(R.id.w_lock, "setBackgroundResource", t.dark ? R.drawable.widget_chip_dark : R.drawable.widget_chip);
+        if (has(size, R.id.w_seat)) rv.setInt(R.id.w_seat, "setBackgroundResource", t.dark ? R.drawable.widget_chip_dark : R.drawable.widget_chip);
         int btnBg = t.dark ? R.drawable.widget_btn_dark : R.drawable.widget_btn;
         for (int btn : new int[]{R.id.w_refresh, R.id.w_btn_unlock, R.id.w_btn_lock, R.id.w_btn_horn, R.id.w_btn_seat}) {
-            if (has(btn)) rv.setInt(btn, "setBackgroundResource", btnBg);
+            if (has(size, btn)) rv.setInt(btn, "setBackgroundResource", btnBg);
         }
     }
 
@@ -261,9 +271,44 @@ abstract class BaseWidget extends AppWidgetProvider {
         return t.muted;
     }
 
-    /** RemoteViews 没有 view存在性查询；各档布局共用同一套 id，缺的就当没有。 */
-    private static boolean has(int viewId) {
-        return viewId != 0;
+    /**
+     * 「这个档位的布局里有没有这个 view」。
+     *
+     * RemoteViews 没有 view 存在性查询，所以以前写成 `viewId != 0`——那**永远为 true**，
+     * 等于这段判断不存在：往 1×1 布局里 setText(w_title) / setVisibility(w_lock) 全都发给了
+     * 一个不存在的 id，系统静默忽略。结果是"改布局删掉一个 id，代码一句不报，那部分就那么没了"，
+     * 排查时完全看不出线索（注释还写着"缺的就当没有"，跟实现对不上）。
+     *
+     * 现在按布局档位真查：每档维护一份 id 集合（和 res/layout/widget_*.xml 对齐）。
+     * 加/删布局里的 id 时**必须同步改这里**，否则这段判断又会退化成"永远 true/false"。
+     */
+    private static boolean has(WidgetTheme.Size size, int viewId) {
+        return viewId != 0 && IDS.get(size).contains(viewId);
+    }
+
+    /** 各档布局实际拥有的 id（与 res/layout/widget_1x1|2x2|4x2|4x4.xml 一一对应）。 */
+    private static final Map<WidgetTheme.Size, Set<Integer>> IDS = new HashMap<>();
+
+    static {
+        Set<Integer> s1 = new HashSet<>(Arrays.asList(
+                R.id.w_root, R.id.w_soc, R.id.w_updated, R.id.w_progress,
+                R.id.w_voltage, R.id.w_state));
+        Set<Integer> s2 = new HashSet<>(Arrays.asList(
+                R.id.w_root, R.id.w_title, R.id.w_updated, R.id.w_soc, R.id.w_unit,
+                R.id.w_progress, R.id.w_charge, R.id.w_voltage, R.id.w_lock, R.id.w_seat));
+        Set<Integer> w42 = new HashSet<>(Arrays.asList(
+                R.id.w_root, R.id.w_title, R.id.w_updated, R.id.w_refresh,
+                R.id.w_btn_unlock, R.id.w_btn_horn, R.id.w_soc, R.id.w_unit, R.id.w_voltage,
+                R.id.w_progress, R.id.w_charge, R.id.w_power, R.id.w_time, R.id.w_lock,
+                R.id.w_seat, R.id.w_tire, R.id.w_btn_lock, R.id.w_btn_seat, R.id.w_car_box, R.id.w_car));
+        Set<Integer> w44 = new HashSet<>(w42);
+        w44.addAll(Arrays.asList(
+                R.id.w_today_mile, R.id.w_today_unit, R.id.w_last_mile, R.id.w_last_unit,
+                R.id.w_last_time, R.id.w_integral, R.id.w_integral_unit, R.id.w_extra_hint));
+        IDS.put(WidgetTheme.Size.S1, s1);
+        IDS.put(WidgetTheme.Size.S2, s2);
+        IDS.put(WidgetTheme.Size.W4x2, w42);
+        IDS.put(WidgetTheme.Size.W4x4, w44);
     }
 
     private static void text(RemoteViews rv, int id, String v, int color, int sp) {
