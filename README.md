@@ -26,7 +26,7 @@ app/
 ## 发布流程
 
 1. 在私有工作区 `dashboard/` 下构建网页：
-   `node build-static.mjs E:/AI_Program/zeeho-3d-models/index.html --obfuscate`
+   `node build-static.mjs E:/AI_Program/zeeho-unlocker/zeeho-3d-models/index.html --obfuscate`
    （公网产物必须带 `--obfuscate`，脚本会拒绝把明文密钥写进本仓库）；
 2. 在 `dashboard/app-shell` 下构建 APK：
    `./gradlew :webnext:exportApk`，产物直接写到这里（`app/zeehowebnext.apk`）；
