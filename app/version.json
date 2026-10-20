@@ -1,6 +1,6 @@
 {
-  "versionCode": 34,
-  "versionName": "1.5.18",
+  "versionCode": 35,
+  "versionName": "1.5.19",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.18：面板下载支持多源兜底，修国内网络下更新经常失败。① 原来只有 github.io 一条路，失败就直接报网络错误；现在主源失败会自动依次换 raw.githubusercontent / ghproxy.net / cdn.jsdelivr.net 重试；② 镜像用 6 秒短超时（主源 15 秒），避免一个死掉的源白等半分钟。"
+  "notes": "1.5.19：更新链路整体加固。① APK 更新也走多源兜底（原来只有 github.io 一条路）；② 修复网络抖动一次就整次运行不再检查更新的问题；③ APK 更新检查不再依赖页面加载完成；④ 修正重启后「检查更新」节流失效；⑤ 数据与调试里软件/面板版本右侧新增状态小块，后台检查结果一眼可见；⑥ 面板已静默下好时，爱车页顶部出现「重启面板」横条。"
 }
