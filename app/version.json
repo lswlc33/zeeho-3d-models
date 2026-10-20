@@ -1,6 +1,6 @@
 {
-  "versionCode": 43,
-  "versionName": "1.5.27",
+  "versionCode": 44,
+  "versionName": "1.5.28",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.27：后台增强的设置归位。① 「我的 → 服务 → App 专属后台增强」现在是纯入口卡：状态指示 + 详情入口，具体设置都在点开的弹窗里。② 「自动执行任务」「后台同步」「低电量/离线/胎压提醒」从「任务」弹窗搬到这个弹窗，按「自动任务 → 提醒 → 运行状态」排序，可操作的项目在上面。③ 任务弹窗回归纯签到积分，不再混入本机后台配置。"
+  "notes": "1.5.28：修小组件设置改不动。桥方法原来用了同名重载（widgetSettings() / widgetSettings(int)），而 Android 的 @JavascriptInterface 对重载支持不可靠，JS 侧只能看到一个——结果是设置卡读不到配置、点了也写不进去。现在每个签名一个独立名字（widgetSettingsFor / setWidgetSettingFor），并保留旧名兼容。同时小组件板块改成和上面设置项一样可收起，主题/时间/点击行为改成弹层选择（原来点一下循环切值，看不出会变成什么）。"
 }
