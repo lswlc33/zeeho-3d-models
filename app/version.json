@@ -1,6 +1,6 @@
 {
-  "versionCode": 48,
-  "versionName": "1.5.32",
+  "versionCode": 49,
+  "versionName": "1.5.33",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.32：桌面图标留边——里面的 Z|H 图案原来几乎顶到圆形遮罩边缘（图案宽占画布 59.3%，映射到自适应图标安全区后约占直径 89%），视觉上太满。现在按 70% 等比缩小并保持居中，四周留出明显呼吸空间；单色层（Material You 取色）同步调整。"
+  "notes": "1.5.33：桌面图标去掉左上/右下两个品牌蓝小三角——它们在圆形遮罩下只剩两小块色斑，既读不出形状、也和中间的 Z|H 标没有关系。现在图标只剩近黑底 + 深灰斜带 + Z|H 图案。"
 }
