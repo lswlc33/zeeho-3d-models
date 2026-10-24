@@ -1,6 +1,6 @@
 {
-  "versionCode": 60,
-  "versionName": "1.5.44",
+  "versionCode": 61,
+  "versionName": "1.5.45",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.44：充电判据最终口径——只认 chargeState==1，其余任何参数一律不参考、缺失按未充电。实测停着的车会报 chargeState 0 + 正电流，旧逻辑会误判成在充电。"
+  "notes": "1.5.45：修「充电状态在状态栏不显示」——挂桌面小组件时只静默常驻的「正在后台同步」通知，充电开始/进度/充满/停止通知照常显示；顺带清理充电判据残留（只认 chargeState==1，与面板一致）。"
 }
