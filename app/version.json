@@ -1,6 +1,6 @@
 {
-  "versionCode": 63,
-  "versionName": "1.5.47",
+  "versionCode": 64,
+  "versionName": "1.5.48",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.47：vivo/iQOO 原生桌面上的桌面小组件卡片改为填满实际宿主尺寸，不再留大片空白；其他桌面布局不变。"
+  "notes": "1.5.48：主题面板支持 Android 12+ 系统动态取色（读取手机调色板生成整套配色，不申请任何权限）；面板 6.69 起纯浏览器/旧壳自动隐藏该选项。"
 }
