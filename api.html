@@ -1,0 +1,1460 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3edf7" media="(prefers-color-scheme: light)">
+<meta name="description" content="极核 App 3.0.6 接口调试台：登录态复用、车况、OTA 与固件信息">
+<title>极核接口调试台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%237457b8'/%3E%3Cpath d='M18 5 9 18h5l-1.4 9L22 14h-5.2z' fill='%23e7ddff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #141218;
+    --surface: #1d1b22;
+    --surface-2: #25222c;
+    --ink: #e7e1ee;
+    --ink-soft: #a9a2b5;
+    --ink-faint: #7d7689;
+    --line: #332f3d;
+    --accent: #b9a5ff;
+    --accent-strong: #8f7af0;
+    --accent-soft: #2c2543;
+    --ok: #7ed6a5;
+    --warn: #ffcf70;
+    --bad: #ff8a8a;
+    --code: #0f0d13;
+    --shadow: 0 16px 44px #00000055;
+    --radius: 18px;
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  html[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f3edf7;
+    --surface: #fffbfe;
+    --surface-2: #f1eaf5;
+    --ink: #1d1b20;
+    --ink-soft: #5f5a68;
+    --ink-faint: #8b8494;
+    --line: #ded5e6;
+    --accent: #7457b8;
+    --accent-strong: #5c3fa3;
+    --accent-soft: #e9e0ff;
+    --ok: #1f7a4d;
+    --warn: #8a5a00;
+    --bad: #b3261e;
+    --code: #f7f2fb;
+    --shadow: 0 16px 40px #4b3b661f;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 500px at 10% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+      var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  a { color: var(--accent); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+
+  .shell { max-width: 1440px; margin: 0 auto; padding: 22px clamp(14px, 2.4vw, 34px) 60px; }
+  .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(150deg, var(--accent-strong), color-mix(in oklab, var(--accent-strong) 45%, #000));
+    color: #fff; font-weight: 800; letter-spacing: -.5px; box-shadow: var(--shadow);
+  }
+  .brand h1 { margin: 0; font-size: 20px; letter-spacing: -.3px; }
+  .brand p { margin: 0; color: var(--ink-soft); font-size: 12px; }
+  .top-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; color: var(--ink-soft);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 22%, transparent); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad { background: var(--bad); }
+
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 12px; padding: 8px 13px; font-size: 13px; transition: .16s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--accent-strong); border-color: transparent; color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); color: #fff; }
+  .btn.ghost { background: transparent; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .btn.small { padding: 5px 9px; border-radius: 9px; font-size: 12px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 1px 0 #ffffff08 inset;
+  }
+  .card-head { display: flex; align-items: center; gap: 10px; padding: 15px 17px 0; }
+  .card-head h2 { margin: 0; font-size: 14px; letter-spacing: .2px; }
+  .card-head .sub { color: var(--ink-faint); font-size: 12px; }
+  .card-body { padding: 14px 17px 17px; }
+
+  .notice {
+    display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: 14px;
+    background: var(--accent-soft); border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+    margin-bottom: 16px; font-size: 13px;
+  }
+  .notice b { color: var(--accent); }
+  .notice .grow { flex: 1; min-width: 0; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .metric { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 13px; }
+  .metric .k { color: var(--ink-faint); font-size: 11px; letter-spacing: .4px; }
+  .metric .v { font-size: 19px; font-weight: 650; letter-spacing: -.4px; margin-top: 2px; }
+  .metric .v small { font-size: 11px; color: var(--ink-soft); font-weight: 500; }
+  .metric.wide { grid-column: span 2; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+  .layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+  .side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; padding-bottom: 8px; }
+  .side::-webkit-scrollbar, .resp::-webkit-scrollbar { width: 8px; height: 8px; }
+  .side::-webkit-scrollbar-thumb, .resp::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+  .group { margin-bottom: 10px; }
+  .group > summary {
+    list-style: none; cursor: pointer; padding: 8px 10px; border-radius: 10px; font-size: 12px;
+    color: var(--ink-soft); display: flex; align-items: center; gap: 7px; user-select: none;
+  }
+  .group > summary::-webkit-details-marker { display: none; }
+  .group > summary:hover { background: var(--surface-2); color: var(--ink); }
+  .group[open] > summary { color: var(--accent); }
+  .group .count { margin-left: auto; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .ep-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 4px; }
+  .ep {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    background: transparent; border: 0; border-radius: 9px; padding: 7px 9px; color: var(--ink-soft);
+    font-size: 12.5px;
+  }
+  .ep:hover { background: var(--surface-2); color: var(--ink); }
+  .ep[aria-current="true"] { background: var(--accent-soft); color: var(--accent); }
+  .method {
+    font: 700 10px/1 ui-monospace, monospace; letter-spacing: .3px; padding: 4px 5px; border-radius: 5px;
+    background: var(--surface-2); color: var(--ink-faint); border: 1px solid var(--line); flex: none;
+  }
+  .method.GET { color: #8ed0ff; }
+  .method.POST { color: #ffd28e; }
+  .method.PUT { color: #c7a5ff; }
+  .method.DELETE { color: #ff9b9b; }
+  .ep .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge-danger { margin-left: auto; font-size: 10px; color: var(--bad); border: 1px solid color-mix(in oklab, var(--bad) 40%, transparent); border-radius: 999px; padding: 1px 6px; }
+
+  .detail { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .detail-head { padding: 18px 20px 16px; }
+  .detail-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .detail-title h2 { margin: 0; font-size: 17px; letter-spacing: -.2px; }
+  .endpoint-path {
+    margin-top: 9px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: var(--code); border: 1px solid var(--line); border-radius: 11px; padding: 8px 11px;
+    font-family: ui-monospace, monospace; font-size: 12px; color: var(--ink-soft); overflow-wrap: anywhere;
+  }
+  .note { margin-top: 10px; color: var(--ink-soft); font-size: 12.5px; }
+  .note:empty { display: none; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field label { font-size: 11.5px; color: var(--ink-faint); display: flex; gap: 6px; align-items: center; }
+  .field label .req { color: var(--accent); }
+  .field input, .field select, .field textarea {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px;
+    font-size: 13px; width: 100%; outline: none; transition: border-color .15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field textarea { min-height: 132px; resize: vertical; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.55; }
+  .form-actions { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .hint { font-size: 12px; color: var(--ink-faint); }
+  .danger-check { display: inline-flex; gap: 7px; align-items: center; font-size: 12px; color: var(--bad); }
+
+  .resp-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 10px; }
+  .tab { border: 0; background: transparent; color: var(--ink-faint); padding: 5px 10px; border-radius: 7px; font-size: 12px; }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 5px #0003; }
+  .resp { background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow: auto; max-height: 460px; }
+  .resp pre { margin: 0; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .json-key { color: #c8a8ff; } .json-str { color: #9fd7a8; } .json-num { color: #ffcf8a; } .json-bool { color: #8ecbff; } .json-null { color: var(--ink-faint); }
+  .status-ok { color: var(--ok); } .status-bad { color: var(--bad); } .status-warn { color: var(--warn); }
+  .empty { color: var(--ink-faint); font-size: 13px; padding: 8px 0; }
+
+  .kv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 7px 12px; font-size: 12.5px; }
+  .kv dt { color: var(--ink-faint); }
+  .kv dd { margin: 0; overflow-wrap: anywhere; }
+  .masked { filter: blur(4px); transition: filter .2s; cursor: pointer; }
+  .masked.show { filter: none; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 16px; font-size: 13px; box-shadow: var(--shadow); opacity: 0; pointer-events: none;
+    transition: .2s ease; z-index: 40;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  dialog {
+    width: min(620px, calc(100vw - 28px)); border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink); box-shadow: var(--shadow); padding: 0;
+  }
+  dialog::backdrop { background: #0008; backdrop-filter: blur(3px); }
+  .dialog-head { display: flex; align-items: center; padding: 16px 18px 0; }
+  .dialog-head h2 { margin: 0; font-size: 16px; }
+  .dialog-head .btn { margin-left: auto; }
+  .dialog-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .radio-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .radio-card { flex: 1; min-width: 220px; border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; display: flex; gap: 9px; align-items: flex-start; }
+  .radio-card:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .radio-card input { margin-top: 3px; }
+  .radio-card b { display: block; font-size: 13px; }
+  .radio-card span { font-size: 11.5px; color: var(--ink-soft); }
+  .divider { height: 1px; background: var(--line); margin: 2px 0; }
+  @media (max-width: 720px) {
+    .notice { flex-wrap: wrap; }
+    .notice .grow { flex: 1 1 100%; }
+    .notice .top-actions { flex: 1 1 100%; margin: 4px 0 0 !important; justify-content: flex-start; }
+  }
+  .hidden { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">Z</div>
+      <div>
+        <h1>极核接口调试台</h1>
+        <p>App 3.0.6 接口目录 · 只读为主 · 复用面板登录态</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="state-pill"><span class="dot" id="state-dot"></span><span id="state-text">正在检测登录态</span></span>
+      <a class="btn ghost" href="./index.html">← 面板</a>
+      <a class="btn ghost" href="https://github.com/lswlc33/zeeho-3d-models/blob/main/docs/API-3.0.6.md" target="_blank" rel="noopener">接口文档</a>
+      <button class="btn ghost" id="btn-theme" type="button" title="切换深浅色">深浅色</button>
+      <button class="btn" id="btn-settings" type="button">设置</button>
+    </div>
+  </header>
+
+  <section id="setup-notice" class="notice" hidden>
+    <div class="grow">
+      <b id="setup-title">还没有登录态</b>
+      <div id="setup-desc">本页默认复用极核面板的签名与 token。先到面板用手机号登录一次，再回来刷新即可。</div>
+    </div>
+    <div class="top-actions" style="margin:0">
+      <a class="btn primary" href="./index.html" id="go-panel">打开面板登录</a>
+      <button class="btn" id="btn-reload" type="button">我已登录，刷新</button>
+      <button class="btn ghost" id="btn-manual-token" type="button">粘贴 token</button>
+    </div>
+  </section>
+
+  <section class="card" id="summary-card">
+    <div class="card-head">
+      <h2>车况概览</h2>
+      <span class="sub" id="summary-sub">登录后自动读取</span>
+      <div class="top-actions" style="margin-left:auto">
+        <select id="vin-select" class="btn" aria-label="选择车辆" hidden></select>
+        <button class="btn small" id="btn-refresh-home" type="button">刷新车况</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="summary-grid" id="summary-grid">
+        <div class="metric"><div class="k">状态</div><div class="v" id="m-state">未登录</div></div>
+        <div class="metric"><div class="k">电量</div><div class="v" id="m-soc">—</div></div>
+        <div class="metric"><div class="k">续航</div><div class="v" id="m-range">—</div></div>
+        <div class="metric"><div class="k">OTA 版本</div><div class="v" id="m-ota">—</div></div>
+        <div class="metric"><div class="k">壁纸 / 主题</div><div class="v" id="m-wallpaper">—</div></div>
+        <div class="metric wide"><div class="k">3D 车模（vehiclePic3dUrl）</div><div class="v mono" id="m-3d" style="font-size:12px;font-weight:500">—</div></div>
+      </div>
+      <div class="form-actions" id="summary-actions" hidden>
+        <button class="btn small" data-quick="ota" type="button">查 OTA</button>
+        <button class="btn small" data-quick="otaInfo" type="button">OTA 全量信息</button>
+        <button class="btn small" data-quick="ride" type="button">本月骑行</button>
+        <button class="btn small" data-quick="projection" type="button">投屏资料</button>
+        <span class="hint" id="summary-time"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside class="card side" aria-label="接口目录">
+      <div class="card-body" style="padding:12px 10px" id="endpoint-nav"></div>
+    </aside>
+
+    <main class="detail">
+      <section class="card detail-head">
+        <div class="detail-title">
+          <span class="method" id="d-method">GET</span>
+          <h2 id="d-title">选择左侧接口</h2>
+          <span class="pill" id="d-source">—</span>
+          <span class="badge-danger hidden" id="d-danger">写操作</span>
+        </div>
+        <div class="endpoint-path" id="d-path">—</div>
+        <p class="note" id="d-note"></p>
+
+        <form id="call-form" class="card-body" style="padding:16px 0 0" autocomplete="off">
+          <div class="form-grid" id="param-fields"></div>
+          <div class="field hidden" id="body-field" style="margin-top:12px">
+            <label for="body-input">请求体 JSON</label>
+            <textarea id="body-input" spellcheck="false"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="btn-run" type="submit">执行请求</button>
+            <label class="danger-check hidden" id="danger-check-wrap">
+              <input type="checkbox" id="danger-check"> 我确认这是写操作
+            </label>
+            <span class="hint" id="call-hint">签名与 token 都在本机计算，不会上传到第三方。</span>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>响应</h2>
+          <div class="resp-head" style="margin-left:auto">
+            <div class="tabs" role="tablist">
+              <button class="tab" role="tab" aria-selected="true" data-tab="json">JSON</button>
+              <button class="tab" role="tab" aria-selected="false" data-tab="request">请求</button>
+              <button class="tab" role="tab" aria-selected="false" data-tab="curl">cURL</button>
+            </div>
+            <button class="btn small" id="btn-reveal" type="button">显示原文</button>
+            <button class="btn small" id="btn-copy" type="button">复制</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="resp-head" style="margin-bottom:10px">
+            <span class="pill" id="r-status">尚未请求</span>
+            <span class="hint" id="r-meta"></span>
+          </div>
+          <div class="resp" id="resp-box"><div class="empty">执行一个接口后，这里显示响应。</div></div>
+        </div>
+      </section>
+
+      <section class="card" id="projection-card" hidden>
+        <div class="card-head"><h2>投屏资料（encryptInfo）</h2><span class="sub">来自 vehicleHomePageV2</span></div>
+        <div class="card-body">
+          <dl class="kv" id="projection-kv"></dl>
+          <p class="hint" style="margin:10px 0 0">这三项是车机投屏加密用的资料。默认打码，点一下显示；不要发到群里。</p>
+          <div class="form-actions">
+            <button class="btn small" id="btn-copy-projection" type="button">复制 JSON</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="settings">
+  <form method="dialog" class="dialog-head">
+    <h2>接口设置</h2>
+    <button class="btn small" value="cancel">关闭</button>
+  </form>
+  <div class="dialog-body">
+    <div>
+      <div class="hint" style="margin-bottom:8px">签名方式</div>
+      <div class="radio-row">
+        <label class="radio-card">
+          <input type="radio" name="mode" value="panel">
+          <span><b>复用面板签名（推荐）</b><span>在隐藏 iframe 里加载 index.html，直接调用面板的 ZEEHO_SIGN；本页不保存任何密钥。</span></span>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="mode" value="own">
+          <span><b>自填凭据</b><span>填入 App 3.0.6 的 appId / appSecret / Basic。appSecret 与 Basic 只放当前标签页的 sessionStorage，关页即失效。</span></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="own-fields" class="form-grid hidden">
+      <div class="field"><label for="cfg-base">BASE</label><input id="cfg-base" placeholder="https://tapi.zeehoev.com"></div>
+      <div class="field"><label for="cfg-appid">appId</label><input id="cfg-appid" placeholder="App 3.0.6 AppConfig"></div>
+      <div class="field"><label for="cfg-secret">appSecret</label><input id="cfg-secret" type="password" placeholder="不随仓库分发"></div>
+      <div class="field"><label for="cfg-basic">Basic</label><input id="cfg-basic" type="password" placeholder="Basic …（登录接口用）"></div>
+      <div class="field" style="grid-column:1/-1">
+        <label for="cfg-token">Bearer token</label>
+        <input id="cfg-token" placeholder="面板登录后自动读取；也可从 App 抓包粘贴">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="form-grid">
+      <div class="field" style="grid-column:1/-1">
+        <label for="cfg-basic-global">登录 Basic</label>
+        <input id="cfg-basic-global" type="password" placeholder="登录接口需要；面板模式下自动从 ZEEHO_SIGN.APP_BASIC_AUTH 读取">
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin:0">
+      <button class="btn primary" id="btn-save-cfg" type="button">保存</button>
+      <button class="btn" id="btn-load-panel" type="button">加载面板签名</button>
+      <button class="btn ghost" id="btn-clear" type="button">清除本机保存</button>
+      <span class="hint" id="cfg-status"></span>
+    </div>
+
+    <div class="divider"></div>
+    <div>
+      <div class="hint" style="margin-bottom:8px">短信登录（self 模式；App 3.0.6 的 authCode/{phone} 不需要图形码）</div>
+      <div class="form-grid">
+        <div class="field"><label for="login-phone">手机号</label><input id="login-phone" inputmode="numeric" placeholder="11 位手机号"></div>
+        <div class="field"><label for="login-code">验证码</label><input id="login-code" inputmode="numeric" placeholder="6 位"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="btn-send-code" type="button">发送验证码</button>
+        <button class="btn primary" id="btn-login" type="button">登录并保存 token</button>
+        <span class="hint" id="login-hint"></span>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script type="module">
+import { ZeehoClient, buildHeaders, pickVehicleSummary, rfc3986, DEFAULT_BASE } from './sdk/zeeho-api.js';
+import { GROUPS, ENDPOINTS, fillPath, byId } from './sdk/endpoints.js';
+
+const $ = (id) => document.getElementById(id);
+
+const STORAGE = {
+  token: 'zeeho.token',
+  cfg: 'zeeho.api.cfg',
+  mode: 'zeeho.api.mode',
+  values: 'zeeho.api.values',
+  secret: 'zeeho.api.secret',
+  basic: 'zeeho.api.basic',
+  theme: 'zeeho.api.theme',
+  vin: 'zeeho.api.vin',
+  uid: 'zeeho.api.uid',
+};
+
+const state = {
+  mode: 'panel',
+  cfg: { base: DEFAULT_BASE, appId: '', appSecret: '', basic: '' },
+  token: '',
+  panelFrame: null,
+  panelWin: null,
+  loaded: false,
+  vehicles: [],
+  vin: '',
+  uid: '',
+  home: null,
+  endpoint: null,
+  values: {},
+  last: null, // {url, method, headers, body, result, text}
+  tab: 'json',
+};
+
+/* ---------------------------- 基础工具 ---------------------------- */
+
+function toast(message, ms = 2200) {
+  const el = $('toast');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+function loadJson(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; }
+}
+
+function saveJson(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 隐私模式 */ }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function escapeJsonHtml(text) {
+  // 只转义 & < >；保留引号，JSON 着色正则才能匹配 "key": "value"。
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightJson(text) {
+  const escaped = escapeJsonHtml(text);
+  return escaped.replace(
+    /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"\s*:)|("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*")|(\b-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|\b(true|false)\b|\b(null)\b/g,
+    (match, key, str, num, bool, nul) => {
+      if (key) return `<span class="json-key">${key}</span>`;
+      if (str) return `<span class="json-str">${str}</span>`;
+      if (num) return `<span class="json-num">${num}</span>`;
+      if (bool) return `<span class="json-bool">${bool}</span>`;
+      if (nul) return `<span class="json-null">null</span>`;
+      return match;
+    },
+  );
+}
+
+function safeHttpUrl(value) {
+  const url = String(value || '').trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+
+function maskSensitiveUrl(value) {
+  const text = String(value || '');
+  try {
+    const url = new URL(text);
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(sign|signature|token|pwd|password|expires|ossaccesskeyid|security-token)$/i.test(key)) {
+        url.searchParams.set(key, '***');
+      }
+    }
+    return url.toString();
+  } catch {
+    return text.replace(/(^|[?&])(pwd|password|token|sign|signature|expires|ossaccesskeyid)=[^&]*/gi, '$1$2=***');
+  }
+}
+
+function redactForDisplay(value) {
+  if (value == null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(redactForDisplay);
+  const out = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'encryptInfo' && child && typeof child === 'object') {
+      out[key] = { present: true, keys: Object.keys(child) };
+    } else if (key === 'location' && child && typeof child === 'object') {
+      out[key] = { present: true };
+    } else if (typeof child === 'string' && /(?:[?&](?:pwd|password|token|sign|signature|expires|ossaccesskeyid)=)/i.test(child)) {
+      out[key] = maskSensitiveUrl(child);
+    } else if (['authCode', 'password', 'phone'].includes(key) && typeof child === 'string') {
+      out[key] = '***';
+    } else {
+      out[key] = redactForDisplay(child);
+    }
+  }
+  return out;
+}
+
+function redactedHeaders(headers) {
+  const copy = { ...(headers || {}) };
+  for (const key of Object.keys(copy)) {
+    if (/^(authorization|proxy-authorization|cookie)$/i.test(key)) {
+      copy[key] = /^Basic\s/i.test(String(copy[key])) ? 'Basic <REDACTED>' : 'Bearer <REDACTED>';
+    }
+  }
+  return copy;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  return String(iso).replace('T', ' ').replace(/\..*$/, '');
+}
+
+function randomNonce() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  return [...buf].map((n) => alphabet[n % alphabet.length]).join('');
+}
+
+/* ---------------------------- 状态与配置 ---------------------------- */
+
+function applyTheme() {
+  const saved = localStorage.getItem(STORAGE.theme);
+  const theme = saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.dataset.theme = theme;
+  $('btn-theme').textContent = theme === 'dark' ? '浅色' : '深色';
+}
+
+function setStatus(stateName, text) {
+  $('state-dot').className = `dot ${stateName}`;
+  $('state-text').textContent = text;
+}
+
+function scrubValues(values) {
+  const out = {};
+  for (const [id, map] of Object.entries(values || {})) {
+    const copy = { ...(map || {}) };
+    for (const key of ['phone', 'authCode', 'captcha', 'code']) delete copy[key];
+    if (typeof copy.__body === 'string') {
+      try {
+        const parsed = JSON.parse(copy.__body);
+        for (const key of ['phone', 'authCode', 'captcha', 'code', 'password']) delete parsed[key];
+        copy.__body = JSON.stringify(parsed);
+      } catch { /* 非 JSON 原样 */ }
+    }
+    out[id] = copy;
+  }
+  return out;
+}
+
+function persistValues() {
+  saveJson(STORAGE.values, scrubValues(state.values));
+}
+
+function loadSettings() {
+  state.mode = localStorage.getItem(STORAGE.mode) || 'panel';
+  // appSecret 比 appId 敏感：只放 sessionStorage（关标签页即失效），不落 localStorage。
+  const stored = loadJson(STORAGE.cfg, {});
+  delete stored.appSecret;
+  delete stored.basic;
+  state.cfg = { base: DEFAULT_BASE, appId: '', appSecret: '', basic: '', ...stored };
+  try { state.cfg.appSecret = sessionStorage.getItem(STORAGE.secret) || ''; } catch { state.cfg.appSecret = ''; }
+  try { state.cfg.basic = sessionStorage.getItem(STORAGE.basic) || ''; } catch { state.cfg.basic = ''; }
+  state.values = scrubValues(loadJson(STORAGE.values, {}));
+  state.token = localStorage.getItem(STORAGE.token) || '';
+  state.vin = localStorage.getItem(STORAGE.vin) || '';
+  state.uid = localStorage.getItem(STORAGE.uid) || '';
+}
+
+function persistSettings() {
+  localStorage.setItem(STORAGE.mode, state.mode);
+  saveJson(STORAGE.cfg, { base: state.cfg.base, appId: state.cfg.appId });
+  try {
+    if (state.cfg.appSecret) sessionStorage.setItem(STORAGE.secret, state.cfg.appSecret);
+    else sessionStorage.removeItem(STORAGE.secret);
+    if (state.cfg.basic) sessionStorage.setItem(STORAGE.basic, state.cfg.basic);
+    else sessionStorage.removeItem(STORAGE.basic);
+  } catch { /* 隐私模式 */ }
+}
+
+function getBasic() {
+  if (state.cfg.basic) return state.cfg.basic;
+  const panelBasic = state.panelWin?.ZEEHO_SIGN?.APP_BASIC_AUTH;
+  return panelBasic || '';
+}
+
+function hasOwnCredentials() {
+  return Boolean(state.cfg.appId && state.cfg.appSecret);
+}
+
+function getBase() {
+  return (state.cfg.base || DEFAULT_BASE).replace(/\/+$/, '');
+}
+
+/* ---------------------------- 面板签名 ---------------------------- */
+
+async function loadPanel(timeoutMs = 9000) {
+  if (state.panelWin?.ZEEHO_SIGN?.buildHeaders) return true;
+  if (!state.panelFrame) {
+    const iframe = document.createElement('iframe');
+    iframe.src = './index.html';
+    iframe.title = '面板签名载体';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.tabIndex = -1;
+    iframe.style.cssText = 'position:fixed;width:1px;height:1px;left:-10px;top:-10px;opacity:0;pointer-events:none;border:0';
+    document.body.appendChild(iframe);
+    state.panelFrame = iframe;
+  }
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const win = state.panelFrame.contentWindow;
+      if (win?.ZEEHO_SIGN?.buildHeaders) {
+        state.panelWin = win;
+        // 面板 API 可能已经加载了 token；localStorage 是同一份，优先读它。
+        // localStorage 是面板与调试台共享的登录态，优先于 API 内部可能仍是 demo 的 token。
+        const apiToken = String(win.API?.token || '');
+        const storedToken = win.localStorage?.getItem('zeeho.token') || '';
+        // 面板 API.token 是刚登录的最新值；如果它是 UUID 就优先，避免 localStorage 旧值反而覆盖。
+        const panelToken = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(apiToken)
+          ? apiToken
+          : (storedToken || apiToken);
+        if (panelToken && panelToken !== state.token) {
+          state.token = panelToken;
+          try { localStorage.setItem(STORAGE.token, panelToken); } catch { /* 隐私模式 */ }
+        }
+        return true;
+      }
+    } catch { /* 面板还没初始化完 */ }
+    await sleep(120);
+  }
+  return false;
+}
+
+function panelQueryParams(url) {
+  const params = {};
+  for (const [key, value] of new URL(url).searchParams) {
+    if (params[key] === undefined) params[key] = value;
+    else if (Array.isArray(params[key])) params[key].push(value);
+    else params[key] = [params[key], value];
+  }
+  return params;
+}
+
+function panelHeaders(url, method, bodyText) {
+  const sign = state.panelWin?.ZEEHO_SIGN;
+  if (!sign?.sign) throw new Error('面板签名未就绪');
+  // ZEEHO_SIGN.sign 的真实签名是 (tagOrUrl, params, body, method)：
+  //   · params 会经 toQuery() 变成 query（面板签名对非 h5 是 query + body）；
+  //   · 不能把 method 当第二个参数传，否则 query 会丢，POST 的 body 也会错位。
+  const signed = sign.sign(
+    url,
+    panelQueryParams(url),
+    bodyText || '',
+    String(method).toUpperCase(),
+  );
+  return {
+    'Content-Type': 'application/json;charset=UTF-8',
+    'Accept-Language': 'zh-CN',
+    interfaceversion: '2',
+    'cfmoto-x-param': signed.param,
+    'cfmoto-x-sign': signed.sign,
+    'cfmoto-x-sign-type': '0',
+  };
+}
+
+function ownHeaders(url, method, bodyText) {
+  if (!state.cfg.appId || !state.cfg.appSecret) throw new Error('自填模式需要 appId 与 appSecret');
+  // nonce 尾部与 timestamp 必须是同一毫秒；不能各取一次 Date.now()。
+  const timestamp = Date.now();
+  return buildHeaders({
+    url,
+    method,
+    body: bodyText,
+    appId: state.cfg.appId,
+    appSecret: state.cfg.appSecret,
+    nonce: `${randomNonce()}${timestamp}`,
+    timestamp,
+  });
+}
+
+/* ---------------------------- 请求 ---------------------------- */
+
+function buildUrl(path, params, values) {
+  const filled = fillPath(path, values);
+  let url = `${getBase()}${filled.startsWith('/') ? '' : '/'}${filled}`;
+  const pairs = [];
+  for (const param of params || []) {
+    if (param.in !== 'query') continue;
+    const value = values[param.key];
+    if (value === undefined || value === null || value === '') continue;
+    pairs.push([param.key, value]);
+  }
+  if (pairs.length) {
+    // 与签名侧 canonicalQuery 一致：空格 %20，~ 保留；不能直接用 URLSearchParams（空格变 +）。
+    const query = pairs.map(([k, v]) => `${rfc3986(k)}=${rfc3986(v)}`).join('&');
+    url += (url.includes('?') ? '&' : '?') + query;
+  }
+  return url;
+}
+
+function panelParams(values) {
+  const params = { ...(values || {}) };
+  delete params.__body;
+  if (params.vin == null && params.vinNo) params.vin = params.vinNo;
+  if (params.vinNo == null && params.vin) params.vinNo = params.vin;
+  if (params.carUid == null && params.carUserId) params.carUid = params.carUserId;
+  if (params.carUserId == null && params.carUid) params.carUserId = params.carUid;
+  if (params.uid == null && params.userId) params.uid = params.userId;
+  if (params.userId == null && params.uid) params.userId = params.uid;
+  if (params.uid == null && state.uid) params.uid = state.uid;
+  if (params.postId == null && params.articleId) params.postId = params.articleId;
+  if (params.month) {
+    params.month_dot = String(params.month).replace('-', '.');
+    params.month_dash = String(params.month).replace('.', '-');
+  }
+  if (params.startDate) {
+    params.date_dash = String(params.startDate).replace(/-/g, '.');
+    params.month_dash = String(params.startDate).slice(0, 7).replace('-', '.');
+  }
+  if (params.startDateTime == null && params.startDate) params.startDateTime = params.startDate;
+  return params;
+}
+
+/**
+ * 面板模式优先走 index.html 暴露的 API.call：
+ *   · 面板的签名是 (tag, params, body, method) 这一套，和 App 3.0.6 的 (url, method, body)
+ *     不是同一个 preimage；直接拿 ZEEHO_SIGN.buildHeaders(url,…) 去请求 vehicleHomePageV2
+ *     会被网关判 30121 permit error（实测），而 API.call 内部用的是正确的那一套。
+ *   · API.call 还顺带处理了 token/source/demo 与结果封装。
+ * 只有面板没有的 3.0.6 端点（OTA/版本等）才退回直接签名请求。
+ */
+async function panelCall(endpoint, values, token, body) {
+  if (!state.panelWin) {
+    setStatus('warn', '加载面板签名…');
+    toast('首次加载面板签名（约 1MB），请稍等');
+  }
+  const ready = await loadPanel();
+  if (!ready) throw new Error('面板签名加载失败：请刷新本页，或在设置里改用「自填凭据」');
+  const api = state.panelWin?.API;
+  if (!api?.call) throw new Error('面板 API 未就绪');
+  const finalToken = token ?? state.token;
+  // 面板可能因为上一次 401/并发把 authFailed 置位；先清掉再试，token 真失效时仍会失败。
+  if (api.authFailed) { try { api.clearAuthFail?.(); } catch { /* 旧版本没有 */ } }
+  try { await api.setSource?.('direct'); } catch { /* 旧版本没有 setSource */ }
+  if (finalToken) api.token = finalToken;
+  const callParams = panelParams(values);
+  const callOptions = {};
+  if (body !== undefined && body !== null) callOptions.body = body;
+  if (endpoint.method) callOptions.method = endpoint.method;
+  const started = performance.now();
+  let result = await api.call(endpoint.panelId, callParams, callOptions);
+  // 面板偶尔会因为并发/限流把一次 401 记成「登录态已失效」并熔断后续请求。
+  // 清一次失败标记再重试一次；token 真的失效时第二次仍会失败，不会掩盖问题。
+  if (!result?.ok && /401|登录态已失效/.test(String(result?.message || ''))) {
+    try { api.clearAuthFail?.(); } catch { /* 旧版本没有 */ }
+    await sleep(400);
+    result = await api.call(endpoint.panelId, callParams, callOptions);
+  }
+  const elapsed = Math.round(performance.now() - started);
+  const raw = result?.raw ?? { code: result?.code ?? '', message: result?.message ?? '', data: result?.data ?? null };
+  const status = Number(result?.http) || (result?.ok ? 200 : 0);
+  return {
+    url: `panel://${endpoint.panelId}`,
+    method: endpoint.method || 'GET',
+    headers: { 'X-Panel-Call': endpoint.panelId },
+    body: '',
+    response: { ok: Boolean(result?.ok), status, headers: new Headers() },
+    text: JSON.stringify(raw),
+    data: raw,
+    elapsed,
+    panel: true,
+  };
+}
+
+async function request({ endpoint, values, body, token }) {
+  const finalToken = token ?? state.token;
+  if (endpoint.auth === 'token' && !finalToken) {
+    throw new Error('缺少 token：请先在面板登录，或在设置里粘贴 token');
+  }
+  if (state.mode === 'panel' && endpoint.panelId) {
+    return panelCall(endpoint, values, finalToken, body);
+  }
+  const url = buildUrl(endpoint.path, endpoint.params, values);
+  const method = endpoint.method || 'GET';
+  const bodyText = body == null ? '' : JSON.stringify(body);
+  // 面板 signer 的 preimage 只有 toQuery(params)+body，不含 scheme://host/path。
+  // 有 3.0.6 appId/appSecret 时优先自签名（完整 URL）；没有才退回面板签名。
+  const useOwnSign = state.mode !== 'panel' || hasOwnCredentials();
+  let headers;
+  if (useOwnSign) {
+    headers = ownHeaders(url, method, bodyText);
+  } else {
+    const ready = await loadPanel();
+    if (!ready) throw new Error('面板签名加载失败：请刷新本页，或在设置里改用「自填凭据」');
+    headers = panelHeaders(url, method, bodyText);
+  }
+  if (endpoint.auth === 'token') {
+    const finalToken = token ?? state.token;
+    if (!finalToken) throw new Error('缺少 token：请先登录面板，或在设置里粘贴 token');
+    headers.Authorization = `Bearer ${finalToken}`;
+  } else if (endpoint.auth === 'basic') {
+    const basic = getBasic();
+    if (!basic) throw new Error('缺少 Basic：请在设置里填写（登录接口需要）');
+    headers.Authorization = basic.startsWith('Basic ') ? basic : `Basic ${basic}`;
+  }
+  const started = performance.now();
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: method === 'GET' || method === 'HEAD' ? undefined : bodyText || undefined,
+    cache: 'no-store',
+  });
+  const text = await response.text();
+  const elapsed = Math.round(performance.now() - started);
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* XML/HTML */ }
+  return { url, method, headers, body: bodyText, response, text, data, elapsed };
+}
+
+function curlFor({ url, method, headers, body }) {
+  const safeHeaders = redactedHeaders(headers);
+  const lines = [`curl -sS -X ${method} ${shellQuote(url)}`];
+  for (const [k, v] of Object.entries(safeHeaders)) lines.push(`  -H ${shellQuote(`${k}: ${v}`)}`);
+  if (body) {
+    let safeBody = body;
+    try { safeBody = JSON.stringify(redactForDisplay(JSON.parse(body))); } catch { /* 非 JSON 原样 */ }
+    lines.push(`  --data ${shellQuote(safeBody)}`);
+  }
+  return lines.join(' \\\n');
+}
+
+/* ---------------------------- 渲染：目录 ---------------------------- */
+
+function renderNav() {
+  const nav = $('endpoint-nav');
+  nav.innerHTML = '';
+  for (const group of GROUPS) {
+    // 主题商店按车型开放：只有 vehicleHomePageV2 的 themeShopFlag=1 才显示主题组（AE5i 为 0）。
+    if (group.id === 'theme' && state.themeSupported !== true) continue;
+    const items = ENDPOINTS.filter((e) => e.group === group.id);
+    if (!items.length) continue;
+    const details = document.createElement('details');
+    details.className = 'group';
+    details.open = group.id === 'ota' || group.id === 'vehicle';
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<span>${escapeHtml(group.label)}</span><span class="count">${items.length}</span>`;
+    summary.title = group.desc || '';
+    details.appendChild(summary);
+    const list = document.createElement('div');
+    list.className = 'ep-list';
+    for (const endpoint of items) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ep';
+      button.dataset.id = endpoint.id;
+      button.setAttribute('aria-current', String(state.endpoint?.id === endpoint.id));
+      button.innerHTML = `<span class="method ${endpoint.method}">${endpoint.method}</span><span class="name">${escapeHtml(endpoint.label)}</span>${endpoint.danger ? '<span class="badge-danger">写</span>' : ''}`;
+      button.addEventListener('click', () => {
+        selectEndpoint(endpoint.id);
+        if (matchMedia('(max-width: 980px)').matches) {
+          document.querySelector('.detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+      list.appendChild(button);
+    }
+    details.appendChild(list);
+    nav.appendChild(details);
+  }
+}
+
+/* ---------------------------- 渲染：详情 ---------------------------- */
+
+function defaultParamValue(param) {
+  const key = param.key;
+  if (key === 'vin' || key === 'vinNo') return state.vin || '';
+  if (key === 'uid' || key === 'userId' || key === 'carUserId') return state.uid || '';
+  if (key === 'month') {
+    const now = new Date();
+    return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  if (key === 'systemType') return '1';
+  if (key === 'homepageInvoke') return '1';
+  if (key === 'sensorType') return 'EXTERNAL';
+  if (key === 'virtualFlag') return '0';
+  if (key === 'targetVersion') return '0';
+  // 手机号/验证码这类不要用示例值预填，避免误发短信。
+  return '';
+}
+
+function selectEndpoint(id) {
+  const endpoint = byId(id);
+  if (!endpoint) return;
+  state.endpoint = endpoint;
+  for (const button of document.querySelectorAll('.ep')) {
+    button.setAttribute('aria-current', String(button.dataset.id === id));
+  }
+  $('d-method').textContent = endpoint.method;
+  $('d-method').className = `method ${endpoint.method}`;
+  $('d-title').textContent = endpoint.label;
+  $('d-source').textContent = endpoint.source === 'app306' ? 'App 3.0.6' : '面板';
+  $('d-path').textContent = `${endpoint.method} ${endpoint.path}`;
+  $('d-note').textContent = endpoint.note || '';
+  $('d-danger').classList.toggle('hidden', !endpoint.danger);
+  $('danger-check-wrap').classList.toggle('hidden', !endpoint.danger);
+  $('danger-check').checked = false;
+
+  const values = state.values[endpoint.id] || (state.values[endpoint.id] = {});
+  const fields = $('param-fields');
+  fields.innerHTML = '';
+  for (const param of endpoint.params || []) {
+    if (!values[param.key]) values[param.key] = defaultParamValue(param);
+    const field = document.createElement('div');
+    field.className = 'field';
+    const label = document.createElement('label');
+    label.htmlFor = `p-${param.key}`;
+    label.innerHTML = `${escapeHtml(param.label || param.key)}${param.required ? '<span class="req">*</span>' : ''}<span class="hint">${param.in}</span>`;
+    const input = document.createElement('input');
+    input.id = `p-${param.key}`;
+    input.value = values[param.key] ?? '';
+    input.placeholder = param.example || '';
+    input.addEventListener('input', () => {
+      values[param.key] = input.value;
+      persistValues();
+    });
+    field.append(label, input);
+    fields.appendChild(field);
+  }
+  if (!(endpoint.params || []).length) {
+    fields.innerHTML = '<div class="hint">这个接口没有参数。</div>';
+  }
+
+  const hasBody = endpoint.body !== undefined && endpoint.body !== null;
+  $('body-field').classList.toggle('hidden', !hasBody);
+  if (hasBody) {
+    const stored = values.__body;
+    $('body-input').value = stored !== undefined ? stored : JSON.stringify(endpoint.body, null, 2);
+    $('body-input').oninput = () => {
+      values.__body = $('body-input').value;
+      persistValues();
+    };
+  }
+  renderResponse();
+}
+
+/* ---------------------------- 渲染：响应 ---------------------------- */
+
+function renderResponse() {
+  const box = $('resp-box');
+  const last = state.last;
+  $('btn-reveal').classList.toggle('hidden', !last?.result?.data);
+  $('btn-reveal').textContent = state.revealSensitive ? '隐藏原文' : '显示原文';
+  if (!last) {
+    box.innerHTML = '<div class="empty">执行一个接口后，这里显示响应。</div>';
+    $('r-status').textContent = '尚未请求';
+    $('r-status').className = 'pill';
+    $('r-meta').textContent = '';
+    return;
+  }
+  const { result, endpoint } = last;
+  const { response, data, text, elapsed } = result;
+  const ok = response.ok;
+  $('r-status').textContent = `HTTP ${response.status}${data?.code ? ` · code ${data.code}` : ''}`;
+  $('r-status').className = `pill ${ok ? 'status-ok' : 'status-bad'}`;
+  $('r-meta').textContent = `${endpoint.label} · ${elapsed} ms${data?.message ? ` · ${data.message}` : ''}`;
+
+  if (state.tab === 'request') {
+    let requestBody = result.body || null;
+    if (requestBody && !state.revealSensitive) {
+      try { requestBody = JSON.stringify(redactForDisplay(JSON.parse(requestBody))); } catch { /* 非 JSON 原样 */ }
+    }
+    box.innerHTML = `<pre>${highlightJson(JSON.stringify({
+      url: result.url,
+      method: result.method,
+      headers: redactedHeaders(result.headers),
+      body: requestBody,
+    }, null, 2))}</pre>`;
+    return;
+  }
+  if (state.tab === 'curl') {
+    box.innerHTML = `<pre>${escapeHtml(curlFor(result))}</pre>`;
+    return;
+  }
+  const displayData = data && !state.revealSensitive ? redactForDisplay(data) : data;
+  const pretty = displayData ? JSON.stringify(displayData, null, 2) : text;
+  box.innerHTML = `<pre>${displayData ? highlightJson(pretty) : escapeHtml(pretty)}</pre>`;
+  const fileUrl = safeHttpUrl(data?.data?.fileInfo?.fileUrl);
+  if (fileUrl) {
+    const bar = document.createElement('div');
+    bar.className = 'form-actions';
+    bar.innerHTML = `<a class="btn small primary" target="_blank" rel="noopener" href="${escapeHtml(fileUrl)}">打开固件直链</a><span class="hint">${escapeHtml(data.data.fileInfo.fileName || '')}</span>`;
+    box.appendChild(bar);
+  }
+}
+
+/* ---------------------------- 车况概览 ---------------------------- */
+
+function setMetric(id, value) {
+  const el = $(id);
+  if (value === undefined || value === null || value === '') { el.textContent = '—'; return; }
+  el.innerHTML = value;
+}
+
+function renderSummary(summary, meta) {
+  state.home = summary;
+  $('summary-sub').textContent = [summary.name, summary.typeName].filter(Boolean).join(' · ') || '已读取';
+  setMetric('m-state', summary.online === 'ONLINE' ? '<span class="status-ok">在线</span>' : escapeHtml(summary.online || '—'));
+  setMetric('m-soc', summary.soc == null ? '—' : `${summary.soc}<small>%</small>`);
+  setMetric('m-range', summary.rangeKm == null ? '—' : `${escapeHtml(summary.rangeKm)}<small>km</small>`);
+  setMetric('m-ota', escapeHtml(summary.otaVersion || '—'));
+  const wallpaperSize = summary.wallpaperWidth && summary.wallpaperHeight
+    ? `${summary.wallpaperWidth}×${summary.wallpaperHeight}`
+    : '';
+  const wallpaperText = wallpaperSize
+    ? `${escapeHtml(wallpaperSize)}<small>${summary.supportCustomWallpaper ? '自定义' : '固定'}</small>`
+    : (summary.supportCustomWallpaper ? '支持自定义' : '—');
+  setMetric('m-wallpaper', wallpaperText);
+  $('m-wallpaper').title = `主题商店：${summary.themeSupported ? '开放' : `该车型未开放${summary.name ? `（${summary.name}）` : ''}`}${summary.themeShopNewFlag === '1' ? '（有新品）' : ''}`;
+  const pic3d = summary.pic3d;
+  const pic3dUrl = safeHttpUrl(pic3d);
+  $('m-3d').innerHTML = pic3dUrl
+    ? `<a href="${escapeHtml(pic3dUrl)}" target="_blank" rel="noopener">${escapeHtml(pic3dUrl)}</a>`
+    : '<span class="hint">这台车服务端没下发 3D 车模地址（vehiclePic3dUrl=null）</span>';
+  $('summary-actions').hidden = false;
+  $('summary-time').textContent = meta ? `刷新于 ${fmtTime(summary.refreshTime || '')} · ${meta}` : '';
+  renderProjection(summary.encryptInfo);
+}
+
+function renderProjection(encryptInfo) {
+  const card = $('projection-card');
+  if (!encryptInfo) { card.hidden = true; return; }
+  card.hidden = false;
+  const rows = [
+    ['token (encryptValue)', encryptInfo.encryptValue || encryptInfo.token || ''],
+    ['key', encryptInfo.key || ''],
+    ['iv', encryptInfo.iv || ''],
+  ];
+  $('projection-kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd class="mono masked" data-reveal>${escapeHtml(v || '—')}</dd>`).join('');
+  for (const node of document.querySelectorAll('[data-reveal]')) {
+    node.addEventListener('click', () => node.classList.toggle('show'));
+  }
+  $('btn-copy-projection').onclick = async () => {
+    const payload = Object.fromEntries(rows);
+    await navigator.clipboard.writeText(JSON.stringify(payload));
+    toast('投屏资料已复制');
+  };
+}
+
+async function refreshVehicles() {
+  if (!state.token) return;
+  const endpoint = byId('vehicle_list');
+  const result = await request({ endpoint, values: {}, token: state.token });
+  if (result.data?.code !== '10000') throw new Error(result.data?.message || `HTTP ${result.response.status}`);
+  state.vehicles = result.data.data || [];
+  const select = $('vin-select');
+  select.innerHTML = state.vehicles.map((v) => `<option value="${escapeHtml(v.vinNo)}">${escapeHtml(v.vehicleName || v.vinNo)} · ${escapeHtml(v.vinNo)}</option>`).join('');
+  select.hidden = state.vehicles.length < 2;
+  if (!state.vin || !state.vehicles.some((v) => v.vinNo === state.vin)) {
+    state.vin = state.vehicles[0]?.vinNo || '';
+    localStorage.setItem(STORAGE.vin, state.vin);
+  }
+  select.value = state.vin;
+  select.onchange = () => {
+    state.vin = select.value;
+    localStorage.setItem(STORAGE.vin, state.vin);
+    void refreshHome();
+  };
+  const me = result.data.data?.[0];
+  state.uid = me?.bindingUserId || state.uid;
+}
+
+async function refreshHome() {
+  if (!state.token || !state.vin) return;
+  const endpoint = byId('vehicle_home');
+  let result;
+  try {
+    result = await request({ endpoint, values: { vin: state.vin }, token: state.token });
+    if (result.data?.code !== '10000') throw new Error(result.data?.message || `HTTP ${result.response.status}`);
+  } catch (error) {
+    // 自填模式：App 3.0.6 的 appId 在网关侧要求 okhttp UA，浏览器改不了 User-Agent，
+    // vehicleHomePageV2 会 30121/30000。这里用 batteryInfo + carSet + otaInfo 兜底，
+    // 投屏资料（encryptInfo）只有面板模式的 API.call 能拿到。
+    if (state.mode !== 'own') throw error;
+    // carSet 不要求 okhttp UA，而且带 bmssocStr / hmiRidableMileStr，够做概览；
+    // 但它必须带 carUserId，而 vehicle/list 不返回 uid —— 只有面板模式的 home 才有。
+    // 所以这里：有 uid（之前用面板模式读过）就查 carSet，没有就只显示车型 + OTA。
+    const tasks = [request({ endpoint: byId('ota_info'), values: { vinNo: state.vin }, token: state.token })];
+    if (state.uid) {
+      tasks.push(request({
+        endpoint: byId('car_set'),
+        values: { vinNo: state.vin, carUserId: state.uid, virtualFlag: '0' },
+        token: state.token,
+      }));
+    }
+    const taskResults = await Promise.all(tasks);
+    const ota = taskResults[0];
+    const car = taskResults[1] || { data: { data: {} } };
+    const carData = car.data?.data || {};
+    const otaData = ota.data?.data || {};
+    const merged = {
+      ...carData,
+      vinNo: state.vin,
+      onlineStatus: '',
+      vehicleName: carData.vehicleName || '',
+      vehicleTypeName: carData.vehicleType || '',
+      bmssoc: carData.bmssocStr,
+      hmiRidableMile: carData.hmiRidableMileStr,
+      otaVersion: otaData.otaVersion || '',
+      encryptInfo: null,
+    };
+    const summary = pickVehicleSummary({ data: merged });
+    summary.soc = carData.bmssocStr == null ? null : Number(carData.bmssocStr);
+    summary.rangeKm = carData.hmiRidableMileStr ?? null;
+    if (!summary.name) summary.name = state.vehicles[0]?.vehicleName || '';
+    renderSummary(summary, `兜底读取（home 430：${error.message}）`);
+    $('summary-sub').textContent = `${summary.name || state.vin} · 自填模式${state.uid ? '兜底' : '（缺 uid，只能看车型/OTA）'}`;
+    return;
+  }
+  const summary = pickVehicleSummary(result.data);
+  state.uid = result.data?.data?.bindingUserId || state.uid;
+  if (state.uid) localStorage.setItem(STORAGE.uid, state.uid);
+  state.themeSupported = Boolean(summary.themeSupported);
+  const wasTheme = state.endpoint?.group === 'theme';
+  renderNav();
+  if (wasTheme && !state.themeSupported) selectEndpoint('wallpaper_page');
+  renderSummary(summary, `${result.elapsed} ms`);
+}
+
+async function boot() {
+  applyTheme();
+  loadSettings();
+  renderNav();
+  selectEndpoint('ota_info');
+  updateSetupUi();
+
+  // 面板 iframe 有 1MB+ 的 index.html，首屏不再预加载；等真正调用面板端点时再按需加载。
+  $('cfg-status').textContent = '面板签名按需加载';
+  updateSetupUi();
+
+  if (state.token) {
+    // 首屏先渲染；面板签名在后台预热，避免第一次点接口时才开始拉 1MB 的 index.html。
+    if (state.mode === 'panel') setTimeout(() => { void loadPanel(); }, 600);
+    setStatus('warn', '已读取到 token，正在读车况');
+    try {
+      await refreshVehicles();
+      await refreshHome();
+      setStatus('ok', '登录态有效');
+    } catch (error) {
+      setStatus('bad', `读取失败：${error.message}`);
+    }
+  }
+}
+
+function updateSetupUi() {
+  const notice = $('setup-notice');
+  const missingToken = !state.token;
+  notice.hidden = !missingToken;
+  if (missingToken) {
+    if (state.mode === 'panel') {
+      $('setup-title').textContent = '还没有登录态';
+      $('setup-desc').textContent = '本页会复用极核面板的签名和 token。先到面板用手机号登录一次，再回来刷新即可；也可以直接粘贴 token。';
+      $('go-panel').classList.remove('hidden');
+    } else {
+      $('setup-title').textContent = '还没有登录态';
+      $('setup-desc').textContent = '自填凭据模式下，请在「设置」里发短信登录，或粘贴一个 token。';
+      $('go-panel').classList.add('hidden');
+    }
+    setStatus('warn', '未登录');
+  } else {
+    const label = state.mode === 'panel' ? '面板按需 + 已登录' : '自填凭据 + 已登录';
+    if ($('state-dot').className.includes('bad')) return;
+    setStatus('ok', label);
+  }
+}
+
+/* ---------------------------- 事件 ---------------------------- */
+
+$('btn-theme').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem(STORAGE.theme, next);
+  $('btn-theme').textContent = next === 'dark' ? '浅色' : '深色';
+});
+
+$('btn-settings').addEventListener('click', () => {
+  const dialog = $('settings');
+  dialog.querySelector(`input[name="mode"][value="${state.mode}"]`).checked = true;
+  $('cfg-base').value = state.cfg.base || DEFAULT_BASE;
+  $('cfg-appid').value = state.cfg.appId || '';
+  $('cfg-secret').value = state.cfg.appSecret || '';
+  $('cfg-basic').value = state.cfg.basic || '';
+  $('cfg-basic-global').value = state.cfg.basic || '';
+  $('cfg-token').value = state.token || '';
+  $('own-fields').classList.toggle('hidden', state.mode !== 'own');
+  $('cfg-status').textContent = state.panelWin ? '面板签名已就绪' : (state.mode === 'panel' ? '面板签名未加载' : '');
+  $('login-hint').textContent = '';
+  dialog.showModal();
+});
+
+for (const radio of document.querySelectorAll('input[name="mode"]')) {
+  radio.addEventListener('change', () => {
+    $('own-fields').classList.toggle('hidden', radio.value !== 'own');
+  });
+}
+
+for (const [a, b] of [['cfg-basic', 'cfg-basic-global'], ['cfg-basic-global', 'cfg-basic']]) {
+  $(a).addEventListener('input', () => { $(b).value = $(a).value; });
+}
+
+$('btn-save-cfg').addEventListener('click', async () => {
+  state.mode = document.querySelector('input[name="mode"]:checked').value;
+  state.cfg = {
+    base: $('cfg-base').value.trim() || DEFAULT_BASE,
+    appId: $('cfg-appid').value.trim(),
+    appSecret: $('cfg-secret').value.trim(),
+    basic: ($('cfg-basic-global').value || $('cfg-basic').value).trim(),
+  };
+  state.token = $('cfg-token').value.trim();
+  if (state.token) localStorage.setItem(STORAGE.token, state.token);
+  else localStorage.removeItem(STORAGE.token);
+  persistSettings();
+  $('cfg-status').textContent = '已保存';
+  toast('设置已保存');
+  updateSetupUi();
+  if (state.token) {
+    try {
+      await refreshVehicles();
+      await refreshHome();
+      setStatus('ok', state.mode === 'panel' ? '面板签名 + 已登录' : '自填凭据 + 已登录');
+      $('settings').close();
+    } catch (error) {
+      setStatus('bad', error.message);
+    }
+  }
+});
+
+$('btn-load-panel').addEventListener('click', async () => {
+  $('cfg-status').textContent = '正在加载 index.html…';
+  const ready = await loadPanel();
+  $('cfg-status').textContent = ready ? '面板签名已就绪' : '加载失败：请确认同目录存在 index.html';
+  if (ready) toast('面板签名已就绪');
+});
+
+$('btn-clear').addEventListener('click', () => {
+  for (const key of Object.values(STORAGE)) localStorage.removeItem(key);
+  try { sessionStorage.removeItem(STORAGE.secret); sessionStorage.removeItem(STORAGE.basic); } catch { /* 隐私模式 */ }
+  state.token = '';
+  state.cfg = { base: DEFAULT_BASE, appId: '', appSecret: '', basic: '' };
+  state.mode = 'panel';
+  state.values = {};
+  state.home = null;
+  state.last = null;
+  renderResponse();
+  state.vehicles = [];
+  state.vin = '';
+  state.uid = '';
+  $('vin-select').hidden = true;
+  $('vin-select').innerHTML = '';
+  setStatus('warn', '未登录');
+  updateSetupUi();
+  toast('本机保存已清除');
+});
+
+$('btn-reload').addEventListener('click', () => location.reload());
+
+$('btn-manual-token').addEventListener('click', () => {
+  const token = prompt('粘贴 Bearer token（只保存在本机 localStorage）：', state.token || '');
+  if (!token) return;
+  state.token = token.trim();
+  localStorage.setItem(STORAGE.token, state.token);
+  updateSetupUi();
+  void refreshVehicles().then(refreshHome).catch((error) => setStatus('bad', error.message));
+});
+
+$('btn-refresh-home').addEventListener('click', () => {
+  if (!state.token) return toast('还没有 token');
+  refreshVehicles().then(refreshHome).catch((error) => toast(`失败：${error.message}`, 3200));
+});
+
+for (const button of document.querySelectorAll('[data-quick]')) {
+  button.addEventListener('click', () => {
+    const map = { ota: 'check_version', otaInfo: 'ota_info', ride: 'ride_month', projection: null };
+    if (button.dataset.quick === 'projection') {
+      $('projection-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    selectEndpoint(map[button.dataset.quick]);
+    $('call-form').requestSubmit();
+  });
+}
+
+for (const tab of document.querySelectorAll('.tab')) {
+  tab.addEventListener('click', () => {
+    state.tab = tab.dataset.tab;
+    for (const other of document.querySelectorAll('.tab')) other.setAttribute('aria-selected', String(other === tab));
+    renderResponse();
+  });
+}
+
+$('btn-reveal').addEventListener('click', () => {
+  state.revealSensitive = !state.revealSensitive;
+  renderResponse();
+});
+
+$('btn-copy').addEventListener('click', async () => {
+  if (!state.last) return toast('还没有响应');
+  const { result, endpoint } = state.last;
+  let text;
+  if (state.tab === 'curl') text = curlFor(result);
+  else if (state.tab === 'request') text = JSON.stringify({ url: result.url, method: result.method, headers: result.headers, body: result.body || null }, null, 2);
+  else text = result.data ? JSON.stringify(result.data, null, 2) : result.text;
+  try { await navigator.clipboard.writeText(text); toast('已复制'); } catch { toast('复制失败，请手动选择'); }
+});
+
+$('call-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const endpoint = state.endpoint;
+  if (!endpoint) return;
+  if (endpoint.danger && !$('danger-check').checked) return toast('写操作需要先勾选确认');
+  const values = state.values[endpoint.id] || {};
+  for (const param of endpoint.params || []) {
+    if (param.required && !String(values[param.key] || '').trim()) {
+      toast(`请填写 ${param.label || param.key}`);
+      const input = $(`p-${param.key}`);
+      input?.focus();
+      return;
+    }
+  }
+  let body = null;
+  if (endpoint.body !== undefined && endpoint.body !== null) {
+    const raw = $('body-input').value.trim();
+    if (raw) {
+      try { body = JSON.parse(raw); } catch (error) { return toast(`JSON 解析失败：${error.message}`, 3500); }
+    }
+  }
+  const runButton = $('btn-run');
+  runButton.disabled = true;
+  runButton.textContent = '执行中…';
+  try {
+    const result = await request({ endpoint, values, body, token: state.token });
+    state.last = { result, endpoint };
+    state.tab = 'json';
+  state.revealSensitive = false;
+  state.themeSupported = false;
+    for (const tab of document.querySelectorAll('.tab')) tab.setAttribute('aria-selected', String(tab.dataset.tab === 'json'));
+    renderResponse();
+    if (result.response.status === 401) setStatus('bad', 'token 已失效，请重新登录');
+    else if (result.data?.code && result.data.code !== '10000') toast(`业务错误 ${result.data.code}：${result.data.message || ''}`, 3500);
+    else toast('请求完成');
+  } catch (error) {
+    state.last = null;
+    $('resp-box').innerHTML = `<div class="empty status-bad">${escapeHtml(error.message)}</div>`;
+    $('r-status').textContent = '请求失败';
+    $('r-status').className = 'pill status-bad';
+    toast(error.message, 3500);
+  } finally {
+    runButton.disabled = false;
+    runButton.textContent = '执行请求';
+  }
+});
+
+/* 登录（self 模式） */
+$('btn-send-code').addEventListener('click', async () => {
+  const phone = $('login-phone').value.trim();
+  if (!/^\d{11}$/.test(phone)) return toast('请输入 11 位手机号');
+  if (!state.cfg.appId || !state.cfg.appSecret) return toast('先填写并保存 appId/appSecret');
+  $('login-hint').textContent = '发送中…';
+  try {
+    const result = await request({ endpoint: byId('auth_code'), values: { phone }, token: '' });
+    $('login-hint').textContent = result.data?.message || `HTTP ${result.response.status}`;
+    if (result.data?.code === '10000') toast('验证码已发送');
+    else toast(result.data?.message || '发送失败', 3200);
+  } catch (error) {
+    $('login-hint').textContent = error.message;
+    toast(error.message, 3200);
+  }
+});
+
+$('btn-login').addEventListener('click', async () => {
+  const phone = $('login-phone').value.trim();
+  const authCode = $('login-code').value.trim();
+  if (!/^\d{11}$/.test(phone) || !authCode) return toast('填写手机号和验证码');
+  $('login-hint').textContent = '登录中…';
+  try {
+    const result = await request({ endpoint: byId('auth_login'), values: {}, body: { phone, authCode }, token: '' });
+    const token = ZeehoClient.extractToken(result.data);
+    if (!token) {
+      $('login-hint').textContent = result.data?.message || '登录失败';
+      return toast(result.data?.message || '登录失败', 3200);
+    }
+    state.token = token;
+    localStorage.setItem(STORAGE.token, token);
+    $('cfg-token').value = token;
+    $('login-hint').textContent = '登录成功';
+    setStatus('ok', state.mode === 'panel' ? '面板签名 + 已登录' : '自填凭据 + 已登录');
+    updateSetupUi();
+    await refreshVehicles();
+    await refreshHome();
+    toast('登录成功，已读取车况');
+    $('settings').close();
+  } catch (error) {
+    $('login-hint').textContent = error.message;
+    toast(error.message, 3200);
+  }
+});
+
+/* 启动 */
+void boot();
+</script>
+</body>
+</html>
