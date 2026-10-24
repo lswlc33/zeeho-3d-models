@@ -1,6 +1,6 @@
 {
-  "versionCode": 59,
-  "versionName": "1.5.43",
+  "versionCode": 60,
+  "versionName": "1.5.44",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.43：充电状态与功率口径修正——chargeState 只有 1 算充电中，其余一律未充电（部分车型满电报 2，以前会被误判成已充满/充电中，导致微件状态不准、假的充满提醒）；功率优先用接口自报的 power，没给才算电压×电流。"
+  "notes": "1.5.44：充电判据最终口径——只认 chargeState==1，其余任何参数一律不参考、缺失按未充电。实测停着的车会报 chargeState 0 + 正电流，旧逻辑会误判成在充电。"
 }
