@@ -1,6 +1,6 @@
 {
-  "versionCode": 65,
-  "versionName": "1.5.49",
+  "versionCode": 66,
+  "versionName": "1.5.50",
   "url": "https://lswlc33.github.io/zeeho-3d-models/app/zeehowebnext.apk",
-  "notes": "1.5.49：多账号（账号管理/分离与聚合车辆显示/全账号签到）与面板私有空间存储——账号 token 与记录迁入 App 私有空间，不再留在 WebView localStorage。需要面板 6.80 配合。"
+  "notes": "1.5.50：多账号修复——账号池/记录改为事务式私有存储（确认落盘才成功），旧数据迁移保留原件直到成功；批量签到支持全账号与单账号切换、参与开关与停止。"
 }
