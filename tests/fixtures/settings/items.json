@@ -1,0 +1,724 @@
+{
+ "code": "10000",
+ "message": "操作成功",
+ "data": [
+  {
+   "functionCode": "BATTERY_LEVEL",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "functionConfig": [
+    {
+     "functionCode": "POWER",
+     "functionName": "电量"
+    }
+   ]
+  },
+  {
+   "functionCode": "CRUISE_CONTROL_HOLD",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "CRUISE_CONTROL_HOLD",
+     "serviceCode": 603980085,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "INDUCED_VIBRATION_GO",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "INDUCED_VIBRATION_GO",
+     "serviceCode": 553648130,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "INSTRUMENT_SETTING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "TIME_FORMAT_SETTING",
+     "serviceCode": 268435460,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "MILEAGE_UNIT",
+     "serviceCode": 268435458,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "TEMPERATURE_UNIT",
+     "serviceCode": 268435459,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "SOUND_EFFECT",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "SOUND_EFFECT",
+     "serviceCode": 268435504,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "TIRE_MONITORING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "AUTO_SHUTDOWN_TIME_GO",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "AUTO_SHUTDOWN_TIME_SWITCH",
+     "serviceCode": 268435527,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "AUTO_SHUTDOWN_TIME",
+     "serviceCode": 268435511,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "functionConfig": [
+    {
+     "functionRestrictVersion": [],
+     "functionCode": "1.0",
+     "functionName": "1.0"
+    },
+    {
+     "functionRestrictVersion": [
+      {
+       "versionType": "DASH_Info",
+       "version": "1.01.04",
+       "isShow": "0"
+      }
+     ],
+     "functionCode": "2.0",
+     "functionName": "2.0"
+    }
+   ]
+  },
+  {
+   "functionCode": "AUTOMATIC_SHUTDOWN_TIMEOUT",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "AUTOMATIC_SHUTDOWN_TIMEOUT",
+     "serviceCode": 603980113,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.89\",\"versionType\":\"DASH_Info\"}]"
+  },
+  {
+   "functionCode": "COME_HOME_WITH_YOU",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "COME_HOME_WITH_YOU",
+     "serviceCode": 603980053,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "CUSTOM_BUTTON_LOW",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "CUSTOM_BUTTON_SINGLE",
+     "serviceCode": 603980117,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]",
+   "functionConfig": [
+    {
+     "functionCode": "SWITCH_HOMEPAGE_INFO",
+     "functionName": "单键-仪表信息",
+     "restrictVersionV2": []
+    },
+    {
+     "functionCode": "SAY_HELLO",
+     "functionName": "单键-Hello音效",
+     "restrictVersionV2": []
+    },
+    {
+     "functionCode": "STEEP_SLOPE_DESCENT",
+     "functionName": "单键-陡坡缓降设置",
+     "restrictVersionV2": [
+      {},
+      {}
+     ]
+    },
+    {
+     "functionCode": "CUSHION_UNLOCK",
+     "functionName": "单键-解锁座垫",
+     "restrictVersionV2": []
+    },
+    {
+     "functionCode": "NO_OPERATION",
+     "functionName": "单键-无操作",
+     "restrictVersionV2": []
+    }
+   ]
+  },
+  {
+   "functionCode": "E_TCS_TRACTION_CONTROL",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "E_TCS_TRACTION_CONTROL",
+     "serviceCode": 268435752,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "LABMS_FIRMWARE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "ELECTRONIC_FENCE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "INDUCTIVE_UNLOCKING_2",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "inductiveLockOpenMap": {
+    "function": "INDUCTIVE_UNLOCKING_DISTANCE",
+    "inductiveUnlocking2": "1",
+    "broadcastType": "1"
+   },
+   "isSupportBlueTooth": true,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "INDUCTIVE_UNLOCKING_2",
+     "serviceCode": 603980033,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "INDUCTIVE_UNLOCKING_DISTANCE",
+     "serviceCode": 268435558,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "INDUCTIVE_UNLOCKING",
+     "serviceCode": 268435526,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "INSTRUMENT_SET_CUSTOM_WALLPAPER",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.01.15\",\"versionType\":\"DASH_Info\"},{\"isShow\":\"1\",\"version\":\"1.0F.0B\",\"versionType\":\"TBOX_Info\"}]"
+  },
+  {
+   "functionCode": "KINETIC_ENERGY_RECOVERY",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "KINETIC_ENERGY_RECOVERY",
+     "serviceCode": 268435544,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "MOTOPLAY",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "functionConfig": [
+    {
+     "functionRestrictVersion": [],
+     "functionCode": "1",
+     "functionName": "支持扫码投屏"
+    }
+   ]
+  },
+  {
+   "functionCode": "PRECISION_ENDURANCE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "PRECISION_ENDURANCE",
+     "serviceCode": 603980050,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]"
+  },
+  {
+   "functionCode": "DRIVING_MODE_SETTING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "CUSTOM_DRIVE_MODE",
+     "serviceCode": 603980307,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "SET_CUSTOM_DRIVE_MODE_PARAM",
+     "serviceCode": 603980308,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "EDGE_SUPPORT_SENSING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "EDGE_SUPPORT_SENSING",
+     "serviceCode": 603980040,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "functionConfig": [
+    {
+     "functionRestrictVersion": [],
+     "functionCode": "2.0",
+     "functionName": "2.0"
+    },
+    {
+     "functionRestrictVersion": [
+      {
+       "versionType": "TBOX_Firmware",
+       "version": "V3211-21.01.0F.02",
+       "isShow": "0"
+      }
+     ],
+     "functionCode": "3.0",
+     "functionName": "3.0"
+    }
+   ]
+  },
+  {
+   "functionCode": "EMERGENCY_BRAKE_FLASH",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "EMERGENCY_BRAKE_FLASH",
+     "serviceCode": 603980112,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"0\",\"version\":\"1.00.56\",\"versionType\":\"DASH_Info\"}]"
+  },
+  {
+   "functionCode": "SHARE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "AUTOMATIC_PARKING_GO",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "AUTOMATIC_PARKING_GO",
+     "serviceCode": 268435559,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "CUSTOM_NFC",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "ORIGIN_NFC_SWITCH",
+     "serviceCode": 603980069,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "CUSTOM_NFC_SETTING",
+     "serviceCode": 603980067,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "CUSTOM_NFC_ERASE",
+     "serviceCode": 603980068,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.29\",\"versionType\":\"DASH_Info\"}]"
+  },
+  {
+   "functionCode": "E_CUSHION_SENSOR",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "E_CUSHION_SENSOR",
+     "serviceCode": 603980087,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "functionConfig": [
+    {
+     "functionRestrictVersion": [],
+     "functionCode": "2.0",
+     "functionName": "2.0"
+    },
+    {
+     "functionRestrictVersion": [
+      {
+       "versionType": "DASH_Info",
+       "version": "1.01.04",
+       "isShow": "0"
+      },
+      {
+       "versionType": "MCU_Info",
+       "version": "1.02.21",
+       "isShow": "0"
+      }
+     ],
+     "functionCode": "3.0",
+     "functionName": "3.0"
+    }
+   ]
+  },
+  {
+   "functionCode": "FIRMWARE_VERSION",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "ECU_FIRMWARE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "PASSWORD_UNLOCKING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "PASSWORD_UNLOCKING",
+     "serviceCode": 603980041,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "STEEP_SLOPE_DESCENT",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "STEEP_SLOPE_DESCENT",
+     "serviceCode": 603980114,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"0\",\"version\":\"1.01.04\",\"versionType\":\"DASH_Info\"},{\"isShow\":\"0\",\"version\":\"1.02.21\",\"versionType\":\"MCU_Info\"}]"
+  },
+  {
+   "functionCode": "HMI_FIRMWARE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "MAXIMUM_SPEED",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "MAXIMUM_SPEED",
+     "serviceCode": 603980038,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "BLUETOOTH_ADDRESS",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "BRAKE_POWER",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "BRAKE_POWER",
+     "serviceCode": 603980052,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "LOW_BATTERY_WARN",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "LOW_BATTERY_WARN",
+     "serviceCode": 603980293,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "functionConfig": [
+    {
+     "functionCode": "1.0",
+     "functionName": "1.0"
+    }
+   ]
+  },
+  {
+   "functionCode": "EXTENDED_RANGE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "EXTENDED_RANGE",
+     "serviceCode": 603980039,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ]
+  },
+  {
+   "functionCode": "KEY_SHARE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "CUSTOM_KEY_SET",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "INSTRUMENT_SET",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "AUDIO_SET",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "ASSIST_DRIVING",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "AVOID_THEFT_SECURITY",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "SMART_PART",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "QUICK_RIDE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "BATTERY_INFO_AND_SETTINGS",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  },
+  {
+   "functionCode": "CUSTOM_AUDIO",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "blueToothServiceCodeList": [
+    {
+     "functionName": "CUSTOM_AUDIO_SETTING",
+     "serviceCode": 603980065,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "CUSTOM_AUDIO_PLAY",
+     "serviceCode": 603980070,
+     "serviceValues": null,
+     "isSupportSetting": null
+    },
+    {
+     "functionName": "VOLUME_LEVEL",
+     "serviceCode": 268435504,
+     "serviceValues": null,
+     "isSupportSetting": null
+    }
+   ],
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.29\",\"versionType\":\"DASH_Info\"}]",
+   "functionConfig": [
+    {
+     "functionCode": "1.0",
+     "functionName": "1.0"
+    }
+   ],
+   "settingFlag": "1"
+  },
+  {
+   "functionCode": "LOUDLY_SEARCH_CAR",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false,
+   "restrictVersion": "[{\"isShow\":\"1\",\"version\":\"1.00.40\",\"versionType\":\"DASH_Info\"}]"
+  },
+  {
+   "functionCode": "BMS_VOLTAGE",
+   "sortNum": 1,
+   "isSupport": true,
+   "isSupportSetting": true,
+   "isSupportBlueTooth": false
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+{
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+    "upgradeStatus": "2",
+    "recordId": "3000001",
+    "softwareVersion": "V1.2.3",
+    "appVersion": "3.0.6",
+    "otaVersion": "V1.2.4",
+    "wifiAddress": "https://ota.example.test/wifi/setup?ssid=ZEEHO-AE5i-Pro&pwd=Passw0rd&v=2",
+    "fileInfo": {
+      "fileName": "firmware/hmi_ae5i_pro_v1.2.4.bin",
+      "fileSize": 15728640,
+      "fileUrl": "https://zeeho-ota.oss-cn-hangzhou.aliyuncs.com/firmware/hmi_ae5i_pro_v1.2.4.bin?Expires=1792770000&OSSAccessKeyId=LTAI5tTESTKEY&Signature=AbCdEf%2B123%3D&security-token=CAIS%2Ftest-token%3D",
+      "firmwareId": "FW-AE5I-PRO-124",
+      "sign": "d41d8cd98f00b204e9800998ecf8427e",
+      "fileBucket": "zeeho-ota"
+    }
+  }
+}

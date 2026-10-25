@@ -228,6 +228,94 @@
   }
   .hidden { display: none !important; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ==== ZEEHO_CAR_UI:CSS:BEGIN ==== */
+/* 车辆工具区块：固件 / 车辆设置 / 车机壁纸。
+   只用 api.html 既有的设计变量（--surface/--line/--accent 等），不引入新字体或外部资源。 */
+.car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+.car-tile {
+  display: grid; gap: 4px; text-align: left; padding: 11px 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid transparent; color: inherit;
+  font: inherit; cursor: pointer;
+}
+.car-tile:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.car-tile:active { transform: scale(.985); }
+.car-tile.dim { opacity: .55; }
+.car-tile b { font-size: 13.5px; font-weight: 600; }
+.car-tile span {
+  font-size: 11px; color: var(--ink-faint); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.car-tile em { font-style: normal; font-size: 11px; color: var(--accent); }
+
+.car-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.car-item:last-child { border-bottom: 0; }
+.car-item .txt { flex: 1; min-width: 0; }
+.car-item .txt b { display: block; font-size: 13px; font-weight: 550; }
+.car-item .txt small { display: block; color: var(--ink-faint); font-size: 11px; line-height: 1.5; }
+.car-item.locked .txt b { color: var(--ink-faint); }
+.car-item .car-val { font-size: 12.5px; color: var(--ink-soft); min-width: 40px; text-align: right; }
+
+.car-switch {
+  position: relative; width: 44px; height: 26px; border-radius: 999px; flex: none; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line); transition: background .16s;
+}
+.car-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ink-faint); transition: transform .16s, background .16s;
+}
+.car-switch[aria-checked="true"] { background: color-mix(in srgb, var(--accent) 32%, var(--surface-2)); border-color: var(--accent); }
+.car-switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent); }
+.car-switch[disabled] { opacity: .45; cursor: not-allowed; }
+
+.car-select, .car-input {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; max-width: 42vw;
+}
+.car-range { width: 38vw; max-width: 220px; accent-color: var(--accent); }
+
+.car-walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 10px; }
+.car-wall {
+  position: relative; padding: 0; border-radius: 12px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); aspect-ratio: 16 / 9; color: inherit;
+}
+.car-wall img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.car-wall .ph { display: grid; place-items: center; height: 100%; padding: 8px; text-align: center; font-size: 11px; color: var(--ink-faint); }
+.car-wall .tag { position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; background: #0009; color: #fff; }
+.car-wall .tag.on { background: var(--accent); color: #1a1024; }
+.car-wall .nm {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px; font-size: 11px; text-align: left;
+  color: #fff; background: linear-gradient(transparent, #000a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.car-pre {
+  margin: 8px 0; padding: 10px; border-radius: 10px; background: var(--code, #0f0d13); color: var(--ink-soft);
+  font: 11.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 220px; overflow: auto;
+  white-space: pre-wrap; word-break: break-all;
+}
+.car-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--ink-soft); }
+.car-check input { margin-top: 2px; }
+.car-note { font-size: 11.5px; color: var(--ink-faint); line-height: 1.6; margin: 8px 0 0; }
+.car-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.car-kv { display: grid; grid-template-columns: 92px 1fr; gap: 7px 10px; font-size: 12.5px; margin: 0; }
+.car-kv dt { color: var(--ink-faint); }
+.car-kv dd { margin: 0; word-break: break-all; }
+
+/* 卡片头在窄屏容易把标题挤成两行：副标题省略、标题不换行 */
+#firmware-card .card-head h2, #settings-card .card-head h2, #wallpaper-card .card-head h2 { white-space: nowrap; }
+#firmware-card .card-head .sub, #settings-card .card-head .sub, #wallpaper-card .card-head .sub {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 520px) {
+  #firmware-card .card-head, #settings-card .card-head, #wallpaper-card .card-head { flex-wrap: wrap; row-gap: 6px; }
+  #firmware-card .card-head .top-actions, #settings-card .card-head .top-actions, #wallpaper-card .card-head .top-actions { margin-left: auto; }
+}
+
+@media (max-width: 560px) {
+  .car-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+  .car-walls { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+/* ==== ZEEHO_CAR_UI:CSS:END ==== */
 </style>
 </head>
 <body>
@@ -288,6 +376,105 @@
       </div>
     </div>
   </section>
+  <!-- ==== ZEEHO_CAR_UI:HTML:BEGIN ==== -->
+  <!-- 车辆工具：固件版本 / 车辆设置 / 车机壁纸。数据来自 App 3.0.6 接口，写入前一律二次确认。 -->
+  <section class="card" id="firmware-card">
+    <div class="card-head">
+      <h2>固件版本</h2>
+      <span class="sub" id="fw-sub">OTA · App 3.0.6</span>
+      <div class="top-actions" style="margin-left:auto">
+        <button class="btn small primary" id="btn-ota-check" type="button">检查更新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <dl class="car-kv" id="fw-kv">
+        <dt>仪表版本</dt><dd id="fw-version">登录后读取</dd>
+        <dt>App 版本</dt><dd id="fw-app">—</dd>
+        <dt>升级状态</dt><dd id="fw-status">—</dd>
+        <dt>记录 ID</dt><dd id="fw-record" class="mono">—</dd>
+        <dt>OTA 包</dt><dd id="fw-package">—</dd>
+      </dl>
+      <div id="fw-file" hidden>
+        <div class="car-actions">
+          <button class="btn small" id="btn-fw-copy" type="button">复制打码地址</button>
+          <button class="btn small ghost" id="btn-fw-reveal" type="button">显示完整地址</button>
+          <span class="hint" id="fw-hint"></span>
+        </div>
+      </div>
+      <p class="car-note">checkVersion 只回 true/false；固件包地址在 <span class="mono">ota/mmi/info/v2</span> 的
+        <span class="mono">fileInfo</span> 里（OSS 预签名直链，带时效）。</p>
+    </div>
+  </section>
+
+  <section class="card" id="settings-card">
+    <div class="card-head">
+      <h2>车辆设置</h2>
+      <span class="sub" id="cs-sub">结构取自 itemsV2</span>
+      <div class="top-actions" style="margin-left:auto">
+        <button class="btn small" id="btn-cs-refresh" type="button">刷新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="cs-tiles" class="car-grid">
+        <div class="hint">登录后读取车辆设置…</div>
+      </div>
+      <div class="car-actions" id="cs-wall-entry">
+        <button class="btn small" id="btn-open-walls" type="button">打开壁纸</button>
+        <button class="btn small primary" id="btn-wall-edit" type="button">修改壁纸信息</button>
+        <button class="btn small ghost" id="btn-wall-upload" type="button">上传新壁纸</button>
+        <span class="hint">壁纸的列表 / 应用 / 删除在下面「车机壁纸」卡片。</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="wallpaper-card">
+    <div class="card-head">
+      <h2>车机壁纸</h2>
+      <span class="sub" id="wp-sub">—</span>
+      <div class="top-actions" style="margin-left:auto">
+        <label class="btn small">上传<input type="file" id="wp-file" accept="image/*" hidden></label>
+        <button class="btn small" id="btn-wp-refresh" type="button">刷新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="car-actions" style="margin:0 0 10px">
+        <button class="btn small primary" id="btn-wall-create" type="button">新建自定义壁纸（分两步）</button>
+        <span class="hint">官方流程：先传整屏壁纸，再传中间速度卡位置那张</span>
+      </div>
+      <div id="wp-builtin" class="car-walls" style="margin-bottom:10px"></div>
+      <div id="wp-grid" class="car-walls"><div class="hint">登录后读取壁纸…</div></div>
+      <div id="wp-progress" hidden>
+        <div class="hint" id="wp-progress-text" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZEEHO_CAR_UI:SPLIT：以下弹层要放到 body 级，不能塞进面板的全屏 sheet -->
+  <dialog id="car-dialog">
+    <form method="dialog" class="dialog-head">
+      <h2 id="car-dialog-title">—</h2>
+      <button class="btn small" value="cancel">关闭</button>
+    </form>
+    <div class="dialog-body" id="car-dialog-body"></div>
+    <div class="form-actions" id="car-dialog-foot"></div>
+  </dialog>
+
+  <dialog id="car-confirm">
+    <form method="dialog" class="dialog-head">
+      <h2 id="cc-title">确认</h2>
+      <button class="btn small" value="cancel">取消</button>
+    </form>
+    <div class="dialog-body">
+      <p class="hint" id="cc-sub"></p>
+      <pre class="car-pre" id="cc-body"></pre>
+      <label class="car-check"><input type="checkbox" id="cc-check"><span>我确认这是写操作，会改到车/账号</span></label>
+    </div>
+    <div class="form-actions">
+      <button class="btn primary" id="cc-ok" type="button" disabled>执行</button>
+    </div>
+  </dialog>
+  <!-- ==== ZEEHO_CAR_UI:HTML:END ==== -->
+
 
   <div class="layout">
     <aside class="card side" aria-label="接口目录">
@@ -2537,6 +2724,2446 @@ function updateSetupUi() {
   }
 }
 
+
+/* ==== ZEEHO_CAR_UI:JS:BEGIN ==== */
+/* ===== 内联数据模型（源文件：sdk/vehicle-settings.js、sdk/vehicle-media.js）=====
+   api.html 是自包含单文件产物，所以模型在构建时内联；改动请改 sdk/ 下的源文件后重跑
+   node tools/patch-api-car-ui.mjs，不要直接改这一段。 */
+const __carModels = (() => {
+  const settings = (() => {
+/**
+ * 车辆设置模型（App 3.0.6）：把四个只读接口拼成一份可直接渲染的表单模型。
+ *
+ * 数据来源（都在 tests/fixtures/settings/ 下，真机抓包）：
+ *   itemsV2               GET /v1.0/app/cfmotoserverapp/vehicleSet/itemsV2
+ *                         「车辆设置主页」的磁贴布局，data.vehicleSetFunctionVOList 是二维数组：
+ *                         外层是行，内层是磁贴（分组），分组里可有 subFunctions。
+ *   items                 GET .../vehicleSet/items
+ *                         48 项（实测 47 条）能力表：isSupport / isSupportSetting / isSupportBlueTooth、
+ *                         blueToothServiceCodeList（蓝牙能力码）、functionConfig（版本或枚举配置）。
+ *   info                  GET .../vehicleSet/vehicleSetInfo/{vin}
+ *                         当前值（约 90 个 camelCase 键）+ disabledContent（禁用原因文案）。
+ *   blueToothCodes        GET .../vehicleSet/blueToothServiceCode
+ *                         functionName -> serviceCode 的全局表（补 items 里缺的能力码）。
+ *   chargePowerOptions    GET .../vehicleSet/chargePower/options
+ *                         充电功率枚举，key 是瓦数、value 是下发值。
+ *
+ * 本模块是纯函数：不碰 DOM、不发网络、不引依赖，方便 api.html 车辆工具区块（内联）与单测共用。
+ *
+ * ---------------------------------------------------------------------------
+ * 两份数据对不上的地方（都在代码里做了兜底，见 CODE_ALIAS / STATE_KEY_ALIAS）：
+ *   1. v2 磁贴的 subFunctions 用的是 UI 简称，v1 用能力名：
+ *      MAX_SPEED（v2）            ↔ MAXIMUM_SPEED（v1）
+ *      CUSHION_SENSOR（v2）       ↔ E_CUSHION_SENSOR（v1）
+ *      AUTO_SHUTDOWN_TIME（v2）   ↔ AUTO_SHUTDOWN_TIME_GO（v1）
+ *   2. 同一份 vehicleSetInfo 里同时存在新旧两套键名：
+ *      tcsTractionControl / etcsTractionControl、cushionSensor / ecushionSensor。
+ *      取值时先精确匹配、再忽略大小写匹配，两套都能读到。
+ *   3. v2 有 4 个分组没有 subFunctions（防盗与安全 / 音效设置 / 自定义按键设置 / 仪表设置），
+ *      v1 里它们自身也没有能力码 —— 只能按 functionCode 手工归组（见 TILE_EXTRAS）。
+ *   4. chargingPower 的值是 "200"（瓦数？），而 options 的 value 是 1..6、key 是 350..1900，
+ *      两边对不上；模型里 value 原样保留，options 用官方枚举，UI 需要容错。
+ * ---------------------------------------------------------------------------
+ *
+ * tile.items 的构成：itemsV2.subFunctions 建的官方子项在前，TILE_EXTRAS 补的在后
+ * （例如 KEY_SHARE 是 4 个官方子项 + 感应距离/自定义感应距离 2 个补充项）。
+ * model.items 是同一批对象的拍平去重结果（按 stateKey 去重），顺序为磁贴顺序 + 未分组兜底。
+ */
+
+/** 控件类型。readonly / action 不可写。 */
+const CONTROL = {
+  SWITCH: 'switch',
+  SELECT: 'select',
+  RANGE: 'range',
+  TEXT: 'text',
+  READONLY: 'readonly',
+  ACTION: 'action',
+};
+
+/**
+ * 中文名兜底表（key 为 stateKey）。
+ * 优先级：服务端 functionName > 这里的 LABELS > code 本身。
+ * 音效子项的中文名来自 3.0.6 dex 的 SoundEffectSetting 字段注释，不能改。
+ */
+const LABELS = {
+  // 音效（vehicleSetInfo.soundEffectSetting.*）
+  'soundEffectSetting.switchAll': '音效总开关',
+  'soundEffectSetting.switchLowVelocity': '低速音效',
+  'soundEffectSetting.switchStand': '边撑音效',
+  'soundEffectSetting.switchRidingModel': '骑行模式音效',
+  'soundEffectSetting.switchSitDown': '座垫音效',
+  'soundEffectSetting.switchReady': '就绪音效',
+  'soundEffectSetting.switchShutdown': '关机音效',
+  'soundEffectSetting.switchCruiseControl': '定速巡航音效',
+  'soundEffectSetting.unlockLock': '上锁解锁音效',
+  'soundEffectSetting.modeSwitching': '模式切换音效',
+  'soundEffectSetting.staticOperation': '静态操作音效',
+  'soundEffectSetting.burglarAlarm': '防盗音效',
+  'soundEffectSetting.cyclingSteering': '转向音效',
+  'soundEffectSetting.radarSound': '雷达音效',
+  'soundEffectSetting.soundSize': '音量',
+  // 骑行偏好 / 仪表
+  topSpeed: '最高车速',
+  maximumSpeed: '最高车速档',
+  maximumSpeedLimit: '限速车速',
+  lowPower: '低电量提醒电量',
+  lowPowerThreshold: '低电量阈值',
+  inductiveDistance: '感应距离',
+  customInductiveDistance: '自定义感应距离',
+  comeHomeWithYou: '伴我回家',
+  comeHomeWithYouTime: '延时关灯时间',
+  leaveOffTime: '离车关灯延时',
+  automaticShutdown: '离车关机',
+  automaticShutdownTimeout: '离车关机延时',
+  automaticShutdownSwitch: '离车关机开关',
+  mileageUnit: '里程单位',
+  temperatureUnit: '温度单位',
+  timeFormat: '时间格式',
+  language: '语言',
+  themeId: '仪表主题',
+  themeName: '主题名称',
+  updateDate: '更新时间',
+  motoPlay: '投屏',
+  rideMemoryModel: '骑行记忆模式',
+  chargingPower: '充电功率',
+  bmsBind: '电池绑定',
+  bmsUniqueId: '电池唯一码',
+  bluetoothStrengthMin: '蓝牙信号强度下限',
+  bluetoothStrengthMax: '蓝牙信号强度上限',
+  customBluetoothStrength: '自定义蓝牙信号强度',
+  bluetoothAddress: '蓝牙地址',
+  extendedRange: '增程模式',
+  precisionEndurance: '精准续航',
+  ultraLowBatteryReminder: '极低电量提醒',
+  automaticLock: '自动锁车',
+  radarBsd: '盲区监测',
+  radarRcw: '后向碰撞预警',
+  antiLockBrakeSystem: '防抱死制动',
+  emergencyBrakeFlash: '紧急制动闪光',
+  instrumentGame: '仪表小游戏',
+  soundEffectStatus: '音效总开关',
+  originNfc: 'NFC 钥匙',
+  // 自定义按键：能力名 CUSTOM_BUTTON_LOW，实际键是 customButtonSingle
+  customButtonSingle: '自定义按键（单键）',
+  customButtonLow: '自定义按键（单键）',
+  customButtonLeft: '自定义按键（左）',
+  customButtonRight: '自定义按键（右）',
+  customButtonCombination: '自定义按键（组合）',
+  customButtonLongPress: '自定义按键（长按）',
+  share: '车辆共享',
+  inducedVibration: '感应振动',
+  eCushionSensor: '座垫感应（eCushion）',
+  lowBatteryWarn: '低电量告警',
+  steepSlopeDescent: '陡坡缓降',
+  customAudio: '自定义音效',
+  firmwareVersion: '固件版本',
+  ecuFirmware: 'ECU 固件',
+  hmiFirmware: '仪表固件',
+  labmsFirmware: 'LABMS 固件',
+  bmsVoltage: '电池电压',
+  inductiveUnlocking: '感应解锁',
+  inductiveUnlocking2: '感应解锁 2.0',
+  passwordUnlocking: '密码解锁',
+  edgeSupportSensing: '边撑感应',
+  cushionSensor: '座垫感应',
+  cruiseControlHold: '动态定速巡航',
+  kineticEnergyRecovery: '动能回收',
+  eTcsTractionControl: 'eTCS',
+  brakePower: '电子制动',
+};
+
+/**
+ * 枚举类（SELECT）键的白名单。
+ * 这些键在 vehicleSetInfo 里的值恰好也是 0/1/2 这种小整数，靠「0/1 当开关」会推断错，
+ * 所以必须先命中白名单，再做开关推断。
+ */
+const SELECT_KEYS = new Set([
+  'mileageUnit',
+  'temperatureUnit',
+  'timeFormat',
+  'language',
+  'motoPlay',
+  'maximumSpeed',
+  'rideMemoryModel',
+  'chargingPower',
+]);
+
+/** 连续值（RANGE）键的白名单，min/max/step 见 RANGES。 */
+const RANGE_KEYS = new Set([
+  'topSpeed',
+  'lowPower',
+  'lowPowerThreshold',
+  'maximumSpeedLimit',
+  'inductiveDistance',
+  'customInductiveDistance',
+  'comeHomeWithYouTime',
+  'leaveOffTime',
+  'automaticShutdownTimeout',
+  'soundEffectSetting.soundSize',
+]);
+
+/** 只读键：展示用，不参与写入（themeId 之类即使能写，App 也走主题接口）。 */
+const READONLY_KEYS = new Set([
+  'themeId',
+  'themeName',
+  'updateDate',
+  'bmsUniqueId',
+  'bluetoothStrengthMin',
+  'bluetoothStrengthMax',
+  'bluetoothAddress',
+  'lowPowerThreshold',
+]);
+
+/**
+ * RANGE 的区间都是**估算**：夹具只给了当前值，没有下发范围。
+ * 依据是各值的量级（topSpeed 120、inductiveDistance 5、comeHomeWithYouTime 30、
+ * leaveOffTime 180、soundSize 100），上下限留了车型差异的余量。
+ */
+const RANGES = {
+  topSpeed: { min: 0, max: 150, step: 5, unit: 'km/h' },
+  maximumSpeedLimit: { min: 10, max: 120, step: 5, unit: 'km/h' },
+  lowPower: { min: 0, max: 50, step: 5, unit: '%' },
+  lowPowerThreshold: { min: 0, max: 50, step: 5, unit: '%' },
+  inductiveDistance: { min: 1, max: 10, step: 1, unit: 'm' },
+  customInductiveDistance: { min: 1, max: 10, step: 1, unit: 'm' },
+  comeHomeWithYouTime: { min: 0, max: 120, step: 10, unit: 's' },
+  leaveOffTime: { min: 0, max: 300, step: 10, unit: 's' },
+  automaticShutdownTimeout: { min: 5, max: 120, step: 5, unit: 's' },
+  'soundEffectSetting.soundSize': { min: 0, max: 100, step: 1, unit: '' },
+};
+
+/**
+ * SELECT 的选项：夹具里出现过的值优先，其余按「常识」补全（注释标了估算）。
+ * value 一律字符串 —— 官方下发体 commandParam 也是字符串。
+ */
+const OPTIONS = {
+  // 夹具值 '1'；2 = 英里是极核仪表通用做法（估算）
+  mileageUnit: [
+    { value: '1', label: '公里' },
+    { value: '2', label: '英里' },
+  ],
+  // 夹具值 '1'；2 = 华氏度（估算）
+  temperatureUnit: [
+    { value: '1', label: '摄氏度' },
+    { value: '2', label: '华氏度' },
+  ],
+  // 夹具值 '1'；2 = 12 小时制（估算）
+  timeFormat: [
+    { value: '1', label: '24 小时制' },
+    { value: '2', label: '12 小时制' },
+  ],
+  // 夹具值 '1'（估算）
+  language: [
+    { value: '1', label: '中文' },
+    { value: '2', label: 'English' },
+  ],
+  // items.json 里 MOTOPLAY 的 functionConfig：1 = 支持扫码投屏；2 为关闭（估算）
+  motoPlay: [
+    { value: '1', label: '扫码投屏' },
+    { value: '2', label: '关闭' },
+  ],
+  // 夹具值 1；档位含义未在响应里给出，按限速档位补全（估算）
+  maximumSpeed: [
+    { value: '1', label: '低速' },
+    { value: '2', label: '中速' },
+    { value: '3', label: '高速' },
+  ],
+  // 夹具值 0（估算）
+  rideMemoryModel: [
+    { value: '0', label: '关闭' },
+    { value: '1', label: '开启' },
+  ],
+};
+
+/**
+ * v2 简称 → v1 能力名。只用于查 isSupport / 蓝牙码，不改变 item.code。
+ */
+const CODE_ALIAS = {
+  MAX_SPEED: 'MAXIMUM_SPEED',
+  CUSHION_SENSOR: 'E_CUSHION_SENSOR',
+  AUTO_SHUTDOWN_TIME: 'AUTO_SHUTDOWN_TIME_GO',
+};
+
+/**
+ * vehicleSetInfo 里的键名和 functionCode 推导结果不一致的，逐个点名。
+ * 这些是抓包对出来的，不是猜的。
+ */
+const STATE_KEY_ALIAS = {
+  maxSpeed: 'maximumSpeed', // v2 的 MAX_SPEED 就是 info 里的最高车速档
+  customNfc: 'originNfc', // CUSTOM_NFC 分组里能读的是 NFC 开关
+  // 离车关机：能力名 AUTO_SHUTDOWN_TIME(_GO)，info 里叫 automaticShutdown
+  // （disabledContent 也是用这个名字，所以这条别名同时决定了禁用文案能否命中）
+  autoShutdownTime: 'automaticShutdown',
+  autoShutdownTimeGo: 'automaticShutdown',
+  automaticParkingGo: 'automaticParking', // 能力名带 _GO 后缀，info 里没有
+  timeFormatSetting: 'timeFormat', // 蓝牙能力名 TIME_FORMAT_SETTING，info 里叫 timeFormat
+  soundEffect: 'soundEffectStatus', // SOUND_EFFECT 总开关，info 里是 soundEffectStatus
+  inductiveUnlockingDistance: 'inductiveDistance', // 蓝牙能力名更长
+  brakePower: 'barkePower', // 上游拼写错误：info 里就是 barkePower
+  motoplay: 'motoPlay', // MOTOPLAY 是整段大写，推导出来没有驼峰
+  customButtonLow: 'customButtonSingle', // CUSTOM_BUTTON_LOW 的蓝牙名是 CUSTOM_BUTTON_SINGLE（单键）
+};
+
+/**
+ * 没有 subFunctions 的分组（以及有 subFunctions 但官方主页没列全的分组）里，
+ * 从 v1 items.json 或 vehicleSetInfo 补出来的项（code 一律用 v1 能力名或推导码）。
+ * 补出来的项追加在官方子项之后，所以 tile.items 前后两段含义不同：
+ * 前段 = itemsV2.subFunctions，后段 = 这里补的。来源标记见每项的 note 字段
+ * （有蓝牙能力码的 note=null，只有 info 值的 note 写明「仅 vehicleSetInfo 下发」）。
+ */
+const TILE_EXTRAS = {
+  // v1 里 AVOID_THEFT_SECURITY 自身没有能力码，安全类叶子项分散在其它能力码上
+  AVOID_THEFT_SECURITY: ['EMERGENCY_BRAKE_FLASH', 'AUTOMATIC_LOCK', 'RADAR_BSD', 'RADAR_RCW', 'ANTI_LOCK_BRAKE_SYSTEM'],
+  AUDIO_SET: ['SOUND_EFFECT'], // 15 个音效子项另行展开
+  CUSTOM_KEY_SET: ['CUSTOM_BUTTON_LOW'],
+  INSTRUMENT_SET: [
+    'TIME_FORMAT_SETTING',
+    'MILEAGE_UNIT',
+    'TEMPERATURE_UNIT',
+    'LANGUAGE',
+    'MOTOPLAY',
+    'THEME_ID',
+    'THEME_NAME',
+    'UPDATE_DATE',
+  ],
+  BATTERY_INFO_AND_SETTINGS: [
+    'LOW_POWER',
+    'LOW_POWER_THRESHOLD',
+    'EXTENDED_RANGE',
+    'PRECISION_ENDURANCE',
+    'ULTRA_LOW_BATTERY_REMINDER',
+    'CHARGING_POWER',
+    'BMS_BIND',
+    'BMS_UNIQUE_ID',
+  ],
+  SMART_PART: ['BLUETOOTH_STRENGTH_MIN', 'BLUETOOTH_STRENGTH_MAX', 'CUSTOM_BLUETOOTH_STRENGTH'],
+  VEHICLE_INFO: [
+    'TOP_SPEED',
+    'BLUETOOTH_ADDRESS',
+    'FIRMWARE_VERSION',
+    'ECU_FIRMWARE',
+    'HMI_FIRMWARE',
+    'LABMS_FIRMWARE',
+    'BMS_VOLTAGE',
+  ],
+  COME_HOME_WITH_YOU: ['COME_HOME_WITH_YOU', 'COME_HOME_WITH_YOU_TIME', 'LEAVE_OFF_TIME'],
+  KEY_SHARE: ['INDUCTIVE_UNLOCKING_DISTANCE', 'CUSTOM_INDUCTIVE_DISTANCE'],
+  DRIVING_MODE_SETTING: ['MAXIMUM_SPEED_LIMIT', 'RIDE_MEMORY_MODEL'],
+  QUICK_RIDE: ['AUTOMATIC_SHUTDOWN_TIMEOUT'],
+};
+
+/** 反向推导用的已知 code 表：LABELS 的 stateKey 反推 + v1/v2 里出现过的代码。 */
+const KNOWN_CODES = [
+  ...Object.keys(LABELS).map((key) => key),
+  'INDUCTIVE_UNLOCKING',
+  'INDUCTIVE_UNLOCKING_2',
+  'INDUCTIVE_UNLOCKING_DISTANCE',
+  'CUSTOM_INDUCTIVE_DISTANCE',
+  'CUSTOM_NFC',
+  'PASSWORD_UNLOCKING',
+  'SHARE',
+  'KEY_SHARE',
+  'E_TCS_TRACTION_CONTROL',
+  'KINETIC_ENERGY_RECOVERY',
+  'BRAKE_POWER',
+  'MAX_SPEED',
+  'MAXIMUM_SPEED',
+  'MAXIMUM_SPEED_LIMIT',
+  'EDGE_SUPPORT_SENSING',
+  'CUSHION_SENSOR',
+  'E_CUSHION_SENSOR',
+  'AUTO_SHUTDOWN_TIME',
+  'AUTO_SHUTDOWN_TIME_GO',
+  'AUTOMATIC_SHUTDOWN_TIMEOUT',
+  'CRUISE_CONTROL_HOLD',
+  'COME_HOME_WITH_YOU',
+  'COME_HOME_WITH_YOU_TIME',
+  'LEAVE_OFF_TIME',
+  'AUTOMATIC_PARKING_GO',
+  'TOP_SPEED',
+  'LOW_POWER',
+  'LOW_BATTERY_WARN',
+  'EXTENDED_RANGE',
+  'PRECISION_ENDURANCE',
+  'ULTRA_LOW_BATTERY_REMINDER',
+  'CHARGING_POWER',
+  'BMS_BIND',
+  'BMS_UNIQUE_ID',
+  'BMS_VOLTAGE',
+  'SOUND_EFFECT',
+  'SOUND_EFFECT_STATUS',
+  'TIME_FORMAT_SETTING',
+  'MILEAGE_UNIT',
+  'TEMPERATURE_UNIT',
+  'LANGUAGE',
+  'THEME_ID',
+  'THEME_NAME',
+  'UPDATE_DATE',
+  'MOTOPLAY',
+  'RIDE_MEMORY_MODEL',
+  'BLUETOOTH_STRENGTH_MIN',
+  'BLUETOOTH_STRENGTH_MAX',
+  'CUSTOM_BLUETOOTH_STRENGTH',
+  'BLUETOOTH_ADDRESS',
+  'FIRMWARE_VERSION',
+  'ECU_FIRMWARE',
+  'HMI_FIRMWARE',
+  'LABMS_FIRMWARE',
+  'EMERGENCY_BRAKE_FLASH',
+  'AUTOMATIC_LOCK',
+  'RADAR_BSD',
+  'RADAR_RCW',
+  'ANTI_LOCK_BRAKE_SYSTEM',
+  'CUSTOM_BUTTON_LOW',
+];
+
+/**
+ * 'CUSHION_SENSOR' -> 'cushionSensor'
+ * 'INDUCTIVE_UNLOCKING_2' -> 'inductiveUnlocking2'
+ * 'E_TCS_TRACTION_CONTROL' -> 'eTcsTractionControl'
+ *
+ * 规则：按 '_' 切段，首段全小写，其余段首字母大写、尾字母小写，纯数字段原样拼接。
+ */
+function deriveStateKey(functionCode) {
+  if (typeof functionCode !== 'string' || functionCode.length === 0) return '';
+  const segments = functionCode.split('_').filter((seg) => seg.length > 0);
+  return segments
+    .map((seg, index) => {
+      if (/^\d+$/.test(seg)) return seg;
+      const head = seg.charAt(0);
+      const tail = seg.slice(1).toLowerCase();
+      return index === 0 ? head.toLowerCase() + tail : head.toUpperCase() + tail;
+    })
+    .join('');
+}
+
+/**
+ * 'cushionSensor' -> 'CUSHION_SENSOR'；'inductiveUnlocking2' -> 'INDUCTIVE_UNLOCKING_2'
+ *
+ * 先查已知表（LABELS 与能力码里出现过的），查不到再按 camelCase 反推：
+ * 遇到大写字母或「字母后接数字」就断段，全部转大写用 '_' 连接。
+ */
+function deriveFunctionCode(stateKey) {
+  if (typeof stateKey !== 'string' || stateKey.length === 0) return '';
+  // 点号路径（音效子项）只反推最后一段，前缀原样保留
+  if (stateKey.includes('.')) {
+    const dot = stateKey.lastIndexOf('.');
+    return stateKey.slice(0, dot + 1) + deriveFunctionCode(stateKey.slice(dot + 1));
+  }
+  for (const code of KNOWN_CODES) {
+    if (deriveStateKey(code) === stateKey) return code;
+  }
+  const segments = [];
+  let current = '';
+  for (let i = 0; i < stateKey.length; i += 1) {
+    const ch = stateKey.charAt(i);
+    const isUpper = ch >= 'A' && ch <= 'Z';
+    const isDigit = ch >= '0' && ch <= '9';
+    if (isUpper && current.length > 0) {
+      segments.push(current);
+      current = ch;
+      continue;
+    }
+    if (isDigit) {
+      // 字母后缀的数字单独成段：inductiveUnlocking2 -> INDUCTIVE_UNLOCKING_2
+      if (current.length > 0) segments.push(current);
+      let digits = ch;
+      while (i + 1 < stateKey.length && stateKey.charAt(i + 1) >= '0' && stateKey.charAt(i + 1) <= '9') {
+        i += 1;
+        digits += stateKey.charAt(i);
+      }
+      segments.push(digits);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  if (current.length > 0) segments.push(current);
+  return segments.map((seg) => seg.toUpperCase()).join('_');
+}
+
+/* ------------------------------------------------------------------ *
+ * 内部工具
+ * ------------------------------------------------------------------ */
+
+/** 兼容 { code, message, data } 包装与裸数据；null/undefined 一律退成 {}。 */
+function unwrap(response) {
+  if (response == null) return {};
+  if (Array.isArray(response)) return response;
+  if (typeof response !== 'object') return {};
+  if (Object.prototype.hasOwnProperty.call(response, 'data')) {
+    return response.data == null ? {} : response.data;
+  }
+  return response;
+}
+
+/** 把 data 里可能是数组、也可能是 { list: [...] } 的东西统一成数组。 */
+function asList(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') {
+    for (const key of ['vehicleSetFunctionVOList', 'list', 'records', 'items']) {
+      if (Array.isArray(value[key])) return value[key];
+    }
+  }
+  return [];
+}
+
+/** 判断纯对象（用于判空容错，不把 [] / null 当对象）。 */
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * 按 stateKey 取值，支持点号路径（'soundEffectSetting.soundSize'）。
+ * 顺序：精确 → 别名 → 忽略大小写（夹具里 etcsTractionControl / ecushionSensor 是小写开头）。
+ * 读不到返回 null（不是 undefined，方便 JSON 序列化与 UI 判空）。
+ */
+function readValue(infoData, stateKey) {
+  if (!isPlainObject(infoData) || typeof stateKey !== 'string' || stateKey.length === 0) return null;
+  const exact = readPath(infoData, stateKey);
+  if (exact !== undefined) return exact;
+  const aliasKey = STATE_KEY_ALIAS[stateKey];
+  if (aliasKey) {
+    const aliased = readPath(infoData, aliasKey);
+    if (aliased !== undefined) return aliased;
+    const flatAlias = matchKeyIgnoreCase(infoData, aliasKey);
+    if (flatAlias) return infoData[flatAlias];
+  }
+  const flat = matchKeyIgnoreCase(infoData, stateKey);
+  if (flat) return infoData[flat];
+  return null;
+}
+
+function readPath(infoData, path) {
+  const parts = path.split('.');
+  let cursor = infoData;
+  for (const part of parts) {
+    if (!isPlainObject(cursor) || !Object.prototype.hasOwnProperty.call(cursor, part)) return undefined;
+    cursor = cursor[part];
+  }
+  return cursor;
+}
+
+function matchKeyIgnoreCase(infoData, path) {
+  const first = path.split('.')[0];
+  const target = first.toLowerCase();
+  for (const key of Object.keys(infoData)) {
+    if (key.toLowerCase() === target) return key;
+  }
+  return null;
+}
+
+/**
+ * 控件推断。顺序很重要（注释即规则）：
+ *   1. 只读名单 → READONLY（themeId / updateDate / 蓝牙强度区间 / bmsUniqueId ...）
+ *   2. 连续值名单 → RANGE
+ *   3. 枚举名单 → SELECT
+ *   4. customInductiveDistance 特例：空串 = 未自定义（只读展示），有值 = RANGE
+ *   5. 布尔或 0/1 数字 → SWITCH（写回 0/1）
+ *   6. 非数字字符串 → TEXT（'07:00:00' 这类时间文本）
+ *   7. 其它（对象 / null / 数组）→ READONLY
+ */
+function inferControl(stateKey, value) {
+  if (READONLY_KEYS.has(stateKey)) return CONTROL.READONLY;
+  if (stateKey === 'customInductiveDistance') {
+    return value === '' || value == null ? CONTROL.READONLY : CONTROL.RANGE;
+  }
+  if (RANGE_KEYS.has(stateKey)) return CONTROL.RANGE;
+  if (SELECT_KEYS.has(stateKey)) return CONTROL.SELECT;
+  if (typeof value === 'boolean') return CONTROL.SWITCH;
+  if (typeof value === 'number') return value === 0 || value === 1 ? CONTROL.SWITCH : CONTROL.TEXT;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return CONTROL.TEXT;
+    if (trimmed === '0' || trimmed === '1') return CONTROL.SWITCH;
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) return CONTROL.TEXT;
+    return CONTROL.TEXT;
+  }
+  return CONTROL.READONLY;
+}
+
+/** 选项生成：充电功率优先用官方 options 接口，其次 OPTIONS 表，最后 items.functionConfig。 */
+function buildOptions(stateKey, value, chargeOptions, v1Entry) {
+  let options = null;
+  if (stateKey === 'chargingPower' && Array.isArray(chargeOptions) && chargeOptions.length > 0) {
+    options = chargeOptions
+      .filter((opt) => opt && opt.value != null)
+      .map((opt) => ({
+        value: String(opt.value),
+        // key 是瓦数（350/450/.../1900），label 里带单位，value 保持官方下发值
+        label: opt.key == null ? String(opt.value) : `${opt.key}W`,
+      }));
+  } else if (Array.isArray(OPTIONS[stateKey])) {
+    options = OPTIONS[stateKey].map((opt) => ({ value: String(opt.value), label: String(opt.label) }));
+  } else {
+    options = optionsFromFunctionConfig(v1Entry);
+  }
+  if (!options || options.length === 0) return [];
+  // 当前值不在枚举里时补一条，避免 UI 选中项为空（例如 chargingPower = '200'）
+  if (value != null && value !== '') {
+    const asString = String(value);
+    if (!options.some((opt) => opt.value === asString)) {
+      options.push({ value: asString, label: asString });
+    }
+  }
+  return options;
+}
+
+/**
+ * 从 items.functionConfig 生成枚举项（自定义按键这类）。
+ * 过滤掉版本配置：AUTO_SHUTDOWN_TIME_GO 的 functionConfig 是 '1.0' / '2.0'，不是可选项。
+ * 取值按配置顺序 1..n（**估算**：官方下发值就是下标，夹具里 customButton* = 3 对应第 3 项）。
+ */
+function optionsFromFunctionConfig(v1Entry) {
+  const configs = Array.isArray(v1Entry && v1Entry.functionConfig) ? v1Entry.functionConfig : [];
+  const usable = configs.filter(
+    (cfg) =>
+      isPlainObject(cfg) &&
+      typeof cfg.functionName === 'string' &&
+      cfg.functionName.length > 0 &&
+      cfg.functionName !== cfg.functionCode &&
+      !/^\d+(\.\d+)?$/.test(String(cfg.functionCode)),
+  );
+  if (usable.length === 0) return [];
+  return usable.map((cfg, index) => ({ value: String(index + 1), label: cfg.functionName }));
+}
+
+/**
+ * disabledContent 命中：条目形如 { functionName: 'automaticShutdown' | 'cushionSensor_01', content }。
+ * 命中顺序：精确同名 → 带后缀的（取数字最小的 _01）→ 大小写不敏感。
+ * 注意 disabledContent 里有 easyReadyGo_02/_03 这类「同前缀多文案」，选第一条最稳。
+ */
+function findDisabledReason(infoData, candidates) {
+  const list = Array.isArray(infoData && infoData.disabledContent) ? infoData.disabledContent : [];
+  if (list.length === 0) return null;
+  const entries = list.filter((entry) => entry && typeof entry.functionName === 'string');
+  for (const name of candidates) {
+    if (!name) continue;
+    const exact = entries.find((entry) => entry.functionName === name);
+    if (exact) return exact.content || null;
+  }
+  for (const name of candidates) {
+    if (!name) continue;
+    const suffixed = entries
+      .filter((entry) => entry.functionName.startsWith(`${name}_`))
+      .sort((a, b) => a.functionName.localeCompare(b.functionName));
+    if (suffixed.length > 0) return suffixed[0].content || null;
+  }
+  for (const name of candidates) {
+    if (!name) continue;
+    const lower = name.toLowerCase();
+    const loose = entries.find((entry) => entry.functionName.toLowerCase() === lower);
+    if (loose) return loose.content || null;
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ *
+ * 主入口
+ * ------------------------------------------------------------------ */
+
+/**
+ * 把四份响应拼成渲染模型。任何入参缺失、类型不对、字段为空都不抛，退化成空模型。
+ *
+ * @param {{ itemsV2?: any, items?: any, info?: any, blueToothCodes?: any, chargePowerOptions?: any }} [input]
+ * @returns {{ vin: string, updatedAt: string, rows: Array, tiles: Array, items: Array,
+ *             byCode: Object, byStateKey: Object, unsupported: Array,
+ *             stats: { tiles: number, items: number, writable: number } }}
+ */
+function buildSettingsModel(input = {}) {
+  const { itemsV2, items, info, blueToothCodes, chargePowerOptions } = input || {};
+
+  const infoData = unwrap(info);
+  const v2Data = unwrap(itemsV2);
+  const v1List = asList(unwrap(items));
+  const btList = asList(unwrap(blueToothCodes));
+  const chargeOptions = asList(unwrap(chargePowerOptions));
+  const v2Rows = asList(v2Data);
+
+  // v1 能力表索引
+  const v1Index = new Map();
+  const serviceIndex = new Map();
+  for (const entry of v1List) {
+    if (!isPlainObject(entry) || typeof entry.functionCode !== 'string') continue;
+    v1Index.set(entry.functionCode, entry);
+    for (const bt of Array.isArray(entry.blueToothServiceCodeList) ? entry.blueToothServiceCodeList : []) {
+      if (bt && typeof bt.functionName === 'string' && bt.serviceCode != null && !serviceIndex.has(bt.functionName)) {
+        serviceIndex.set(bt.functionName, bt.serviceCode);
+      }
+    }
+  }
+  for (const bt of btList) {
+    if (bt && typeof bt.functionName === 'string' && bt.serviceCode != null && !serviceIndex.has(bt.functionName)) {
+      serviceIndex.set(bt.functionName, bt.serviceCode);
+    }
+  }
+
+  const v1For = (code) => v1Index.get(code) || (CODE_ALIAS[code] ? v1Index.get(CODE_ALIAS[code]) : undefined);
+
+  const serviceCodeFor = (code) => {
+    if (typeof code !== 'string' || code.length === 0) return null;
+    // 复合 code（SOUND_EFFECT.switchLowVelocity）用前缀查能力码
+    const base = code.includes('.') ? code.slice(0, code.indexOf('.')) : code;
+    const entry = v1For(base);
+    if (entry) {
+      const own = (Array.isArray(entry.blueToothServiceCodeList) ? entry.blueToothServiceCodeList : []).find(
+        (bt) => bt && (bt.functionName === base || bt.functionName === code),
+      );
+      if (own && own.serviceCode != null) return own.serviceCode;
+      if (entry.serviceCode != null) return entry.serviceCode;
+    }
+    if (serviceIndex.has(code)) return serviceIndex.get(code);
+    if (serviceIndex.has(base)) return serviceIndex.get(base);
+    const aliasName = CODE_ALIAS[base];
+    if (aliasName && serviceIndex.has(aliasName)) return serviceIndex.get(aliasName);
+    return null;
+  };
+
+  const itemsOut = [];
+  const byCode = {};
+  const byStateKey = {};
+  const unsupported = [];
+
+  /** 建一个 SettingItem；统一走这里，保证字段齐全、可写性一致。 */
+  const createItem = ({ code, stateKey, label, groupCode, groupName, row, serverLabel }) => {
+    const resolvedStateKey = stateKey || STATE_KEY_ALIAS[deriveStateKey(code)] || deriveStateKey(code);
+    const value = readValue(infoData, resolvedStateKey);
+    const v1Entry = v1For(code);
+    const configOptions = optionsFromFunctionConfig(v1Entry);
+    let control = inferControl(resolvedStateKey, value);
+    // 能力表给了 functionConfig 枚举、但值本身是数字（如 customButtonLow = 3）时按枚举处理
+    if (configOptions.length > 0 && control !== CONTROL.READONLY && control !== CONTROL.RANGE) {
+      control = CONTROL.SELECT;
+    }
+    const supported = !(v1Entry && (v1Entry.isSupport === false || v1Entry.isSupportSetting === false));
+    const range = control === CONTROL.RANGE ? RANGES[resolvedStateKey] || null : null;
+    const options = control === CONTROL.SELECT ? buildOptions(resolvedStateKey, value, chargeOptions, v1Entry) : [];
+    const writable = supported && control !== CONTROL.READONLY && control !== CONTROL.ACTION;
+    const disabledReason = findDisabledReason(infoData, [resolvedStateKey, deriveStateKey(code), code]);
+    const note =
+      v1Entry || serviceCodeFor(code) != null
+        ? null
+        : '仅 vehicleSetInfo 下发，无独立能力码；写入前需确认官方参数';
+
+    return {
+      code,
+      label: serverLabel || LABELS[resolvedStateKey] || LABELS[deriveStateKey(code)] || code,
+      stateKey: resolvedStateKey,
+      groupCode: groupCode || null,
+      groupName: groupName || null,
+      row: typeof row === 'number' ? row : null,
+      value,
+      control,
+      options,
+      min: range ? range.min : null,
+      max: range ? range.max : null,
+      step: range ? range.step : null,
+      unit: range ? range.unit : null,
+      serviceCode: serviceCodeFor(code),
+      supported,
+      writable,
+      disabledReason,
+      note,
+    };
+  };
+
+  const seenStateKeys = new Set();
+  /** 落库：按 stateKey 去重（v2 的 MAX_SPEED 与 v1 的 MAXIMUM_SPEED 是同一个开关）。 */
+  const pushItem = (item) => {
+    if (!item) return null;
+    if (seenStateKeys.has(item.stateKey)) return byStateKey[item.stateKey] || null;
+    seenStateKeys.add(item.stateKey);
+    itemsOut.push(item);
+    if (!byCode[item.code]) byCode[item.code] = item;
+    byStateKey[item.stateKey] = item;
+    if (!item.supported) {
+      unsupported.push({ code: item.code, label: item.label, groupName: item.groupName });
+    }
+    return item;
+  };
+
+  /** 从能力码建项：stateKey 先过别名表，中文名先查 LABELS（v1 顶层没有 functionName）。 */
+  const createFromV1Code = (code, groupCode, groupName, row) => {
+    const derived = deriveStateKey(code);
+    const stateKey = STATE_KEY_ALIAS[derived] || derived;
+    return createItem({ code, stateKey, groupCode, groupName, row });
+  };
+
+  // 1) 按 itemsV2 的二维结构逐行走
+  const rows = [];
+  const tiles = [];
+  for (let rowIndex = 0; rowIndex < v2Rows.length; rowIndex += 1) {
+    const rawRow = Array.isArray(v2Rows[rowIndex]) ? v2Rows[rowIndex] : [v2Rows[rowIndex]];
+    const tileList = [];
+    for (const rawTile of rawRow) {
+      if (!isPlainObject(rawTile)) continue;
+      const code = typeof rawTile.functionCode === 'string' ? rawTile.functionCode : '';
+      if (!code) continue;
+      const name = rawTile.functionName || LABELS[deriveStateKey(code)] || code;
+      const tile = {
+        code,
+        name,
+        describe: rawTile.describe == null ? null : rawTile.describe,
+        row: rowIndex,
+        type: rawTile.type == null ? null : rawTile.type,
+        available: true,
+        items: [],
+      };
+
+      const v1Entry = v1For(code);
+      // 分组本身在能力表里被标成不支持 → 整块置灰
+      if (v1Entry && (v1Entry.isSupport === false || v1Entry.isSupportSetting === false)) {
+        tile.available = false;
+      }
+
+      const subs = Array.isArray(rawTile.subFunctions) ? rawTile.subFunctions : [];
+      for (const sub of subs) {
+        if (!isPlainObject(sub) || typeof sub.functionCode !== 'string') continue;
+        const subStateKey = STATE_KEY_ALIAS[deriveStateKey(sub.functionCode)] || deriveStateKey(sub.functionCode);
+        const item = pushItem(
+          createItem({
+            code: sub.functionCode,
+            stateKey: subStateKey,
+            label: sub.functionName || null,
+            groupCode: code,
+            groupName: name,
+            row: rowIndex,
+            serverLabel: sub.functionName || null,
+          }),
+        );
+        if (item) tile.items.push(item);
+      }
+
+      // 2) 补充项：按 functionCode 从 v1 / info 补。
+      //    官方子项排在前面（KEY_SHARE 就是 4 个 subFunctions），补充项追加在后面，
+      //    例如「感应距离」「限速车速」「离车关机延时」，UI 直接渲染 tile.items 即可。
+      for (const extraCode of TILE_EXTRAS[code] || []) {
+        const item = pushItem(createFromV1Code(extraCode, code, name, rowIndex));
+        if (item) tile.items.push(item);
+      }
+
+      // 3) AUDIO_SET 展开 vehicleSetInfo.soundEffectSetting 的 15 个音效子项
+      if (code === 'AUDIO_SET') {
+        const sound = isPlainObject(infoData.soundEffectSetting) ? infoData.soundEffectSetting : {};
+        for (const soundKey of Object.keys(sound)) {
+          const compositeCode = `SOUND_EFFECT.${soundKey}`;
+          const stateKey = `soundEffectSetting.${soundKey}`;
+          const item = pushItem(
+            createItem({
+              code: compositeCode,
+              stateKey,
+              label: LABELS[stateKey] || null,
+              groupCode: code,
+              groupName: name,
+              row: rowIndex,
+              serverLabel: null,
+            }),
+          );
+          if (item) tile.items.push(item);
+        }
+      }
+
+      // 4) 没有 subFunctions 也没补到东西的分组：分组自身若在 info 里有值，就当单项处理
+      if (tile.items.length === 0) {
+        const selfKey = STATE_KEY_ALIAS[deriveStateKey(code)] || deriveStateKey(code);
+        if (readValue(infoData, selfKey) !== null) {
+          const item = pushItem(createItem({ code, stateKey: selfKey, label: name, groupCode: code, groupName: name, row: rowIndex }));
+          if (item) tile.items.push(item);
+        }
+      }
+
+      tileList.push(tile);
+      tiles.push(tile);
+    }
+    rows.push({ index: rowIndex, tiles: tileList });
+  }
+
+  // 5) 兜底：v1 里有蓝牙能力码、但没被任何磁贴收走的项，避免「能写却看不到」
+  //    分组容器（自身就是磁贴，或蓝牙叶子项已经全部建过项）不算可操作项，跳过。
+  const tileCodes = new Set(tiles.map((tile) => tile.code));
+  for (const entry of v1List) {
+    if (!isPlainObject(entry) || typeof entry.functionCode !== 'string') continue;
+    if (byCode[entry.functionCode] || tileCodes.has(entry.functionCode)) continue;
+    const btNames = (Array.isArray(entry.blueToothServiceCodeList) ? entry.blueToothServiceCodeList : [])
+      .map((bt) => bt && bt.functionName)
+      .filter((name) => typeof name === 'string');
+    if (btNames.length === 0) continue;
+    if (btNames.every((name) => byCode[name])) continue;
+    pushItem(createFromV1Code(entry.functionCode, null, '未分组', null));
+  }
+
+  const writableCount = itemsOut.filter((item) => item.writable).length;
+
+  return {
+    vin: typeof infoData.vinNo === 'string' ? infoData.vinNo : '',
+    updatedAt: typeof infoData.updateDate === 'string' ? infoData.updateDate : '',
+    rows,
+    tiles,
+    items: itemsOut,
+    byCode,
+    byStateKey,
+    unsupported,
+    stats: { tiles: tiles.length, items: itemsOut.length, writable: writableCount },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 写入包
+ * ------------------------------------------------------------------ */
+
+/**
+ * 官方写入体（字段名来自 3.0.6 dex 的 AddVehicleSetReq）：
+ * { vin, serviceCode, vehicleSetEnum, commandParam, flag, message }
+ * serviceCode 字符串化（后端按字符串反序列化），commandParam 一律 String(nextValue)。
+ */
+function buildWriteBody(item, nextValue, { vin, flag = true } = {}) {
+  const safeItem = isPlainObject(item) ? item : {};
+  return {
+    vin: typeof vin === 'string' ? vin : vin == null ? '' : String(vin),
+    serviceCode: safeItem.serviceCode == null ? null : String(safeItem.serviceCode),
+    vehicleSetEnum: typeof safeItem.code === 'string' ? safeItem.code : '',
+    commandParam: nextValue == null ? '' : String(nextValue),
+    flag: Boolean(flag),
+    message: '',
+  };
+}
+
+/**
+ * 表单字符串 -> 控件对应的值。
+ *   switch  '1'/'0'/'true'/'on' -> 1/0
+ *   range   数字，超出 min/max 会夹紧；非法输入退回原值
+ *   select  保持字符串（options 的 value 都是字符串）
+ *   TEXT    原样字符串；READONLY / ACTION 不接受输入，直接回原值
+ */
+function coerceValue(item, rawInput) {
+  if (!isPlainObject(item)) return rawInput == null ? null : rawInput;
+  const control = item.control;
+  if (control === CONTROL.SWITCH) {
+    if (typeof rawInput === 'boolean') return rawInput ? 1 : 0;
+    if (typeof rawInput === 'number') return rawInput ? 1 : 0;
+    const text = String(rawInput == null ? '' : rawInput).trim().toLowerCase();
+    return text === '1' || text === 'true' || text === 'on' || text === 'yes' ? 1 : 0;
+  }
+  if (control === CONTROL.RANGE) {
+    const num = Number(String(rawInput == null ? '' : rawInput).trim());
+    if (!Number.isFinite(num)) return item.value == null ? null : item.value;
+    let next = num;
+    if (typeof item.min === 'number' && next < item.min) next = item.min;
+    if (typeof item.max === 'number' && next > item.max) next = item.max;
+    return next;
+  }
+  if (control === CONTROL.SELECT) {
+    if (rawInput == null) return null;
+    return String(rawInput);
+  }
+  if (control === CONTROL.READONLY || control === CONTROL.ACTION) {
+    return item.value == null ? null : item.value;
+  }
+  if (rawInput == null) return item.value == null ? null : item.value;
+  return String(rawInput);
+}
+
+/** 归一化后比较，避免 '1' vs 1、'25' vs 25 被当成脏数据。 */
+function compareKey(item, value) {
+  if (value == null) return '';
+  if (item.control === CONTROL.SWITCH) return String(value === true ? 1 : value === false ? 0 : Number(value) ? 1 : 0);
+  if (item.control === CONTROL.RANGE) {
+    const num = Number(value);
+    return Number.isFinite(num) ? String(num) : String(value);
+  }
+  return String(value);
+}
+
+/** 值是否变更（用于「保存」按钮置灰）。 */
+function isDirty(item, nextValue) {
+  if (!isPlainObject(item)) return false;
+  if (nextValue === undefined) return false;
+  return compareKey(item, item.value) !== compareKey(item, nextValue);
+}
+
+/** 汇总计数，和 model.stats 同源。 */
+function summarize(model) {
+  const stats = model && isPlainObject(model.stats) ? model.stats : {};
+  const unsupportedList = model && Array.isArray(model.unsupported) ? model.unsupported : [];
+  return {
+    total: typeof stats.items === 'number' ? stats.items : 0,
+    writable: typeof stats.writable === 'number' ? stats.writable : 0,
+    unsupported: unsupportedList.length,
+  };
+}
+    return { CONTROL, deriveStateKey, deriveFunctionCode, buildSettingsModel, buildWriteBody, coerceValue, isDirty, summarize };
+  })();
+  const media = (() => {
+/**
+ * 极核（ZEEHO）车机「壁纸 / OTA」数据整形层。
+ *
+ * 定位：把 `vehicle/wallpaper/*`、`ota/*` 这些接口的**原始响应**整理成面板能直接渲染的
+ * 结构。纯函数、零依赖、不碰 DOM、不发网络请求，浏览器与 Node 都能 import。
+ *
+ * 依据：docs/API-3.0.6.md 第 5.4（OTA）、5.9（fileInfo / wifiAddress）、5.11（壁纸与主题）。
+ * 说明：仓库里没有 OTA / 壁纸的真机抓包，只有文档；tests/fixtures/media/*.json 是按文档
+ * 形状自造的夹具，字段名、状态枚举、百分比口径都可能与真机有差异（见各函数注释里的「假设」）。
+ *
+ * 两条硬规则：
+ *   1. 任何入参（null / undefined / 空对象 / 字符串 / 数组 / 字段缺失）都不抛异常，
+ *      拿不到东西就返回空结构（''、0、null、空数组）。
+ *   2. `wifiAddress` 里的 Wi-Fi 密码、`fileUrl` 的 OSS 签名参数**绝不进主字段**：
+ *      主字段用打码后的值（`wifi.masked` / `file.maskedUrl`），原文只放 `wifi.url` / `file.url`，
+ *      供「显示原文」按钮使用。
+ */
+
+/* ------------------------------------------------------------------ *
+ * 基础工具：类型收敛
+ * ------------------------------------------------------------------ */
+
+/** 任意值 → 去空白的字符串；对象/数组等一律给 ''，避免把 [object Object] 渲染出去。 */
+function toText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  if (typeof value === 'boolean') return String(value);
+  return '';
+}
+
+/** 任意值 → 有限数字；'30%' → 30，'1.5 KB' → 1.5，取不到给 null。 */
+function toNumber(value) {
+  if (value == null) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const text = value.replace(/[^\d.+-]/g, '');
+  if (!text) return null;
+  const num = Number(text);
+  return Number.isFinite(num) ? num : null;
+}
+
+/** 百分比统一到 0..100，保留一位小数；缺失按 0。 */
+function clampPercent(value) {
+  const num = toNumber(value);
+  if (num == null) return 0;
+  return Math.min(100, Math.max(0, Math.round(num * 10) / 10));
+}
+
+const TRUE_WORDS = new Set(['1', 'true', 'yes', 'y', 'on', 'use', 'using', 'used', 'enable', 'enabled']);
+
+/** 服务端的布尔字段常见有 true / 1 / '1' / 'true' / 'Y' 多种写法。 */
+function isTruthyFlag(value) {
+  if (value === true) return true;
+  if (value === false || value == null) return false;
+  if (typeof value === 'number') return value === 1;
+  return TRUE_WORDS.has(toText(value).toLowerCase());
+}
+
+/** 三元布尔读取：识别不了给 null（用于区分「明确 false」与「没有这个字段」）。 */
+function readBoolean(value) {
+  if (value === true || value === false) return value;
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return null;
+  }
+  if (typeof value === 'string') {
+    const text = value.trim().toLowerCase();
+    if (['true', '1', 'y', 'yes', 'on'].includes(text)) return true;
+    if (['false', '0', 'n', 'no', 'off', ''].includes(text)) return false;
+  }
+  return null;
+}
+
+/**
+ * 剥掉 `{code, message, data}` 外壳。
+ * 注意：`data` 为 null（比如 `{code:'40000', data:null}`）时返回原对象本身，
+ * 后续取值自然全是空，不会因为少一层而炸。
+ */
+function unwrapData(resp) {
+  if (!resp || typeof resp !== 'object') return {};
+  const data = resp.data;
+  if (data && typeof data === 'object') return data;
+  return resp;
+}
+
+function basename(path) {
+  const text = toText(path);
+  if (!text) return '';
+  const clean = text.split(/[?#]/)[0];
+  const parts = clean.split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : clean;
+}
+
+/** 去掉 query，只留协议 + 域名 + 路径，用于去重比较。 */
+function stripQuery(url) {
+  const text = toText(url);
+  if (!text) return '';
+  return text.split(/[?#]/)[0];
+}
+
+/* ------------------------------------------------------------------ *
+ * 壁纸：JSON 字符串字段
+ * ------------------------------------------------------------------ */
+
+/**
+ * 解析「被塞进字符串里的 JSON」。
+ * - 已经是对象 / 数组：原样返回；
+ * - 是字符串：trim 后 JSON.parse，失败给 null；
+ * - 其它（null、数字、布尔）：null。
+ */
+function parseJsonField(value) {
+  if (value == null) return null;
+  if (typeof value === 'object') return value;
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** 连续剥掉「JSON 里再套一层 JSON 字符串」，最多三层。 */
+function deepParse(value) {
+  let current = parseJsonField(value);
+  for (let depth = 0; depth < 3 && typeof current === 'string'; depth += 1) {
+    current = parseJsonField(current);
+  }
+  return current;
+}
+
+const IMAGE_EXT_RE = /\.(?:png|jpe?g|webp|gif|bmp|avif)(?:[?#]|$)/i;
+const THUMB_KEY_RE = /(thumb|small|mini|preview|low|compress|cover|blur)/i;
+/** 越靠前越像「主图地址」，用于同一条目里多字段并存时的优先级。 */
+const PRIMARY_IMAGE_KEYS = [
+  'imageurl',
+  'imgurl',
+  'picurl',
+  'wallpaperurl',
+  'image',
+  'img',
+  'pic',
+  'src',
+  'fileurl',
+  'originurl',
+  'bigurl',
+  'url',
+];
+
+const WIDTH_KEYS = ['width', 'imagewidth', 'wallpaperwidth', 'resolutionwidth', 'imgwidth', 'picwidth', 'w'];
+const HEIGHT_KEYS = ['height', 'imageheight', 'wallpaperheight', 'resolutionheight', 'imgheight', 'picheight', 'h'];
+const SIZE_TEXT_KEYS = ['resolution', 'wallpaperresolution', 'imageresolution', 'pixels', 'displayresolution'];
+
+/** 值看起来是不是一张图（http(s)/协议相对/根路径 + 图片扩展名或图片域特征）。 */
+function looksLikeImageUrl(value) {
+  const text = toText(value);
+  if (!text) return false;
+  if (/^data:image\//i.test(text)) return true;
+  if (!/^(?:https?:)?\/\//i.test(text) && !text.startsWith('/') && !/^images?\//i.test(text)) return false;
+  return IMAGE_EXT_RE.test(text) || /(?:oss|aliyuncs|image|img|pic|cdn|wallpaper)/i.test(text);
+}
+
+/**
+ * 递归收集对象/数组里的所有字符串字段（key 是**最近的**字段名），
+ * 供「字段名不固定」的图片地址、分辨率搜索使用。
+ */
+function collectEntries(node, out, depth = 0) {
+  if (node == null || depth > 8) return out;
+  if (Array.isArray(node)) {
+    for (const item of node) collectEntries(item, out, depth + 1);
+    return out;
+  }
+  if (typeof node !== 'object') return out;
+  for (const [key, child] of Object.entries(node)) {
+    if (child == null) continue;
+    if (typeof child === 'string' || typeof child === 'number') {
+      const text = toText(child);
+      if (text) out.push({ key, value: text });
+    } else if (typeof child === 'object') {
+      collectEntries(child, out, depth + 1);
+    }
+  }
+  return out;
+}
+
+/** 把 wallpaperContent 与条目自身的字符串字段合并成候选列表。 */
+function itemEntries(item) {
+  const entries = [];
+  const source = item && typeof item === 'object' ? item : {};
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'wallpaperContent' || key === 'raw') continue;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const text = toText(value);
+      if (text) entries.push({ key, value: text });
+    }
+  }
+  const content = deepParse(source.wallpaperContent);
+  if (content && typeof content === 'object') {
+    collectEntries(content, entries);
+  } else if (typeof source.wallpaperContent === 'string' && looksLikeImageUrl(source.wallpaperContent)) {
+    // wallpaperContent 本身就是裸图片地址（不是 JSON）
+    entries.push({ key: 'wallpaperContent', value: source.wallpaperContent.trim() });
+  }
+  return entries;
+}
+
+function imageRank(entry) {
+  const key = entry.key.toLowerCase();
+  const index = PRIMARY_IMAGE_KEYS.indexOf(key);
+  return index === -1 ? PRIMARY_IMAGE_KEYS.length : index;
+}
+
+/** 从候选字符串里挑主图 / 缩略图。 */
+function pickImages(entries) {
+  const imageEntries = entries.filter((entry) => looksLikeImageUrl(entry.value));
+  if (!imageEntries.length) return { imageUrl: '', thumbUrl: '' };
+  const ordered = [...imageEntries].sort((left, right) => imageRank(left) - imageRank(right));
+  const thumb = ordered.find((entry) => THUMB_KEY_RE.test(entry.key));
+  const full = ordered.find((entry) => !THUMB_KEY_RE.test(entry.key)) || ordered[0];
+  const imageUrl = full?.value || '';
+  return { imageUrl, thumbUrl: thumb?.value || imageUrl };
+}
+
+/** 分辨率：优先成对的 width/height，其次 '1024x600' 这类文本。 */
+function pickResolution(entries) {
+  const byKey = (keys) => {
+    for (const key of keys) {
+      const hit = entries.find((entry) => entry.key.toLowerCase() === key);
+      const num = toNumber(hit?.value);
+      if (num != null && num > 0) return num;
+    }
+    return null;
+  };
+  const width = byKey(WIDTH_KEYS);
+  const height = byKey(HEIGHT_KEYS);
+  if (width && height) return { width, height };
+  for (const entry of entries) {
+    if (!SIZE_TEXT_KEYS.includes(entry.key.toLowerCase())) continue;
+    const match = entry.value.match(/^(\d+)\s*[x*×]\s*(\d+)$/i);
+    if (!match) continue;
+    const parsedWidth = toNumber(match[1]);
+    const parsedHeight = toNumber(match[2]);
+    if (parsedWidth && parsedHeight) return { width: parsedWidth, height: parsedHeight };
+  }
+  return null;
+}
+
+/** 主题配置 ID 可能出现在条目上，也可能藏在 wallpaperContent 里。 */
+function pickConfigId(item, contentEntries) {
+  const direct = firstText(item, ['mmiSubjectConfigId', 'subjectConfigId', 'configId', 'themeId', 'subjectId']);
+  if (direct) return direct;
+  const keys = ['mmisubjectconfigid', 'subjectconfigid', 'configid', 'themeid', 'subjectid'];
+  const hit = contentEntries.find((entry) => keys.includes(entry.key.toLowerCase()));
+  return hit?.value || '';
+}
+
+function firstText(source, keys) {
+  for (const key of keys) {
+    const text = toText(source?.[key]);
+    if (text) return text;
+  }
+  return '';
+}
+
+/**
+ * 单条壁纸 → Wallpaper。拿不到任何标识（id / 名称 / 图片）时给 null。
+ *
+ * `usable` 的含义：**面板能直接拿来预览或下发** —— 有 id 且有图片地址。
+ * 图片地址解析不出来的条目（比如 wallpaperContent 是坏 JSON）照样保留，标 usable=false，
+ * 让界面提示「该壁纸内容无法解析」，而不是把整页列表丢掉。
+ */
+function buildWallpaper(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entries = itemEntries(raw);
+  const images = pickImages(entries);
+  const resolution = pickResolution(entries);
+  const id = toText(raw.id ?? raw.wallpaperId ?? raw.wallpaperID);
+  const name = toText(raw.wallpaperName ?? raw.name ?? raw.title);
+  const configId = pickConfigId(raw, entries);
+  if (!id && !name && !images.imageUrl) return null;
+  return {
+    id,
+    name,
+    inUse: isTruthyFlag(raw.useState ?? raw.isUse ?? raw.using),
+    configId,
+    imageUrl: images.imageUrl,
+    thumbUrl: images.thumbUrl,
+    resolution,
+    raw,
+    usable: Boolean(id) && Boolean(images.imageUrl || images.thumbUrl),
+  };
+}
+
+/**
+ * 壁纸分页 → { total, pageNum, pageSize, hasMore, list }。
+ * `total` 缺失时退回本页条数；`pageSize` 缺失时退回本页条数，因此 hasMore 一定是布尔值。
+ */
+function normalizeWallpaperPage(resp) {
+  const data = unwrapData(resp);
+  const rawList = Array.isArray(data) ? data : extractList(data);
+  const list = rawList.map(buildWallpaper).filter(Boolean);
+  const total = toNumber(data?.total) ?? list.length;
+  const pageNum = toNumber(data?.pageNum ?? data?.page) ?? 1;
+  const pageSize = toNumber(data?.pageSize ?? data?.size) ?? list.length;
+  return {
+    total,
+    pageNum,
+    pageSize,
+    hasMore: pageNum * pageSize < total,
+    list,
+  };
+}
+
+/** 壁纸详情 → Wallpaper | null。兼容 `data` 直挂、`data.wallpaper`、`data.detail` 三种。 */
+function normalizeWallpaperDetail(resp) {
+  const data = unwrapData(resp);
+  const candidate = data?.wallpaper ?? data?.detail ?? data;
+  return buildWallpaper(candidate);
+}
+
+/**
+ * 从 `vehicleHomePageV2`（完整响应或 `data`）取壁纸/主题能力。
+ * `subjectWallpaperConfig` 是 JSON 字符串，解析失败按空数组，不影响 supported 等标量。
+ */
+function wallpapersFromHome(homeResp) {
+  const data = unwrapData(homeResp);
+  const builtinRaw = deepParse(data?.subjectWallpaperConfig);
+  const builtin = Array.isArray(builtinRaw)
+    ? builtinRaw
+      .map((item, index) => {
+        if (!item || typeof item !== 'object') return null;
+        return {
+          name: toText(item.name ?? item.subjectName ?? item.title ?? item.wallpaperName) || `内置壁纸 ${index + 1}`,
+          type: toText(item.type ?? item.subjectType),
+          url: toText(item.url ?? item.imageUrl ?? item.picUrl ?? item.wallpaperUrl),
+          subjectUrl: toText(item.subjectUrl ?? item.subjectLink ?? item.jumpUrl ?? item.link),
+        };
+      })
+      .filter(Boolean)
+    : [];
+  return {
+    supported: isTruthyFlag(data?.supportCustomWallpaper),
+    width: toNumber(data?.wallpaperResolutionWidth),
+    height: toNumber(data?.wallpaperResolutionHeight),
+    builtin,
+    theme: {
+      shop: toText(data?.themeShopFlag),
+      fresh: toText(data?.themeShopNewFlag),
+      rgb: toText(data?.appThemeRgb),
+      chargeRgb: toText(data?.appChargeRgb),
+    },
+  };
+}
+
+/** 只取图片地址：既接受归一化后的 Wallpaper，也接受原始条目。 */
+function wallpaperImages(wallpaper) {
+  if (!wallpaper || typeof wallpaper !== 'object') return { imageUrl: '', thumbUrl: '' };
+  const raw = wallpaper.raw && typeof wallpaper.raw === 'object' ? wallpaper.raw : wallpaper;
+  const images = pickImages(itemEntries(raw));
+  const imageUrl = images.imageUrl || toText(wallpaper.imageUrl);
+  const thumbUrl = images.thumbUrl || images.imageUrl || toText(wallpaper.thumbUrl) || imageUrl;
+  return { imageUrl, thumbUrl };
+}
+
+/**
+ * 车机壁纸是**分两块图**的（官方 App 3.0.6 的证据）：
+ *   · 整屏壁纸（1024×600，`BigWallPaperEditActivity`）；
+ *   · 中间速度卡片区域的小图（`SmallWallPaperEditActivity` + `SmallWallpaperUtils.calculateSpeedCardMetrics`）；
+ * 服务端把两块放在同一条记录里：`wallpaperContent` 是 JSON 字符串，
+ * 元素形状由 dex 里的 `WallpaperConfigItem` 给出 —— `{ type, url, subjectUrl }`，
+ * `type` 区分是整屏还是速度卡（`parseType2Wallpaper` / `parseSpeedCardWallpaper`），
+ * 应用时按 `serviceAreaType` 逐块下发。
+ *
+ * 这里只做**容错解析**：type 为 '2'(或含 speed/card 的标记) 视为速度卡，其余当整屏；
+ * 没写 type 时按数组顺序（第一张整屏、第二张速度卡）。
+ */
+function parseWallpaperAreas(wallpaper) {
+  const raw = wallpaper && typeof wallpaper === 'object'
+    ? (wallpaper.raw && typeof wallpaper.raw === 'object' ? wallpaper.raw : wallpaper)
+    : {};
+  const rawContent = raw?.wallpaperContent ?? raw?.content ?? raw?.wallpaperContentJson;
+  // deepParse 只处理 JSON 字符串；已经解析好的对象要原样用。
+  const content = typeof rawContent === 'string' ? deepParse(rawContent) : rawContent;
+  let entries = [];
+  if (Array.isArray(content)) entries = content;
+  else if (content && typeof content === 'object') {
+    // 单张图（对象里直接带 url/imageUrl）与「带列表字段」两种形态都要吃。
+    const list = content.items || content.list || content.wallpapers || content.wallpaperContent;
+    entries = Array.isArray(list) ? list : [content];
+  }
+  const items = entries
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') return null;
+      const url = toText(item.url ?? item.imageUrl ?? item.picUrl ?? item.wallpaperUrl);
+      const subjectUrl = toText(item.subjectUrl);
+      const type = toText(item.type ?? item.areaType ?? item.serviceAreaType);
+      const resolved = url || subjectUrl;
+      return resolved ? { index, type, url: resolved, subjectUrl } : null;
+    })
+    .filter(Boolean);
+
+  const isSpeed = (item) => String(item.type) === '2' || /speed|card/i.test(String(item.type));
+  const typed = items.filter((item) => String(item.type) !== '');
+  let main = null;
+  let speedCard = null;
+  if (typed.length) {
+    main = typed.find((item) => !isSpeed(item)) || null;
+    speedCard = typed.find(isSpeed) || null;
+  } else if (items.length) {
+    // 服务端没写 type 时按数组顺序：第一张整屏、第二张速度卡（官方列表里就是这个顺序）。
+    main = items[0];
+    speedCard = items[1] || null;
+  }
+  return {
+    main: main ? { url: main.url, subjectUrl: main.subjectUrl, type: main.type || '1' } : null,
+    speedCard: speedCard ? { url: speedCard.url, subjectUrl: speedCard.subjectUrl, type: speedCard.type || '2' } : null,
+    items,
+  };
+}
+
+/** 生成 `wallpaperContent`（两块图）。下游上传接口若收 JSON，就把它序列化后带上。 */
+function buildWallpaperContent(options = {}) {
+  const { mainUrl = '', speedCardUrl = '' } = options || {};
+  const items = [];
+  if (mainUrl) items.push({ type: '1', url: mainUrl, subjectUrl: mainUrl });
+  if (speedCardUrl) items.push({ type: '2', url: speedCardUrl, subjectUrl: speedCardUrl });
+  return JSON.stringify(items);
+}
+
+/**
+ * 壁纸下发进度。
+ *
+ * **假设（未验证）**：`useWallpaperProgress` 的状态枚举文档没给，这里按
+ * `2/3/4 + success/done/finish 等英文词` 判完成，`percent >= 100` 也算完成；
+ * 字段缺失时 done=false、percent=0、status=''。
+ */
+function normalizeProgress(resp) {
+  const data = unwrapData(resp);
+  const status = toText(data?.status ?? data?.state ?? data?.progressStatus);
+  const percent = clampPercent(data?.percent ?? data?.progress ?? data?.rate ?? data?.schedule);
+  const done = readBoolean(data?.done) === true
+    || readBoolean(data?.finish) === true
+    || isDoneStatus(status)
+    || percent >= 100;
+  return {
+    status,
+    percent,
+    done,
+    message: firstText(data, ['message', 'msg', 'desc', 'describe', 'errDesc', 'tips']),
+  };
+}
+
+const DONE_STATUS = new Set([
+  '2',
+  '3',
+  '4',
+  'success',
+  'succeed',
+  'succeeded',
+  'done',
+  'finish',
+  'finished',
+  'complete',
+  'completed',
+  'ok',
+  'end',
+  'ended',
+]);
+
+function isDoneStatus(status) {
+  return DONE_STATUS.has(toText(status).toLowerCase());
+}
+
+/** 官方 `useWallpaper` 的请求体（docs 5.11：body 为 id / vinNo 等）。 */
+function buildUseWallpaperBody(id, vin) {
+  return {
+    id: toText(id),
+    vinNo: toText(vin),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 打码
+ * ------------------------------------------------------------------ */
+
+/**
+ * Wi-Fi 二维码链接打码：只保留到 `pwd=`，密码换 `***`，其余 query（ssid 等）保留。
+ * 没有 `pwd` 参数原样返回。
+ */
+function maskWifiAddress(value) {
+  const text = typeof value === 'string' ? value : toText(value);
+  if (!text) return '';
+  if (!/pwd=/i.test(text)) return text;
+  return text
+    .replace(/([?&]pwd=)[^&#]*/gi, '$1***')
+    .replace(/^pwd=[^&#]*/i, 'pwd=***');
+}
+
+const SIGNED_PARAM_RE = /^(?:sign|signature|security-token|x-oss-signature|x-oss-credential|x-oss-security-token|ossaccesskeyid|accesskeyid|expires|x-amz-signature|x-amz-credential|x-amz-security-token|awsaccesskeyid|token|pwd|password)$/i;
+
+function isSignedParam(key) {
+  return SIGNED_PARAM_RE.test(String(key || '').trim());
+}
+
+/**
+ * OSS 预签名直链打码：把签名类参数换成 `***`，**保留协议/域名/路径与 `fileName` 等非签名参数**，
+ * 这样既不会把有时效的凭据漏到日志/截图里，又还能看出「是哪个包」。
+ * 相对地址（没有域名）走正则兜底，同样只打码签名参数。
+ */
+function maskSignedUrl(url) {
+  const text = typeof url === 'string' ? url : toText(url);
+  if (!text) return '';
+  if (!text.includes('?')) return text;
+  const fragmentIndex = text.indexOf('#');
+  const fragment = fragmentIndex === -1 ? '' : text.slice(fragmentIndex);
+  const withoutFragment = fragmentIndex === -1 ? text : text.slice(0, fragmentIndex);
+  try {
+    const parsed = new URL(withoutFragment);
+    let touched = false;
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (!isSignedParam(key)) continue;
+      parsed.searchParams.set(key, '***');
+      touched = true;
+    }
+    return touched ? `${parsed.toString()}${fragment}` : withoutFragment + fragment;
+  } catch {
+    const masked = withoutFragment.replace(
+      /([?&])([^=&#]+)=([^&#]*)/g,
+      (match, prefix, key) => (isSignedParam(key) ? `${prefix}${key}=***` : match),
+    );
+    return `${masked}${fragment}`;
+  }
+}
+
+/** 字节数 → 人类可读（1024 进制，一位小数）：1536 → '1.5 KB'；非法值给 ''。 */
+function formatBytes(n) {
+  const size = toNumber(n);
+  if (size == null || size < 0) return '';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let value = size;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  if (unit === 0) return `${Math.round(value)} B`;
+  const rounded = Math.round(value * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)} ${units[unit]}`;
+}
+
+/* ------------------------------------------------------------------ *
+ * OTA
+ * ------------------------------------------------------------------ */
+
+/**
+ * OTA 文件信息 `{fileName,fileSize,fileUrl,firmwareId,sign,fileBucket}` → OtaFile。
+ * - `name`：文件名的 basename（固件落盘就用它）；
+ * - `url`：**原始**预签名直链，只给「复制/显示原文」用；
+ * - `maskedUrl`：签名参数已打码，界面主字段用这个。
+ * 既没有 fileName 也没有 fileUrl 时给 null。
+ */
+function normalizeOtaFile(info) {
+  if (!info || typeof info !== 'object' || Array.isArray(info)) return null;
+  // 容忍「传进来的是包了一层的 fileInfo」
+  let source = info;
+  if (!firstText(info, ['fileName', 'fileUrl']) && info.fileInfo && typeof info.fileInfo === 'object') {
+    source = info.fileInfo;
+  }
+  const fileName = firstText(source, ['fileName', 'filename', 'firmwareName', 'name']);
+  const url = firstText(source, ['fileUrl', 'fileURL', 'url', 'downloadUrl', 'fileDownloadUrl']);
+  if (!fileName && !url) return null;
+  const size = toNumber(source.fileSize ?? source.size ?? source.fileLength);
+  return {
+    name: basename(fileName) || fileName,
+    size: size != null && size >= 0 ? size : null,
+    sizeText: size != null && size >= 0 ? formatBytes(size) : '',
+    url,
+    maskedUrl: maskSignedUrl(url),
+    firmwareId: firstText(source, ['firmwareId', 'firmwareID', 'fwId']),
+    sign: firstText(source, ['sign', 'fileSign', 'checksum']),
+    bucket: firstText(source, ['fileBucket', 'bucket', 'ossBucket']),
+  };
+}
+
+/** 从 OTA 信息对象里挑出第一个可用的文件（fileInfo / fileInfoList[0]）。 */
+function pickFileInfo(data) {
+  const candidates = [data?.fileInfo, data?.otaFileInfo];
+  if (Array.isArray(data?.fileInfoList) && data.fileInfoList.length) candidates.push(data.fileInfoList[0]);
+  if (Array.isArray(data?.fileInfo) && data.fileInfo.length) candidates.push(data.fileInfo[0]);
+  for (const candidate of candidates) {
+    const file = normalizeOtaFile(candidate);
+    if (file) return file;
+  }
+  return null;
+}
+
+/**
+ * `ota/mmi/info/v2` → 归一化 OTA 信息。
+ * `present` 表示「服务端确实返回了 OTA 信息对象」；`fileInfo:null` 不是错误，
+ * 只是当前没有下发包，`notes` 里会写明。
+ */
+function normalizeOtaInfo(resp) {
+  const data = unwrapData(resp);
+  const present = Boolean(data) && typeof data === 'object' && Object.keys(data).length > 0;
+  const wifiRaw = firstText(data, ['wifiAddress', 'wifiUrl', 'wifiAddressUrl']);
+  const file = pickFileInfo(data);
+  const notes = [];
+  if (file) {
+    notes.push('fileUrl 是 OSS 预签名直链，带时效；界面请用 maskedUrl，原文只在 url 字段');
+  } else {
+    notes.push('fileInfo 为 null / 缺失：服务端当前没有下发 OTA 包（正常状态）');
+  }
+  if (wifiRaw) notes.push('wifiAddress 含 Wi-Fi 密码，wifi.masked 已打码');
+  if (!firstText(data, ['recordId', 'recordID'])) notes.push('没有 recordId，无法查询下发/升级进度');
+  return {
+    present,
+    upgradeStatus: firstText(data, ['upgradeStatus', 'status']),
+    recordId: firstText(data, ['recordId', 'recordID']),
+    softwareVersion: firstText(data, ['softwareVersion', 'currentVersion']),
+    appVersion: firstText(data, ['appVersion']),
+    otaVersion: firstText(data, ['otaVersion', 'targetVersion']),
+    wifi: wifiRaw ? { masked: maskWifiAddress(wifiRaw), url: wifiRaw } : null,
+    file,
+    notes,
+  };
+}
+
+/**
+ * `checkVersion` → 是否有新版。文档明确：实测只返回 `true` / `false`，
+ * 所以这里以布尔为准，顺带兼容 `{data:true}` / `{data:{hasUpdate:1}}` 这类包装。
+ * `currentVersion` / `targetVersion` 由调用方（ctx）提供，接口本身不返回版本号。
+ */
+function normalizeCheckVersion(resp, ctx = {}) {
+  const data = unwrapData(resp);
+  const flag = readBoolean(resp)
+    ?? readBoolean(typeof resp === 'object' ? resp?.data : null)
+    ?? readBoolean(data?.hasUpdate)
+    ?? readBoolean(data?.needUpdate)
+    ?? readBoolean(data?.checkResult)
+    ?? readBoolean(data?.result)
+    ?? readBoolean(data?.versionFlag);
+  return {
+    hasUpdate: flag === true,
+    currentVersion: firstText(ctx, ['currentVersion', 'current', 'softwareVersion']),
+    targetVersion: firstText(ctx, ['targetVersion', 'target', 'otaVersion']),
+    raw: resp,
+  };
+}
+
+/** 列表字段在不同接口里叫 list / records / rows / data，统一抓一个数组出来。 */
+function extractList(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== 'object') return [];
+  for (const key of ['list', 'records', 'rows', 'items', 'recordList', 'otaList', 'data']) {
+    if (Array.isArray(data[key])) return data[key];
+  }
+  return [];
+}
+
+const OTA_STATUS_TEXT = {
+  0: '待升级',
+  1: '下载中',
+  2: '升级中',
+  3: '升级成功',
+  4: '升级失败',
+  '-1': '已取消',
+  success: '升级成功',
+  succeed: '升级成功',
+  done: '升级成功',
+  finish: '升级成功',
+  finished: '升级成功',
+  fail: '升级失败',
+  failed: '升级失败',
+  error: '升级失败',
+  running: '升级中',
+  upgrading: '升级中',
+  downloading: '下载中',
+  waiting: '待升级',
+  cancel: '已取消',
+  canceled: '已取消',
+  cancelled: '已取消',
+};
+
+/** 状态文案：枚举**未验证**，按常见「0 待升级 / 1 下载中 / 2 升级中 / 3 成功 / 4 失败」猜。 */
+function otaStatusText(status) {
+  const text = toText(status);
+  if (!text) return '未知';
+  return OTA_STATUS_TEXT[text.toLowerCase()] || `状态 ${text}`;
+}
+
+/**
+ * 单条 OTA 记录 → OtaRecord。
+ * `statusText` 是猜出来的中文文案，界面要严谨就同时显示原始 `status`。
+ */
+function buildOtaRecord(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  let file = normalizeOtaFile(raw.fileInfo ?? raw.file ?? raw.otaFileInfo);
+  if (!file && firstText(raw, ['fileName', 'fileUrl'])) file = normalizeOtaFile(raw);
+  if (!file) {
+    const nested = findOtaFiles(raw);
+    file = nested.length ? nested[0] : null;
+  }
+  const status = firstText(raw, ['status', 'upgradeStatus', 'state']);
+  const id = firstText(raw, ['id', 'recordId', 'taskId', 'otaId', 'upgradeRecordId']);
+  const version = firstText(raw, ['version', 'softwareVersion', 'targetVersion', 'otaVersion']);
+  if (!id && !version && !status && !file) return null;
+  return {
+    id,
+    version,
+    status,
+    statusText: otaStatusText(status),
+    percent: clampPercent(raw.percent ?? raw.progress ?? raw.rate ?? raw.schedule),
+    createdAt: firstText(raw, ['createTime', 'createdAt', 'gmtCreate', 'createDate']),
+    updatedAt: firstText(raw, ['updateTime', 'updatedAt', 'gmtModified', 'finishTime']),
+    file,
+    raw,
+  };
+}
+
+function normalizeRecordList(resp) {
+  const data = unwrapData(resp);
+  const items = extractList(data).map(buildOtaRecord).filter(Boolean);
+  if (!items.length) {
+    // 有些接口直接返回单条记录（otaDetail 之类），没有 list 包装
+    const single = buildOtaRecord(data);
+    if (single) items.push(single);
+  }
+  const total = toNumber(data?.total) ?? items.length;
+  return { total, items };
+}
+
+/** `ota/list` → { total, items }。 */
+function normalizeOtaList(resp) {
+  return normalizeRecordList(resp);
+}
+
+/** `otaRecord`（升级历史）→ { total, items }。 */
+function normalizeOtaRecord(resp) {
+  return normalizeRecordList(resp);
+}
+
+/**
+ * `ota/mmi/status` 或 `upstatus` → { status, percent, done, message, errCode, errDesc }。
+ * 完成判定同 normalizeProgress（枚举未验证的假设）。
+ */
+function normalizeOtaStatus(resp) {
+  const data = unwrapData(resp);
+  const status = firstText(data, ['status', 'upgradeStatus', 'state']);
+  const percent = clampPercent(data?.percent ?? data?.progress ?? data?.rate ?? data?.schedule);
+  const errCode = firstText(data, ['errCode', 'errorCode']);
+  const errDesc = firstText(data, ['errDesc', 'errorDesc', 'errorMessage']);
+  const done = readBoolean(data?.done) === true
+    || readBoolean(data?.finish) === true
+    || isDoneStatus(status)
+    || percent >= 100;
+  return {
+    status,
+    percent,
+    done,
+    message: firstText(data, ['message', 'msg', 'desc', 'describe', 'errDesc', 'tips']),
+    errCode,
+    errDesc,
+  };
+}
+
+/**
+ * 在任意 JSON 里递归找所有 `{fileName, fileUrl}` 形状的对象 → OtaFile[]。
+ * 去重键：有 `firmwareId` 用 firmwareId，否则用 `文件名 + 去 query 的地址`
+ * （同一文件换一次签名不算新文件）。遇到循环引用靠 visited 集合兜住。
+ */
+function findOtaFiles(anyJson) {
+  const files = [];
+  const seen = new Set();
+  const visited = new Set();
+  const walk = (node, depth) => {
+    if (node == null || typeof node !== 'object' || depth > 20) return;
+    if (visited.has(node)) return;
+    visited.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
+    const fileName = firstText(node, ['fileName', 'filename']);
+    const fileUrl = firstText(node, ['fileUrl', 'fileURL']);
+    if (fileName && fileUrl) {
+      const file = normalizeOtaFile(node);
+      if (file) {
+        const key = file.firmwareId
+          ? `fw:${file.firmwareId}`
+          : `path:${file.name}|${stripQuery(file.url)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          files.push(file);
+        }
+      }
+    }
+    for (const child of Object.values(node)) {
+      if (child && typeof child === 'object') walk(child, depth + 1);
+    }
+  };
+  walk(anyJson, 0);
+  return files;
+}
+    return { parseJsonField, normalizeWallpaperPage, normalizeWallpaperDetail, wallpapersFromHome, normalizeProgress, buildUseWallpaperBody, wallpaperImages, normalizeOtaInfo, normalizeOtaFile, normalizeCheckVersion, normalizeOtaList, normalizeOtaRecord, normalizeOtaStatus, findOtaFiles, maskWifiAddress, maskSignedUrl, formatBytes, parseWallpaperAreas, buildWallpaperContent };
+  })();
+  return { ...settings, ...media };
+})();
+/* ==== ZEEHO_CAR_UI:JS:BEGIN ==== */
+/* 车辆工具：固件 / 车辆设置 / 车机壁纸。
+   —— 复用本页已有的 request()（面板签名 + 自填凭据两条路）与状态（state.token / state.vin / state.uid），
+      不另外加载面板 iframe，也不引入任何网络依赖。
+   —— 数据模型来自 sdk/vehicle-settings.js 与 sdk/vehicle-media.js（由 tools/patch-api-car-ui.mjs 内联到 __carModels）。 */
+
+const CAR_MODELS = __carModels;
+const {
+  CONTROL: CAR_CONTROL,
+  buildSettingsModel: carBuildSettingsModel,
+  buildWriteBody: carBuildWriteBody,
+  coerceValue: carCoerceValue,
+  wallpapersFromHome: carWallpapersFromHome,
+  normalizeWallpaperPage: carNormalizeWallpaperPage,
+  normalizeProgress: carNormalizeProgress,
+  buildUseWallpaperBody: carBuildUseWallpaperBody,
+  normalizeOtaInfo: carNormalizeOtaInfo,
+  normalizeCheckVersion: carNormalizeCheckVersion,
+  maskSignedUrl: carMaskSignedUrl,
+  formatBytes: carFormatBytes,
+  parseWallpaperAreas: carWallpaperAreas,
+  buildWallpaperContent: carBuildWallpaperContent,
+} = CAR_MODELS;
+
+/** 目录里没有的端点（itemsV2 / 充电功率选项 / 通用写入），就地声明。 */
+const CAR_EP = {
+  itemsV2: {
+    path: '/v1.0/app/cfmotoserverapp/vehicleSet/itemsV2', method: 'GET',
+    params: [
+      { in: 'query', key: 'vinNo', example: 'TESTVIN0000000001', required: true },
+      { in: 'query', key: 'homepageInvoke', example: '0' },
+    ],
+    auth: 'token', source: 'app306',
+  },
+  chargePower: {
+    path: '/v1.0/app/cfmotoserverapp/vehicleSet/chargePower/options', method: 'GET',
+    params: [{ in: 'query', key: 'vinNo', example: 'TESTVIN0000000001', required: true }],
+    auth: 'token', source: 'app306',
+  },
+  addSet: {
+    path: '/v1.0/app/cfmotoserverapp/vehicleSet/addVehicleSet', method: 'POST',
+    params: [], auth: 'token', source: 'app306', danger: true,
+  },
+};
+
+const carState = {
+  fw: null,
+  fwFile: null,
+  settings: null,
+  items: null,
+  walls: null,
+  wallsMeta: null,
+  wallsCount: null,
+  wallsError: '',
+  progressTimer: null,
+};
+
+const CAR_STATUS_TEXT = { 0: '待升级', 1: '下载中', 2: '升级中', 3: '升级成功', 4: '升级失败' };
+function carStatusText(value) {
+  if (value === undefined || value === null || value === '') return '—';
+  return CAR_STATUS_TEXT[String(value)] || String(value);
+}
+
+/** 统一的调用封装：拿到 {ok, code, message, data}，把网关 XML/HTTP 错误也归一化。 */
+async function carCall(endpoint, values = {}, body, method) {
+  const ep = typeof endpoint === 'string' ? CAR_EP[endpoint] : endpoint;
+  const target = method ? { ...ep, method } : ep;
+  const result = await request({ endpoint: target, values, body, token: state.token });
+  const env = result?.data || {};
+  const code = String(env.code ?? '');
+  const ok = code === '10000';
+  return {
+    ok,
+    code,
+    message: String(env.message || (ok ? '' : (result?.response?.status ? `HTTP ${result.response.status}` : ''))),
+    data: env.data,
+    raw: result,
+  };
+}
+
+/* ---------------------------- 固件版本 ---------------------------- */
+
+async function carLoadFirmware() {
+  if (!state.vin) return;
+  const result = await carCall(byId('ota_info'), { vinNo: state.vin }).catch((error) => ({ ok: false, message: error.message }));
+  if (!result.ok) {
+    carState.fw = null;
+    carState.fwFile = null;
+    $('fw-version').textContent = `读取失败：${result.message || result.code || '未知错误'}`;
+    return;
+  }
+  const info = carNormalizeOtaInfo(result.raw.data);
+  carState.fw = info;
+  carState.fwFile = info.file || null;
+  $('fw-version').textContent = info.softwareVersion || info.otaVersion || '—';
+  $('fw-app').textContent = info.appVersion || '—';
+  $('fw-status').textContent = carStatusText(info.upgradeStatus);
+  $('fw-record').textContent = info.recordId || '—';
+  $('fw-package').textContent = info.file
+    ? `${info.file.name} · ${info.file.sizeText || ''}`.trim()
+    : '当前没有下发包（fileInfo=null，属正常）';
+  const fileBox = $('fw-file');
+  fileBox.hidden = !info.file;
+  if (info.file) {
+    const masked = info.file.maskedUrl || carMaskSignedUrl(info.file.url);
+    $('fw-hint').textContent = `firmwareId ${info.file.firmwareId || '—'} · ${masked.slice(0, 96)}${masked.length > 96 ? '…' : ''}`;
+    $('btn-fw-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(masked); toast('已复制（打码地址）'); } catch { toast('复制失败'); }
+    };
+    $('btn-fw-reveal').onclick = () => {
+      carConfirm({
+        title: '显示完整下载地址',
+        sub: '含 OSS 签名参数，等同临时凭证，别贴群里',
+        body: info.file.url,
+        run: async () => {},
+        actionLabel: '我知道了',
+      });
+    };
+  }
+}
+
+async function carCheckOta() {
+  if (!state.vin) { toast('还没有读到车'); return; }
+  const target = carState.fw?.softwareVersion || carState.fw?.otaVersion || '0';
+  const result = await carCall(byId('check_version'), { vinNo: state.vin, targetVersion: target || '0' })
+    .catch((error) => ({ ok: false, message: error.message }));
+  if (!result.ok) { toast(`checkVersion 失败：${result.message || result.code}`); return; }
+  const check = carNormalizeCheckVersion({ code: '10000', data: result.data }, { currentVersion: target });
+  $('fw-sub').textContent = check.hasUpdate ? `checkVersion：有新版（${target || '当前版本'}）` : 'checkVersion：已是最新';
+  toast(check.hasUpdate ? '有更新（包地址看 fileInfo）' : '已是最新');
+}
+
+/* ---------------------------- 车辆设置 ---------------------------- */
+
+async function carLoadSettings() {
+  if (!state.vin) return;
+  const [v2, items, info, bt, charge] = await Promise.all([
+    carCall('itemsV2', { vinNo: state.vin, homepageInvoke: '0' }).catch((e) => ({ ok: false, message: e.message })),
+    carCall(byId('vehicle_set_items'), { vinNo: state.vin, homepageInvoke: '1' }).catch((e) => ({ ok: false, message: e.message })),
+    carCall(byId('vehicle_set_info'), { vin: state.vin }).catch((e) => ({ ok: false, message: e.message })),
+    carCall(byId('bt_codes'), { vinNo: state.vin }).catch(() => ({ ok: false })),
+    carCall('chargePower', { vinNo: state.vin }).catch(() => ({ ok: false })),
+  ]);
+  if (!info.ok) {
+    $('cs-tiles').innerHTML = `<div class="hint">设置项读取失败：${escapeHtml(info.message || info.code || '未知错误')}</div>`;
+    return;
+  }
+  const model = carBuildSettingsModel({
+    itemsV2: v2.ok ? { code: v2.code, data: v2.data } : null,
+    items: items.ok ? { code: items.code, data: items.data } : null,
+    info: { code: info.code, data: info.data },
+    blueToothCodes: bt.ok ? { code: bt.code, data: bt.data } : null,
+    chargePowerOptions: charge.ok ? { code: charge.code, data: charge.data } : null,
+  });
+  carState.settings = model;
+  carState.items = { items: info.data };
+  carRenderSettings();
+}
+
+function carRenderSettings() {
+  const model = carState.settings;
+  const box = $('cs-tiles');
+  if (!model || !(model.tiles || []).length) {
+    box.innerHTML = '<div class="hint">没有读到设置项（先登录并选择车辆）</div>';
+    return;
+  }
+  const grouped = new Set((model.tiles || []).flatMap((tile) => (tile.items || []).map((item) => item.code)));
+  const loose = (model.items || []).filter((item) => !grouped.has(item.code));
+  $('cs-sub').textContent = `${(model.stats && model.stats.items) || 0} 项 · 可写 ${(model.stats && model.stats.writable) || 0} 项`;
+  const tileHtml = (model.rows || []).map((row) => (row.tiles || []).map((tile) => {
+    const labels = [...new Set((tile.items || []).map((item) => item.label))].slice(0, 3).join('、');
+    return `<button class="car-tile${tile.available ? '' : ' dim'}" type="button" data-tile="${escapeHtml(tile.code)}">
+      <b>${escapeHtml(tile.name || tile.code)}</b>
+      <span>${escapeHtml(tile.describe || labels || '这台车未开放')}</span>
+    </button>`;
+  }).join('')).join('');
+  const looseHtml = loose.length
+    ? `<button class="car-tile" type="button" data-loose="1"><b>其他设置项</b><span>能力表里有、官方主页没挂磁贴的 ${loose.length} 项</span></button>`
+    : '';
+  box.innerHTML = tileHtml + looseHtml;
+  for (const button of box.querySelectorAll('[data-tile]')) {
+    button.addEventListener('click', () => carOpenTile(button.dataset.tile));
+  }
+  const looseButton = box.querySelector('[data-loose]');
+  if (looseButton) looseButton.addEventListener('click', () => carOpenItems('其他设置项', '未挂进官方磁贴的能力项', loose));
+}
+
+function carControlLabel(item) {
+  switch (item.control) {
+    case CAR_CONTROL.SWITCH: return Number(item.value) === 1 || item.value === true ? '开' : '关';
+    case CAR_CONTROL.SELECT: {
+      const option = (item.options || []).find((o) => String(o.value) === String(item.value));
+      return option?.label ?? String(item.value ?? '—');
+    }
+    case CAR_CONTROL.RANGE: return `${item.value ?? '—'}${item.unit || ''}`;
+    default: return String(item.value ?? '—');
+  }
+}
+
+function carItemRow(item, index) {
+  const id = `ci-${index}`;
+  const locked = !item.writable || Boolean(item.disabledReason);
+  const note = item.disabledReason
+    ? `<small>${escapeHtml(item.disabledReason)}</small>`
+    : (item.note ? `<small>${escapeHtml(item.note)}</small>` : '');
+  let control = '';
+  if (item.control === CAR_CONTROL.SWITCH) {
+    const on = Number(item.value) === 1 || item.value === true || item.value === '1';
+    control = `<button class="car-switch" type="button" role="switch" data-item="${id}" data-kind="switch" aria-checked="${on}" ${locked ? 'disabled' : ''}></button>`;
+  } else if (item.control === CAR_CONTROL.SELECT) {
+    control = `<select class="car-select" data-item="${id}" data-kind="select" ${locked ? 'disabled' : ''}>${
+      (item.options || []).map((o) => `<option value="${escapeHtml(o.value)}"${String(o.value) === String(item.value) ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')
+    }</select>`;
+  } else if (item.control === CAR_CONTROL.RANGE) {
+    control = `<input class="car-range" type="range" data-item="${id}" data-kind="range" min="${item.min ?? 0}" max="${item.max ?? 100}" step="${item.step ?? 1}" value="${escapeHtml(item.value ?? 0)}" ${locked ? 'disabled' : ''}>
+      <span class="car-val" data-val="${id}">${escapeHtml(carControlLabel(item))}</span>`;
+  } else if (item.control === CAR_CONTROL.TEXT) {
+    control = `<input class="car-input" type="text" data-item="${id}" data-kind="text" value="${escapeHtml(item.value ?? '')}" ${locked ? 'disabled' : ''}>`;
+  } else {
+    control = `<span class="car-val">${escapeHtml(carControlLabel(item))}</span>`;
+  }
+  return `<div class="car-item${locked ? ' locked' : ''}">
+    <div class="txt"><b>${escapeHtml(item.label)}${item.serviceCode ? ` <span class="hint mono">${escapeHtml(item.serviceCode)}</span>` : ''}</b>${note}</div>
+    ${control}
+  </div>`;
+}
+
+function carOpenTile(code) {
+  const tile = (carState.settings?.tiles || []).find((t) => t.code === code);
+  if (!tile) return;
+  carOpenItems(tile.name, tile.describe || `${(tile.items || []).length} 项`, tile.items || []);
+}
+
+function carOpenItems(title, sub, items) {
+  $('car-dialog-title').textContent = title;
+  $('car-dialog-body').innerHTML = (items || []).map((item, index) => carItemRow(item, index)).join('')
+    || '<div class="hint">这台车没有开放这一组</div>';
+  $('car-dialog-foot').innerHTML = '<button class="btn small" id="car-items-refresh" type="button">刷新当前值</button><span class="hint">改完会自动重读</span>';
+  const refresh = $('car-items-refresh');
+  if (refresh) {
+    refresh.addEventListener('click', async () => {
+      await carLoadSettings();
+      $('car-dialog').close();
+      toast('已刷新');
+    });
+  }
+  for (const el of $('car-dialog-body').querySelectorAll('[data-item]')) {
+    const item = items[Number(String(el.dataset.item).slice(3))];
+    if (!item) continue;
+    const kind = el.dataset.kind;
+    if (kind === 'switch') {
+      el.addEventListener('click', () => {
+        const next = !(Number(item.value) === 1 || item.value === true || item.value === '1');
+        carAskWrite(item, next ? 1 : 0);
+      });
+    } else if (kind === 'select') {
+      el.addEventListener('change', () => carAskWrite(item, carCoerceValue(item, el.value)));
+    } else if (kind === 'range') {
+      el.addEventListener('input', () => {
+        const out = $('car-dialog-body').querySelector(`[data-val="${el.dataset.item}"]`);
+        if (out) out.textContent = `${el.value}${item.unit || ''}`;
+      });
+      el.addEventListener('change', () => carAskWrite(item, carCoerceValue(item, el.value)));
+    } else if (kind === 'text') {
+      el.addEventListener('change', () => carAskWrite(item, el.value));
+    }
+  }
+  $('car-dialog').showModal();
+}
+
+function carAskWrite(item, nextValue) {
+  if (!item.serviceCode) {
+    toast('这项没有 serviceCode（服务端没下发），写入不了；可在下面接口目录里试 propertyOne', 3600);
+    return;
+  }
+  const payload = carBuildWriteBody(item, nextValue, { vin: state.vin });
+  carConfirm({
+    title: `写入「${item.label}」`,
+    sub: `${carControlLabel(item)} → ${String(nextValue)}`,
+    body: payload,
+    run: async () => {
+      const result = await carCall('addSet', {}, payload);
+      if (!result.ok) throw new Error(result.message || result.code || '写入失败');
+      toast('已提交，等车端生效');
+      await sleep(800);
+      await carLoadSettings();
+    },
+  });
+}
+
+/* ---------------------------- 车机壁纸 ---------------------------- */
+
+async function carLoadWallpaper() {
+  if (!state.vin) return;
+  const [page, count, home] = await Promise.all([
+    carCall(byId('wallpaper_page'), { vinNo: state.vin, pageNum: '1', pageSize: '50' }).catch((e) => ({ ok: false, message: e.message })),
+    carCall(byId('wallpaper_count'), { vinNo: state.vin }).catch(() => ({ ok: false })),
+    carCall(byId('vehicle_home'), { vin: state.vin }).catch(() => ({ ok: false })),
+  ]);
+  carState.wallsMeta = home.ok ? carWallpapersFromHome({ code: home.code, data: home.data }) : carState.wallsMeta;
+  carState.wallsCount = count.ok ? Number(count.data) : null;
+  if (!page.ok) {
+    carState.walls = [];
+    carState.wallsError = page.message || page.code || '壁纸列表读取失败';
+  } else {
+    const normalized = carNormalizeWallpaperPage({ code: page.code, data: page.data });
+    carState.walls = normalized.list;
+    carState.wallsError = '';
+    carState.wallsTotal = normalized.total;
+  }
+  carRenderWallpaper();
+}
+
+function carRenderWallpaper() {
+  const meta = carState.wallsMeta || {};
+  const count = carState.wallsCount;
+  const list = carState.walls || [];
+  $('wp-sub').textContent = `${meta.width && meta.height ? `${meta.width}×${meta.height}` : '分辨率未读到'} · ${
+    count === null || count === undefined ? '数量未知' : `${count} 张`} · 主题商店${meta.theme && String(meta.theme.shop) === '1' ? '开放' : '未开放'}`;
+
+  const builtin = meta.builtin || [];
+  $('wp-builtin').innerHTML = builtin.map((item) => `
+    <div class="car-wall" style="cursor:default">
+      ${item.url ? `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.name || '内置壁纸')}" loading="lazy" referrerpolicy="no-referrer">` : '<div class="ph">无预览</div>'}
+      <span class="nm">${escapeHtml(item.name || '内置壁纸')}</span>
+    </div>`).join('');
+
+  $('wp-grid').innerHTML = list.length ? list.map((wall) => {
+    const image = wall.thumbUrl || wall.imageUrl;
+    return `<button class="car-wall" type="button" data-wall="${escapeHtml(wall.id)}">
+      ${wall.usable === false ? '<div class="ph">信息不全（缺图片地址）</div>'
+        : image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(wall.name || '')}" loading="lazy" referrerpolicy="no-referrer">`
+          : '<div class="ph">无预览图</div>'}
+      ${wall.inUse ? '<span class="tag on">使用中</span>' : ''}
+      <span class="nm">${escapeHtml(wall.name || `#${wall.id}`)}</span>
+    </button>`;
+  }).join('') : `<div class="hint">${escapeHtml(carState.wallsError || '还没有自定义壁纸；点右上「上传」')}</div>`;
+
+  for (const button of $('wp-grid').querySelectorAll('[data-wall]')) {
+    button.addEventListener('click', () => carOpenWallpaper(button.dataset.wall));
+  }
+}
+
+function carOpenWallpaper(id) {
+  const wall = (carState.walls || []).find((item) => String(item.id) === String(id));
+  if (!wall) return;
+  const areas = carWallpaperAreas(wall);
+  $('car-dialog-title').textContent = wall.name || `壁纸 #${wall.id}`;
+  const areaCard = (label, area, ratio) => `
+    <div style="margin-top:10px">
+      <div class="hint" style="margin-bottom:4px">${label}</div>
+      ${area?.url
+        ? `<img src="${escapeHtml(area.url)}" alt="${escapeHtml(label)}" style="width:100%;border-radius:10px;display:block;aspect-ratio:${ratio};object-fit:cover" referrerpolicy="no-referrer">`
+        : '<div class="hint">这一块还没有图</div>'}
+    </div>`;
+  $('car-dialog-body').innerHTML = `
+    ${areaCard('整屏壁纸（1024×600）', areas.main, '16 / 9')}
+    ${areaCard('中间速度卡', areas.speedCard, '2 / 1')}
+    <dl class="car-kv" style="margin-top:12px">
+      <dt>状态</dt><dd>${wall.inUse ? '使用中' : '未使用'}</dd>
+      <dt>可下发</dt><dd>${wall.usable === false ? '缺图片/ID，仅能看原文' : '可以下发到车机'}</dd>
+      <dt>主题配置</dt><dd class="mono">${escapeHtml(wall.configId ?? '—')}</dd>
+    </dl>
+    <pre class="car-pre">${escapeHtml(JSON.stringify(wall.raw, null, 2))}</pre>`;
+  $('car-dialog-foot').innerHTML = `
+    <button class="btn small primary" id="wall-apply" type="button"${wall.usable === false ? ' disabled' : ''}>应用这张壁纸</button>
+    <button class="btn small danger" id="wall-del" type="button">删除</button>
+    <button class="btn small" id="wall-rename" type="button">改名字</button>`;
+  $('wall-apply').addEventListener('click', () => carApplyWallpaper(wall));
+  $('wall-del').addEventListener('click', () => carDeleteWallpaper(wall));
+  $('wall-rename').addEventListener('click', () => carRenameWallpaper(wall));
+  $('car-dialog').showModal();
+}
+
+/**
+ * 官方壁纸是两步走：先整屏壁纸，再中间速度卡那一块（dex: BigWallPaperEditActivity / SmallWallPaperEditActivity）。
+ * 这里做成两步向导，两步各选一张图；上传按两步各发一次 multipart（带 type=1 / type=2）。
+ * 接口字段官方没公开 —— 页面上会显示实际发送的字段，失败时按提示改。
+ */
+function carCreateWallpaperWizard() {
+  const state2 = { step: 1, main: null, speed: null, name: '' };
+  const renderStep = () => {
+    const step = state2.step;
+    $('car-dialog-title').textContent = `新建壁纸（第 ${step}/2 步）`;
+    $('car-dialog-body').innerHTML = `
+      <div class="hint" style="margin-bottom:8px">
+        ${step === 1 ? '整屏壁纸：仪表全屏铺满，官方推荐 1024×600。' : '速度卡：仪表中间那块速度卡片区域，尺寸按车型面板（AE5i 约 768×300）。'}
+      </div>
+      <div class="field">
+        <label for="cw-file">${step === 1 ? '选择整屏壁纸' : '选择速度卡图片'}</label>
+        <input id="cw-file" type="file" accept="image/*">
+      </div>
+      <div id="cw-preview" class="hint">${(step === 1 ? state2.main : state2.speed) ? ((step === 1 ? state2.main : state2.speed).name || '已选择') : '还没选文件'}</div>
+      <div class="field" style="margin-top:10px">
+        <label for="cw-name">壁纸名称</label>
+        <input id="cw-name" maxlength="24" value="${escapeHtml(state2.name)}" placeholder="例如：夜景">
+      </div>
+      <p class="car-note">上传走 <span class="mono">wallpaper/save</span>（multipart）：字段
+        <span class="mono">file / wallpaperName / vinNo / type</span>（type=1 整屏、type=2 速度卡）。
+        另外会附一份 <span class="mono">wallpaperContent</span> 的两块配置。</p>`;
+    $('car-dialog-foot').innerHTML = `
+      ${step === 2 ? '<button class="btn small" id="cw-prev" type="button">上一步</button>' : ''}
+      <button class="btn small primary" id="cw-next" type="button">${step === 1 ? '下一步' : '上传两张'}</button>`;
+    $('cw-name').addEventListener('input', () => { state2.name = $('cw-name').value; });
+    $('cw-file').addEventListener('change', (event) => {
+      const file = event.target.files?.[0] || null;
+      if (step === 1) state2.main = file; else state2.speed = file;
+      $('cw-preview').textContent = file ? `${file.name} · ${carFormatBytes(file.size)}` : '还没选文件';
+    });
+    if ($('cw-prev')) {
+      $('cw-prev').addEventListener('click', () => { state2.step = 1; renderStep(); });
+    }
+    $('cw-next').addEventListener('click', () => {
+      if (step === 1) {
+        if (!state2.main) { toast('先选一张整屏壁纸'); return; }
+        state2.step = 2;
+        renderStep();
+        return;
+      }
+      if (!state2.speed) { toast('再选一张速度卡图片'); return; }
+      $('car-dialog').close();
+      carUploadTwoStep(state2);
+    });
+    $('car-dialog').showModal();
+  };
+  renderStep();
+}
+
+/** 两步上传：两次 multipart，第二次带 type=2。 */
+async function carUploadTwoStep({ main, speed, name }) {
+  if (!state.vin) { toast('还没有读到车'); return; }
+  const endpoint = byId('wallpaper_save');
+  const url = buildUrl(endpoint.path, endpoint.params, { vinNo: state.vin });
+  const content = carBuildWallpaperContent({ mainUrl: 'pending://main', speedCardUrl: 'pending://speed' });
+  carConfirm({
+    title: '上传壁纸（两步）',
+    sub: `${main.name} → 整屏；${speed.name} → 速度卡`,
+    body: {
+      url,
+      steps: [
+        { type: '1', file: main.name, wallpaperName: name || main.name.replace(/\.[^.]+$/, ''), vinNo: state.vin, wallpaperContent: content },
+        { type: '2', file: speed.name, wallpaperName: name || main.name.replace(/\.[^.]+$/, ''), vinNo: state.vin, wallpaperContent: content },
+      ],
+    },
+    run: async () => {
+      const useOwn = state.mode !== 'panel' || hasOwnCredentials();
+      const upload = async (file, type) => {
+        const form = new FormData();
+        form.append('file', file, file.name);
+        form.append('wallpaperName', name || file.name.replace(/\.[^.]+$/, '').slice(0, 24));
+        form.append('vinNo', state.vin);
+        form.append('type', String(type));
+        form.append('wallpaperContent', content);
+        const headers = useOwn ? ownHeaders(url, 'POST', '') : await panelHeaders(url, 'POST', '');
+        if (state.token) headers.Authorization = `Bearer ${state.token}`;
+        delete headers['Content-Type'];
+        const response = await fetch(url, { method: 'POST', headers, body: form, cache: 'no-store' });
+        const text = await response.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch { /* 非 JSON */ }
+        if (!(response.ok && (data?.code === '10000' || data?.code === undefined))) {
+          throw new Error(`第 ${type} 步失败：${data?.message || `HTTP ${response.status}`}`);
+        }
+      };
+      await upload(main, 1);
+      await sleep(400);
+      await upload(speed, 2);
+      toast('两张都传好了，去列表里应用');
+      await carLoadWallpaper();
+    },
+  });
+}
+
+function carApplyWallpaper(wall) {
+  const payload = carBuildUseWallpaperBody(wall.id, state.vin);
+  carConfirm({
+    title: '下发壁纸到车机',
+    sub: '车机在线才会生效；下发后可以看进度',
+    body: payload,
+    run: async () => {
+      const result = await carCall(byId('wallpaper_use'), {}, payload);
+      if (!result.ok) throw new Error(result.message || result.code || '下发失败');
+      const recordId = result.data && typeof result.data === 'object' ? (result.data.recordId || result.data.id) : result.data;
+      toast('已下发，开始看进度');
+      if (recordId) carPollProgress(String(recordId));
+    },
+  });
+}
+
+function carDeleteWallpaper(wall) {
+  carConfirm({
+    title: '删除壁纸',
+    sub: `#${wall.id} ${wall.name || ''}（不可恢复，不影响车机上正在用的那张）`,
+    body: { id: wall.id, vinNo: state.vin },
+    run: async () => {
+      const result = await carCall(byId('wallpaper_delete'), { id: wall.id }, null);
+      if (!result.ok) throw new Error(result.message || result.code || '删除失败');
+      toast('已删除');
+      await carLoadWallpaper();
+    },
+  });
+}
+
+function carRenameWallpaper(wall) {
+  $('car-dialog-title').textContent = '修改壁纸信息';
+  $('car-dialog-body').innerHTML = `
+    <div class="field"><label for="wr-name">新的名称</label><input id="wr-name" maxlength="24" value="${escapeHtml(wall.name || '')}"></div>
+    <div class="field"><label for="wr-method">请求方法</label>
+      <select id="wr-method">
+        <option value="POST" selected>POST（3.0.6 客户端清单）</option>
+        <option value="PUT">PUT（早期抓包文档）</option>
+      </select>
+    </div>
+    <p class="car-note">接口未在真机验证：40004 多半是字段名不对，30121 是签名/网关问题。</p>`;
+  $('car-dialog-foot').innerHTML = '<button class="btn small primary" id="wr-save" type="button">保存</button>';
+  $('wr-save').addEventListener('click', () => {
+    const name = $('wr-name').value.trim();
+    if (!name) { toast('名称不能为空'); return; }
+    const method = $('wr-method').value;
+    const payload = { wallpaperName: name, vinNo: state.vin };
+    $('car-dialog').close();
+    carConfirm({
+      title: '修改壁纸信息',
+      sub: `${method} wallpaper/update/${wall.id}`,
+      body: payload,
+      run: async () => {
+        const result = await carCall(byId('wallpaper_update'), { id: wall.id }, payload, method);
+        if (!result.ok) throw new Error(result.message || result.code || '保存失败');
+        toast('已保存');
+        await carLoadWallpaper();
+      },
+    });
+  });
+  $('car-dialog').showModal();
+}
+
+async function carPollProgress(recordId) {
+  $('wp-progress').hidden = false;
+  $('wp-progress-text').textContent = `下发进度：recordId ${recordId} …`;
+  clearInterval(carState.progressTimer);
+  let ticks = 0;
+  carState.progressTimer = setInterval(async () => {
+    ticks += 1;
+    // 路径是 useWallpaperProgress/{recordId}，注意不是壁纸 id。
+    const detail = await carCall(byId('wallpaper_progress'), { recordId }).catch(() => null);
+    const progress = detail && detail.ok ? carNormalizeProgress({ code: '10000', data: detail.data }) : null;
+    $('wp-progress-text').textContent = progress
+      ? `下发进度：${progress.percent || 0}% ${progress.message || ''}`
+      : '下发进度：等待车端…';
+    if (progress?.done || ticks >= 20) {
+      clearInterval(carState.progressTimer);
+      carState.progressTimer = null;
+      await carLoadWallpaper();
+    }
+  }, 1500);
+}
+
+async function carUploadWallpaper(file) {
+  if (!file) return;
+  if (!state.vin) { toast('还没有读到车'); return; }
+  const endpoint = byId('wallpaper_save');
+  const url = buildUrl(endpoint.path, endpoint.params, { vinNo: state.vin });
+  const form = new FormData();
+  form.append('file', file, file.name);
+  form.append('wallpaperName', file.name.replace(/\.[^.]+$/, '').slice(0, 24));
+  form.append('vinNo', state.vin);
+  carConfirm({
+    title: '上传自定义壁纸',
+    sub: `${file.name} · ${carFormatBytes(file.size)}（multipart，字段名与签名体官方没公开，按 file + 空 body 试）`,
+    body: { url, fields: ['file', 'wallpaperName', 'vinNo'] },
+    run: async () => {
+      const useOwn = state.mode !== 'panel' || hasOwnCredentials();
+      const headers = useOwn ? ownHeaders(url, 'POST', '') : panelHeaders(url, 'POST', '');
+      if (state.token) headers.Authorization = `Bearer ${state.token}`;
+      delete headers['Content-Type'];
+      const response = await fetch(url, { method: 'POST', headers, body: form, cache: 'no-store' });
+      const text = await response.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { /* 非 JSON */ }
+      if (!(response.ok && (data?.code === '10000' || data?.code === undefined))) {
+        throw new Error(data?.message || `HTTP ${response.status}`);
+      }
+      toast('已上传');
+      await carLoadWallpaper();
+    },
+  });
+}
+
+/* ---------------------------- 确认弹层 ---------------------------- */
+
+let carConfirmRun = null;
+function carConfirm({ title, sub, body, run, actionLabel = '执行' }) {
+  carConfirmRun = run;
+  $('cc-title').textContent = title;
+  $('cc-sub').textContent = sub || '';
+  $('cc-body').textContent = typeof body === 'string' ? body : JSON.stringify(body, null, 2);
+  const needCheck = actionLabel === '执行';
+  $('cc-check').checked = false;
+  $('cc-ok').disabled = needCheck;
+  $('cc-ok').textContent = actionLabel;
+  $('cc-check').closest('label').hidden = !needCheck;
+  $('car-confirm').showModal();
+}
+
+/* ---------------------------- 初始化与事件 ---------------------------- */
+
+async function carInitPanels() {
+  if (!state.token) return;
+  for (let i = 0; i < 20 && !state.vin; i += 1) await sleep(300);
+  if (!state.vin) return;
+  await Promise.allSettled([carLoadFirmware(), carLoadSettings(), carLoadWallpaper()]);
+}
+
+/** 同一套 UI 也会跑在面板页里（那里没有 api.html 的 #vin-select 等元素），所以逐个判空。 */
+function carOn(id, event, handler) {
+  const el = $(id);
+  if (el) el.addEventListener(event, handler);
+}
+
+carOn('btn-ota-check', 'click', () => { void carCheckOta(); });
+carOn('btn-cs-refresh', 'click', async () => { await carLoadSettings(); toast('设置已刷新'); });
+carOn('btn-wp-refresh', 'click', async () => { await carLoadWallpaper(); toast('壁纸已刷新'); });
+carOn('btn-open-walls', 'click', () => $('wallpaper-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+carOn('btn-wall-edit', 'click', () => {
+  const wall = (carState.walls || [])[0];
+  if (!wall) { toast('还没有壁纸，先上传一张'); return; }
+  carRenameWallpaper(wall);
+});
+carOn('btn-wall-upload', 'click', () => $('wp-file')?.click());
+carOn('btn-wall-create', 'click', () => carCreateWallpaperWizard());
+carOn('wp-file', 'change', (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  void carUploadWallpaper(file);
+});
+carOn('cc-check', 'change', (event) => { $('cc-ok').disabled = !event.target.checked; });
+carOn('cc-ok', 'click', async () => {
+  const run = carConfirmRun;
+  $('car-confirm')?.close();
+  carConfirmRun = null;
+  if (!run) return;
+  try {
+    await run();
+  } catch (error) {
+    toast(`失败：${error.message}`, 3600);
+  }
+});
+carOn('vin-select', 'change', () => {
+  void carInitPanels();
+});
+// api.html：boot() 在文件末尾调用，等它把 token/vin 填好后再拉三块数据。
+// 面板页（index.html）里这三块默认藏在 sheet 里，打开时由 panel-sheet.js 显式调用，
+// 所以这里判断一下：有 #ze-car-sheet 且它还是 hidden 就什么都不做，避免进首页就打一堆接口。
+setTimeout(() => {
+  const sheet = document.getElementById('ze-car-sheet');
+  if (sheet && sheet.hidden) return;
+  void carInitPanels();
+}, 1200);
+
+/* ==== ZEEHO_CAR_UI:JS:END ==== */
 /* ---------------------------- 事件 ---------------------------- */
 
 $('btn-theme').addEventListener('click', () => {

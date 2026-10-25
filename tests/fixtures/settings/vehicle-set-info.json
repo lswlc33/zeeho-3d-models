@@ -1,0 +1,304 @@
+{
+ "code": "10000",
+ "message": "操作成功",
+ "data": {
+  "vinNo": "TESTVIN0000000001",
+  "topSpeed": "120",
+  "lowPower": "10",
+  "lowPowerRule": null,
+  "mileageUnit": "1",
+  "temperatureUnit": "1",
+  "leaveOffTime": "180",
+  "timeFormat": "1",
+  "language": "1",
+  "easyReadyGo": 1,
+  "themeId": "1",
+  "themeName": "蓝色电波",
+  "soundEffectStatus": "1",
+  "rideMemoryModel": 0,
+  "chargingPower": "200",
+  "soundEffectSetting": {
+   "switchAll": 1,
+   "switchLowVelocity": 0,
+   "switchStand": 1,
+   "switchRidingModel": 1,
+   "switchSitDown": 1,
+   "switchReady": 1,
+   "switchShutdown": 1,
+   "switchCruiseControl": 1,
+   "soundSize": 100,
+   "unlockLock": 1,
+   "modeSwitching": 1,
+   "staticOperation": 1,
+   "burglarAlarm": 1,
+   "cyclingSteering": 1,
+   "radarSound": 1
+  },
+  "motoPlay": 2,
+  "tcsTractionControl": 1,
+  "automaticShutdown": 1,
+  "cruiseControlFunction": 0,
+  "inductiveUnlocking": 1,
+  "kineticEnergyRecovery": 0,
+  "automaticParking": 0,
+  "inducedVibration": 1,
+  "cushionSensor": 1,
+  "inductiveUnlocking2": 1,
+  "inductiveDistance": 5,
+  "customInductiveDistance": "",
+  "bluetoothStrengthMin": 55,
+  "bluetoothStrengthMax": 90,
+  "customBluetoothStrength": 0,
+  "energyRecoveryStreet": 1,
+  "energyRecoverySport": 1,
+  "energyRecoveryEco": 1,
+  "passwordUnlocking": 1,
+  "passwordUnlockSwitch": 1,
+  "edgeSupportSensing": 1,
+  "extendedRange": 0,
+  "maximumSpeed": 1,
+  "maximumSpeedLimit": 25,
+  "bmsBind": 0,
+  "bmsUniqueId": "",
+  "comeHomeWithYou": 0,
+  "comeHomeWithYouTime": 30,
+  "barkePower": 1,
+  "precisionEndurance": 1,
+  "updateDate": "2026-09-29T21:19:22.207+0800",
+  "radarBsd": 1,
+  "radarRcw": 1,
+  "ecoMaxSpeed": null,
+  "streetMaxSpeed": null,
+  "sportMaxSpeed": null,
+  "isSupportRcw": 1,
+  "originNfc": 1,
+  "cruiseControlHold": 1,
+  "antiLockBrakeSystem": 1,
+  "disabledContent": [
+   {
+    "functionName": "automaticShutdown",
+    "content": "打开座垫感应功能后可恢复正常",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "easyReadyGo",
+    "content": "打开边撑感应和座垫感应功能后可恢复正常",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "easyReadyGo_01",
+    "content": "开启后将激活座垫感应和边撑感应功能",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "easyReadyGo_02",
+    "content": "开启后将激活边撑感应功能",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "easyReadyGo_03",
+    "content": "开启后将激活座垫感应功能",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "cushionSensor_01",
+    "content": "关闭后将无法使用离车关机和简易骑行功能，请确认是否关闭？",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "cushionSensor_02",
+    "content": "关闭后将无法使用离车关机功能，请确认是否关闭？",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "cushionSensor_03",
+    "content": "关闭后将无法使用简易骑行功能，请确认是否关闭？",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "cushionSensor_04",
+    "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "edgeSupportSensing_01",
+    "content": "关闭后将无法使用简易骑行功能，请确认是否关闭？",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "autoShutdownTimeGo_01",
+    "content": "开启后将激活座垫感应功能",
+    "relatedFunctions": null
+   },
+   {
+    "functionName": "autoShutdownTimeGo_02",
+    "content": "开启后将激活座垫感应功能",
+    "relatedFunctions": null
+   }
+  ],
+  "oldVehicleTypeFlag": false,
+  "deviceType": 1,
+  "emergencyBrakeFlash": 1,
+  "automaticShutdownSwitch": 1,
+  "automaticShutdownTimeout": 15,
+  "steepSlopeDescent": 1,
+  "customButtonLeft": 3,
+  "customButtonRight": 3,
+  "customButtonCombination": 3,
+  "customButtonSingle": 3,
+  "customButtonLongPress": 3,
+  "vehicleKind": 1,
+  "cruiseMode": 1,
+  "cruiseAcc": 2,
+  "radarFcw": 2,
+  "isCruiseCc": true,
+  "automaticLock": 1,
+  "instrumentGame": 0,
+  "lightEffectSetting": {
+   "parkingDynamicEffect": 1,
+   "cyclingDynamicEffect": 1,
+   "ecoColor": 4,
+   "streetColor": 5,
+   "sportColor": 6,
+   "projectionLight": 0,
+   "lowBeamLight": 1,
+   "positionLight": 1,
+   "chargingDynamicEffect": 2,
+   "longDistanceLighting": 0,
+   "pixelLight": 1
+  },
+  "powerMode": 0,
+  "nitro": 1,
+  "isAgree": false,
+  "rideFunctionVOList": [
+   {
+    "parentCode": "EASY_RIDE",
+    "functionCode": "1.0",
+    "messages": null,
+    "specialVersion": null
+   },
+   {
+    "parentCode": "E_CUSHION_SENSOR",
+    "functionCode": "2.0",
+    "messages": [
+     {
+      "functionName": "eCushionSensor_02",
+      "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": {
+       "EASY_RIDE": false
+      }
+     },
+     {
+      "functionName": "eCushionSensor_03",
+      "content": "关闭后需要按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": null
+     },
+     {
+      "functionName": "eCushionSensor_04",
+      "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+      "relatedFunctions": {
+       "AUTO_SHUTDOWN_TIME_GO": false
+      }
+     },
+     {
+      "functionName": "eCushionSensor_05",
+      "content": "关闭后离车关机和简易骑行功能都将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": {
+       "EASY_RIDE": false,
+       "AUTO_SHUTDOWN_TIME_GO": false
+      }
+     },
+     {
+      "functionName": "eCushionSensor_06",
+      "content": "关闭后离车关机功能将无法使用，请确认是否关闭？",
+      "relatedFunctions": {
+       "AUTO_SHUTDOWN_TIME_GO": false
+      }
+     },
+     {
+      "functionName": "eCushionSensor_07",
+      "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": {
+       "EASY_RIDE": false
+      }
+     },
+     {
+      "functionName": "eCushionSensor_08",
+      "content": "关闭后离车关机功能将无法使用,同时需要按启动键进入ready骑行，请确认是否关闭？",
+      "relatedFunctions": {
+       "AUTO_SHUTDOWN_TIME_GO": false
+      }
+     }
+    ],
+    "specialVersion": {
+     "DASH_Info": true,
+     "MCU_Info": false
+    }
+   },
+   {
+    "parentCode": "AUTO_SHUTDOWN_TIME_GO",
+    "functionCode": "2.0",
+    "messages": null,
+    "specialVersion": null
+   },
+   {
+    "parentCode": "EDGE_SUPPORT_SENSING",
+    "functionCode": "2.0",
+    "messages": [
+     {
+      "functionName": "edgeSupportSensing_01",
+      "content": "关闭后简易骑行功能将无法使用，需要捏刹车按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": {
+       "EASY_RIDE": false
+      }
+     },
+     {
+      "functionName": "edgeSupportSensing_02",
+      "content": "关闭后需要按启动键解除P档骑行，请确认是否关闭？",
+      "relatedFunctions": null
+     }
+    ],
+    "specialVersion": null
+   }
+  ],
+  "hasInductiveUnlocking": 0,
+  "easterEggSwitch": 1,
+  "mediaBluetoothMusicChannel": 2,
+  "lowPowerThreshold": "0",
+  "ultraLowBatteryReminder": 0,
+  "withdrawalStartTime": "07:00:00",
+  "withdrawalEndTime": "21:00:00",
+  "drivingRecorderSetting": {
+   "privacyMode": 0,
+   "resolution": 2,
+   "videoWatermark": 1,
+   "impactSnapshot": 0,
+   "sentryMode": 0,
+   "geoFenceAutoClose": 0,
+   "memoryCardData": {
+    "memoryCardData": null,
+    "memoryCardDataRemain": null,
+    "loopVideoPercent": null,
+    "sentryVideoPercent": null,
+    "emergencyVideoPercent": null,
+    "manualVideoPercent": null,
+    "manualPhotoPercent": null,
+    "sdMemoryStatus": null
+   }
+  },
+  "driverAssistSetting": {
+   "env3dModel": 0,
+   "startReminder": 0,
+   "laneAssist": 0,
+   "reverseImage": 0,
+   "parking": 0,
+   "rearviewMirrorWarningLight": 1,
+   "bsdSetting": 1,
+   "fcwSetting": 1,
+   "rcwSetting": 1
+  },
+  "radarPosition": 1,
+  "etcsTractionControl": 1,
+  "ecushionSensor": 0
+ }
+}

@@ -1,0 +1,52 @@
+{
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+    "total": 3,
+    "pageNum": 1,
+    "pageSize": 20,
+    "list": [
+      {
+        "id": "4000001",
+        "version": "V1.2.4",
+        "status": "3",
+        "percent": 100,
+        "createTime": "2026-09-01 10:00:00",
+        "updateTime": "2026-09-01 10:20:00",
+        "fileInfo": {
+          "fileName": "hmi_ae5i_pro_v1.2.4.bin",
+          "fileSize": 15728640,
+          "fileUrl": "https://zeeho-ota.oss-cn-hangzhou.aliyuncs.com/firmware/hmi_ae5i_pro_v1.2.4.bin?Expires=1792770000&Signature=AbCdEf%2B123%3D",
+          "firmwareId": "FW-AE5I-PRO-124",
+          "sign": "d41d8cd98f00b204e9800998ecf8427e",
+          "fileBucket": "zeeho-ota"
+        }
+      },
+      {
+        "id": "4000002",
+        "version": "V1.2.3",
+        "status": "4",
+        "progress": 45,
+        "errDesc": "升级中断（车辆断电）",
+        "createTime": "2026-08-20 09:30:00",
+        "updateTime": "2026-08-20 09:41:00",
+        "fileInfo": null
+      },
+      {
+        "id": "4000003",
+        "version": "V1.2.2",
+        "status": "1",
+        "progress": "30%",
+        "createTime": "2026-08-01 20:00:00",
+        "fileInfo": {
+          "fileName": "hmi_ae5i_pro_v1.2.2.bin",
+          "fileSize": 1048576,
+          "fileUrl": "https://zeeho-ota.oss-cn-hangzhou.aliyuncs.com/firmware/hmi_ae5i_pro_v1.2.2.bin?Expires=1792770000&Signature=ZzTop987",
+          "firmwareId": "FW-AE5I-PRO-122",
+          "sign": "0cc175b9c0f1b6a831c399e269772661",
+          "fileBucket": "zeeho-ota"
+        }
+      }
+    ]
+  }
+}

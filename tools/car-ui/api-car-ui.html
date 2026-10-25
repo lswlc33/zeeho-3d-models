@@ -1,0 +1,98 @@
+  <!-- ==== ZEEHO_CAR_UI:HTML:BEGIN ==== -->
+  <!-- 车辆工具：固件版本 / 车辆设置 / 车机壁纸。数据来自 App 3.0.6 接口，写入前一律二次确认。 -->
+  <section class="card" id="firmware-card">
+    <div class="card-head">
+      <h2>固件版本</h2>
+      <span class="sub" id="fw-sub">OTA · App 3.0.6</span>
+      <div class="top-actions" style="margin-left:auto">
+        <button class="btn small primary" id="btn-ota-check" type="button">检查更新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <dl class="car-kv" id="fw-kv">
+        <dt>仪表版本</dt><dd id="fw-version">登录后读取</dd>
+        <dt>App 版本</dt><dd id="fw-app">—</dd>
+        <dt>升级状态</dt><dd id="fw-status">—</dd>
+        <dt>记录 ID</dt><dd id="fw-record" class="mono">—</dd>
+        <dt>OTA 包</dt><dd id="fw-package">—</dd>
+      </dl>
+      <div id="fw-file" hidden>
+        <div class="car-actions">
+          <button class="btn small" id="btn-fw-copy" type="button">复制打码地址</button>
+          <button class="btn small ghost" id="btn-fw-reveal" type="button">显示完整地址</button>
+          <span class="hint" id="fw-hint"></span>
+        </div>
+      </div>
+      <p class="car-note">checkVersion 只回 true/false；固件包地址在 <span class="mono">ota/mmi/info/v2</span> 的
+        <span class="mono">fileInfo</span> 里（OSS 预签名直链，带时效）。</p>
+    </div>
+  </section>
+
+  <section class="card" id="settings-card">
+    <div class="card-head">
+      <h2>车辆设置</h2>
+      <span class="sub" id="cs-sub">结构取自 itemsV2</span>
+      <div class="top-actions" style="margin-left:auto">
+        <button class="btn small" id="btn-cs-refresh" type="button">刷新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="cs-tiles" class="car-grid">
+        <div class="hint">登录后读取车辆设置…</div>
+      </div>
+      <div class="car-actions" id="cs-wall-entry">
+        <button class="btn small" id="btn-open-walls" type="button">打开壁纸</button>
+        <button class="btn small primary" id="btn-wall-edit" type="button">修改壁纸信息</button>
+        <button class="btn small ghost" id="btn-wall-upload" type="button">上传新壁纸</button>
+        <span class="hint">壁纸的列表 / 应用 / 删除在下面「车机壁纸」卡片。</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="wallpaper-card">
+    <div class="card-head">
+      <h2>车机壁纸</h2>
+      <span class="sub" id="wp-sub">—</span>
+      <div class="top-actions" style="margin-left:auto">
+        <label class="btn small">上传<input type="file" id="wp-file" accept="image/*" hidden></label>
+        <button class="btn small" id="btn-wp-refresh" type="button">刷新</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="car-actions" style="margin:0 0 10px">
+        <button class="btn small primary" id="btn-wall-create" type="button">新建自定义壁纸（分两步）</button>
+        <span class="hint">官方流程：先传整屏壁纸，再传中间速度卡位置那张</span>
+      </div>
+      <div id="wp-builtin" class="car-walls" style="margin-bottom:10px"></div>
+      <div id="wp-grid" class="car-walls"><div class="hint">登录后读取壁纸…</div></div>
+      <div id="wp-progress" hidden>
+        <div class="hint" id="wp-progress-text" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZEEHO_CAR_UI:SPLIT：以下弹层要放到 body 级，不能塞进面板的全屏 sheet -->
+  <dialog id="car-dialog">
+    <form method="dialog" class="dialog-head">
+      <h2 id="car-dialog-title">—</h2>
+      <button class="btn small" value="cancel">关闭</button>
+    </form>
+    <div class="dialog-body" id="car-dialog-body"></div>
+    <div class="form-actions" id="car-dialog-foot"></div>
+  </dialog>
+
+  <dialog id="car-confirm">
+    <form method="dialog" class="dialog-head">
+      <h2 id="cc-title">确认</h2>
+      <button class="btn small" value="cancel">取消</button>
+    </form>
+    <div class="dialog-body">
+      <p class="hint" id="cc-sub"></p>
+      <pre class="car-pre" id="cc-body"></pre>
+      <label class="car-check"><input type="checkbox" id="cc-check"><span>我确认这是写操作，会改到车/账号</span></label>
+    </div>
+    <div class="form-actions">
+      <button class="btn primary" id="cc-ok" type="button" disabled>执行</button>
+    </div>
+  </dialog>
+  <!-- ==== ZEEHO_CAR_UI:HTML:END ==== -->

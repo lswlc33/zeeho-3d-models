@@ -1,0 +1,42 @@
+{
+ "code": "10000",
+ "message": "操作成功",
+ "data": [
+  {
+   "functionName": "OPEN_STORAGE_BOX",
+   "serviceCode": 603980084,
+   "serviceValues": null,
+   "isSupportSetting": true
+  },
+  {
+   "functionName": "LOCK_VCU",
+   "serviceCode": 268435509,
+   "serviceValues": null,
+   "isSupportSetting": false
+  },
+  {
+   "functionName": "UNLOCK_VCU",
+   "serviceCode": 268435510,
+   "serviceValues": null,
+   "isSupportSetting": false
+  },
+  {
+   "functionName": "OPEN_CUSHION",
+   "serviceCode": 268435505,
+   "serviceValues": null,
+   "isSupportSetting": true
+  },
+  {
+   "functionName": "APP_WIFI_INFO_SET",
+   "serviceCode": 603980096,
+   "serviceValues": null,
+   "isSupportSetting": true
+  },
+  {
+   "functionName": "LOUDLY_SEARCH_CAR",
+   "serviceCode": 268435508,
+   "serviceValues": null,
+   "isSupportSetting": true
+  }
+ ]
+}

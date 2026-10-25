@@ -1,0 +1,87 @@
+/* ==== ZEEHO_CAR_UI:CSS:BEGIN ==== */
+/* 车辆工具区块：固件 / 车辆设置 / 车机壁纸。
+   只用 api.html 既有的设计变量（--surface/--line/--accent 等），不引入新字体或外部资源。 */
+.car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+.car-tile {
+  display: grid; gap: 4px; text-align: left; padding: 11px 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid transparent; color: inherit;
+  font: inherit; cursor: pointer;
+}
+.car-tile:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.car-tile:active { transform: scale(.985); }
+.car-tile.dim { opacity: .55; }
+.car-tile b { font-size: 13.5px; font-weight: 600; }
+.car-tile span {
+  font-size: 11px; color: var(--ink-faint); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.car-tile em { font-style: normal; font-size: 11px; color: var(--accent); }
+
+.car-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.car-item:last-child { border-bottom: 0; }
+.car-item .txt { flex: 1; min-width: 0; }
+.car-item .txt b { display: block; font-size: 13px; font-weight: 550; }
+.car-item .txt small { display: block; color: var(--ink-faint); font-size: 11px; line-height: 1.5; }
+.car-item.locked .txt b { color: var(--ink-faint); }
+.car-item .car-val { font-size: 12.5px; color: var(--ink-soft); min-width: 40px; text-align: right; }
+
+.car-switch {
+  position: relative; width: 44px; height: 26px; border-radius: 999px; flex: none; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line); transition: background .16s;
+}
+.car-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ink-faint); transition: transform .16s, background .16s;
+}
+.car-switch[aria-checked="true"] { background: color-mix(in srgb, var(--accent) 32%, var(--surface-2)); border-color: var(--accent); }
+.car-switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent); }
+.car-switch[disabled] { opacity: .45; cursor: not-allowed; }
+
+.car-select, .car-input {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; max-width: 42vw;
+}
+.car-range { width: 38vw; max-width: 220px; accent-color: var(--accent); }
+
+.car-walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 10px; }
+.car-wall {
+  position: relative; padding: 0; border-radius: 12px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); aspect-ratio: 16 / 9; color: inherit;
+}
+.car-wall img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.car-wall .ph { display: grid; place-items: center; height: 100%; padding: 8px; text-align: center; font-size: 11px; color: var(--ink-faint); }
+.car-wall .tag { position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; background: #0009; color: #fff; }
+.car-wall .tag.on { background: var(--accent); color: #1a1024; }
+.car-wall .nm {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px; font-size: 11px; text-align: left;
+  color: #fff; background: linear-gradient(transparent, #000a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.car-pre {
+  margin: 8px 0; padding: 10px; border-radius: 10px; background: var(--code, #0f0d13); color: var(--ink-soft);
+  font: 11.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 220px; overflow: auto;
+  white-space: pre-wrap; word-break: break-all;
+}
+.car-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--ink-soft); }
+.car-check input { margin-top: 2px; }
+.car-note { font-size: 11.5px; color: var(--ink-faint); line-height: 1.6; margin: 8px 0 0; }
+.car-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.car-kv { display: grid; grid-template-columns: 92px 1fr; gap: 7px 10px; font-size: 12.5px; margin: 0; }
+.car-kv dt { color: var(--ink-faint); }
+.car-kv dd { margin: 0; word-break: break-all; }
+
+/* 卡片头在窄屏容易把标题挤成两行：副标题省略、标题不换行 */
+#firmware-card .card-head h2, #settings-card .card-head h2, #wallpaper-card .card-head h2 { white-space: nowrap; }
+#firmware-card .card-head .sub, #settings-card .card-head .sub, #wallpaper-card .card-head .sub {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 520px) {
+  #firmware-card .card-head, #settings-card .card-head, #wallpaper-card .card-head { flex-wrap: wrap; row-gap: 6px; }
+  #firmware-card .card-head .top-actions, #settings-card .card-head .top-actions, #wallpaper-card .card-head .top-actions { margin-left: auto; }
+}
+
+@media (max-width: 560px) {
+  .car-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+  .car-walls { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+/* ==== ZEEHO_CAR_UI:CSS:END ==== */
