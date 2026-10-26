@@ -1,0 +1,1 @@
+{ "name": "zeeho-3d-models", "private": true, "type": "module", "scripts": { "test": "node --test tests/*.test.mjs" } }

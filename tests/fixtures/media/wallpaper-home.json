@@ -1,0 +1,19 @@
+{
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+    "vinNo": "TESTVIN0000000001",
+    "vehicleName": "AE5i Pro",
+    "vehicleTypeName": "AE5i",
+    "supportCustomWallpaper": "1",
+    "wallpaperResolutionWidth": "1024",
+    "wallpaperResolutionHeight": 600,
+    "subjectWallpaperConfig": "[{\"name\":\"晨曦\",\"type\":\"1\",\"url\":\"https://zeeho-oss.example.test/subject/dawn.png\",\"subjectUrl\":\"https://zeeho-oss.example.test/subject/dawn.json\"},{\"name\":\"赛道\",\"type\":\"2\",\"url\":\"https://zeeho-oss.example.test/subject/track.png\",\"subjectUrl\":\"\"}]",
+    "themeShopFlag": "0",
+    "themeShopNewFlag": "0",
+    "appThemeRgb": "#FF6A00",
+    "appChargeRgb": "#00C26E",
+    "appThemeImage": "https://zeeho-oss.example.test/theme/app.png",
+    "appChargeImage": "https://zeeho-oss.example.test/theme/charge.png"
+  }
+}

@@ -1,0 +1,12 @@
+{
+ "code": "10000",
+ "message": "操作成功",
+ "data": {
+  "status": 0,
+  "title": "",
+  "content": "",
+  "preDownloadAppSet": true,
+  "fileInfoList": null,
+  "multiDownloadUpgradeContent": null
+ }
+}

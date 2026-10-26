@@ -1,0 +1,33 @@
+{
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+    "total": 2,
+    "pageNum": 1,
+    "pageSize": 20,
+    "list": [
+      {
+        "id": "100001",
+        "wallpaperName": "原厂·晨曦橙",
+        "useState": "1",
+        "wallpaperContent": "{\"imageUrl\":\"https://zeeho-oss.example.test/wallpaper/100001.png?Expires=1792770000&OSSAccessKeyId=LTAI5tTESTKEY&Signature=AbCdEf%2B123%3D\",\"thumbUrl\":\"https://zeeho-oss.example.test/wallpaper/100001_thumb.png\",\"width\":1024,\"height\":600}",
+        "mmiSubjectConfigId": "9001",
+        "displayWallpaperSet": "1",
+        "wallpaperConfigSnapshot": null
+      },
+      {
+        "id": "100002",
+        "wallpaperName": "我的自定义壁纸",
+        "useState": 0,
+        "wallpaperContent": {
+          "pic": "https://zeeho-oss.example.test/wallpaper/custom/100002.jpg?Expires=1792770000&Signature=Def456Ghi",
+          "previewImage": "https://zeeho-oss.example.test/wallpaper/custom/100002_small.jpg",
+          "resolution": "1024x600"
+        },
+        "mmiSubjectConfigId": null,
+        "displayWallpaperSet": "0",
+        "wallpaperConfigSnapshot": "{\"snapshot\":true}"
+      }
+    ]
+  }
+}

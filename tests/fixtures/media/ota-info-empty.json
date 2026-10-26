@@ -1,0 +1,13 @@
+{
+  "code": "10000",
+  "message": "操作成功",
+  "data": {
+    "upgradeStatus": "0",
+    "recordId": null,
+    "softwareVersion": "V1.2.3",
+    "appVersion": "3.0.6",
+    "otaVersion": "V1.2.3",
+    "wifiAddress": null,
+    "fileInfo": null
+  }
+}
