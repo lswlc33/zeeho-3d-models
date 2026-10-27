@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  车机投屏：把这段合并进壳工程的 app/src/main/AndroidManifest.xml。
+
+  合并位置：
+    · <uses-permission> 放 <manifest> 下、<application> 之前；
+    · <service> 放 <application> 内，与 MainActivity 同级。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Wi-Fi Direct 组网 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 12 及以下读 P2P 扫描结果 -->
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="32" />
+
+    <!-- Android 13+ 的附近设备权限。不要加 usesPermissionFlags="neverForLocation"，
+         部分 ROM 上 P2P 扫描会因此被判成无权限 -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+
+    <!-- 前台服务 + 屏幕采集（Android 14 必需） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 机型没有 Wi-Fi Direct 时只是投屏不可用，别因此拦掉整个 App -->
+    <uses-feature
+        android:name="android.hardware.wifi.direct"
+        android:required="false" />
+
+    <application>
+
+        <service
+            android:name="io.github.lswlc33.zeehowebnext.cast.CastService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="false" />
+
+    </application>
+
+</manifest>

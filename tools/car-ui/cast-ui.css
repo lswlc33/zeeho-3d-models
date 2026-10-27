@@ -1,0 +1,101 @@
+/* ==== ZEEHO_CAST_UI:CSS:BEGIN ==== */
+/* 车机投屏卡片与弹层。
+   全部样式自带 ze-cast- 前缀：面板 index.html 是混淆产物，类名不可依赖，
+   这样注入块单独生效，也不和别的注入块（壁纸/OTA）抢选择器。 */
+
+#ze-cast-sheet {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
+  background: var(--bg, #f6f4f8); color: var(--ink, #221a2c);
+}
+#ze-cast-sheet[hidden] { display: none; }
+.ze-cast-head {
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line, #e4e0ea);
+}
+.ze-cast-head h2 { margin: 0; font-size: 17px; font-weight: 650; }
+.ze-cast-head .ze-cast-sub { flex: 1; font-size: 12px; color: var(--ink-faint, #7b7487); }
+.ze-cast-close {
+  border: 1px solid var(--line, #e4e0ea); background: transparent; color: inherit;
+  border-radius: 999px; padding: 5px 14px; font-size: 13px;
+}
+.ze-cast-scroll { flex: 1; overflow: auto; padding: 14px 14px 28px; -webkit-overflow-scrolling: touch; }
+
+#cast-card {
+  background: var(--surface, #fff); border: 1px solid var(--line, #ece8f1);
+  border-radius: 14px; padding: 14px;
+}
+#cast-card .ze-cast-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+#cast-card .ze-cast-title h3 { margin: 0; font-size: 15.5px; font-weight: 650; }
+#cast-card .ze-cast-title span { font-size: 12px; color: var(--ink-faint, #7b7487); }
+
+.ze-cast-state { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ze-cast-pill {
+  flex: none; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  border: 1px solid var(--line, #e4e0ea); color: var(--ink-soft, #5b5468); background: var(--surface-2, #f4f1f8);
+}
+.ze-cast-pill[data-tone="ok"] { color: #0b6b3a; border-color: #0b6b3a55; background: #0b6b3a14; }
+.ze-cast-pill[data-tone="busy"] { color: var(--accent, #7a4dff); border-color: #7a4dff66; background: #7a4dff14; }
+.ze-cast-pill[data-tone="warn"] { color: #8a5a00; border-color: #8a5a0055; background: #8a5a0014; }
+.ze-cast-pill[data-tone="bad"] { color: #a01b1b; border-color: #a01b1b55; background: #a01b1b14; }
+.ze-cast-hint { font-size: 12.5px; line-height: 1.55; color: var(--ink-faint, #7b7487); }
+.ze-cast-hint[data-tone="warn"] { color: #8a5a00; }
+.ze-cast-hint[data-tone="bad"] { color: #a01b1b; }
+.ze-cast-hint[data-tone="ok"] { color: #0b6b3a; }
+
+.ze-cast-kv { display: grid; grid-template-columns: 76px 1fr; gap: 7px 10px; font-size: 12.5px; margin: 0 0 4px; }
+.ze-cast-kv dt { color: var(--ink-faint, #7b7487); }
+.ze-cast-kv dd { margin: 0; word-break: break-all; }
+.ze-cast-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.ze-cast-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 0; }
+.ze-cast-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--ink-faint, #7b7487); }
+.ze-cast-select {
+  width: 100%; padding: 7px 9px; font-size: 13px; color: inherit;
+  background: var(--surface-2, #f7f5fa); border: 1px solid var(--line, #e4e0ea); border-radius: 9px;
+}
+
+.ze-cast-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ze-cast-btn {
+  padding: 8px 14px; font-size: 13px; border-radius: 10px; color: inherit;
+  border: 1px solid var(--line, #e0dbe8); background: var(--surface-2, #f4f1f8);
+}
+.ze-cast-btn.primary { background: var(--accent, #7a4dff); border-color: transparent; color: #fff; }
+.ze-cast-btn.ghost { background: transparent; }
+.ze-cast-btn[disabled] { opacity: .45; }
+.ze-cast-note { font-size: 11.5px; line-height: 1.6; color: var(--ink-faint, #7b7487); margin: 10px 0 0; }
+
+/* 扫码弹层 */
+#ze-cast-scan {
+  width: min(420px, 92vw); border: 0; border-radius: 16px; padding: 0;
+  background: var(--surface, #fff); color: var(--ink, #221a2c);
+}
+#ze-cast-scan::backdrop { background: #0007; }
+#ze-cast-scan .ze-cast-dlg-head {
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px 8px;
+}
+#ze-cast-scan .ze-cast-dlg-head h3 { margin: 0; flex: 1; font-size: 15.5px; }
+#ze-cast-scan .ze-cast-dlg-body { padding: 0 16px 16px; }
+.ze-cast-video { width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; background: #000; object-fit: cover; display: block; margin-bottom: 8px; }
+.ze-cast-manual {
+  width: 100%; min-height: 62px; margin-top: 8px; padding: 8px 10px; font-size: 12.5px;
+  border-radius: 9px; border: 1px solid var(--line, #e0dbe8); background: var(--surface-2, #f7f5fa); color: inherit;
+}
+
+/* 入口按钮（注入到面板「车辆设置」页底部） */
+.ze-cast-entry {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 13px 14px;
+  border-radius: 13px; border: 1px solid var(--line, #e4e0ea); background: var(--surface, #fff);
+  color: inherit; text-align: left;
+}
+.ze-cast-entry b { font-size: 14px; font-weight: 600; }
+.ze-cast-entry small { display: block; font-size: 11.5px; color: var(--ink-faint, #7b7487); margin-top: 2px; }
+.ze-cast-entry .ze-cast-go { margin-left: auto; color: var(--ink-faint, #7b7487); }
+
+/* toast（只在投屏块缺失别的注入块时兜底） */
+#ze-cast-toast {
+  position: fixed; left: 50%; bottom: 42px; transform: translate(-50%, 8px); z-index: 80;
+  max-width: 76vw; padding: 9px 16px; border-radius: 999px; font-size: 12.5px;
+  background: #2b2333ee; color: #fff; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+}
+#ze-cast-toast.show { opacity: 1; transform: translate(-50%, 0); }
+/* ==== ZEEHO_CAST_UI:CSS:END ==== */

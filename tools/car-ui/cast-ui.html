@@ -1,0 +1,59 @@
+  <!-- ==== ZEEHO_CAST_UI:HTML:BEGIN ==== -->
+  <!-- 车机投屏：扫码配对 → 连车机 → 投屏。协议模型见 sdk/vehicle-cast.js，文档 docs/CAST.md。
+       真正的 Wi-Fi Direct / MediaProjection 在 App 原生桥（window.ZeehoCast）；
+       浏览器直开时整块进入只读模式：能扫码解析、能看诊断，不给“点了没反应”的按钮。 -->
+  <section class="card" id="cast-card">
+    <div class="card-head">
+      <h2>车机投屏</h2>
+      <span class="sub" id="cast-sub">内置协议 · 不依赖第三方</span>
+    </div>
+    <div class="card-body">
+      <div class="ze-cast-state">
+        <span class="ze-cast-pill" id="cast-pill" data-tone="idle">待连接</span>
+        <span class="ze-cast-hint" id="cast-hint">在车机上打开「投屏」，扫描车机屏幕上的二维码。</span>
+      </div>
+      <dl class="ze-cast-kv">
+        <dt>车型</dt><dd id="cast-model">—</dd>
+        <dt>车机地址</dt><dd id="cast-mac" class="ze-cast-mono">—</dd>
+        <dt>画面</dt><dd>手机整屏（无触控回传）</dd>
+        <dt>码流</dt><dd id="cast-stream">—</dd>
+      </dl>
+      <div class="ze-cast-options">
+        <label class="ze-cast-field"><span>画质档位</span>
+          <select class="ze-cast-select" id="cast-tier"></select>
+        </label>
+        <label class="ze-cast-field"><span>数据帧格式</span>
+          <select class="ze-cast-select" id="cast-format">
+            <option value="traditional">传统（兼容优先）</option>
+            <option value="extended">扩展（带帧号，丢帧可检测）</option>
+          </select>
+        </label>
+      </div>
+      <div class="ze-cast-actions">
+        <button class="ze-cast-btn" id="btn-cast-scan" type="button">扫码配对</button>
+        <button class="ze-cast-btn ghost" id="btn-cast-paste" type="button">粘贴二维码</button>
+        <button class="ze-cast-btn primary" id="btn-cast-start" type="button">开始投屏</button>
+        <button class="ze-cast-btn ghost" id="btn-cast-stop" type="button">停止</button>
+        <button class="ze-cast-btn" id="btn-cast-diag" type="button">复制诊断</button>
+      </div>
+      <p class="ze-cast-note">协议逆向自 Motexa 2.7.0（见 <span class="ze-cast-mono">docs/CAST.md</span>）。
+        投屏期间「手机整屏内容都会发到车机」（通知、验证码也会），车机侧只能看、不能反向操作；
+        需要极核面板 App 的原生桥（浏览器直开只能用来看状态和诊断）。</p>
+    </div>
+  </section>
+  <!-- 扫码/粘贴弹层：必须在 body 级，塞进 sheet 会被裁切 -->
+  <dialog id="ze-cast-scan">
+    <form method="dialog" class="ze-cast-dlg-head">
+      <h3>扫描投屏二维码</h3>
+      <button class="ze-cast-btn ghost" value="cancel" type="submit">关闭</button>
+    </form>
+    <div class="ze-cast-dlg-body">
+      <video id="cast-video" class="ze-cast-video" playsinline muted></video>
+      <p class="ze-cast-hint" id="cast-scan-hint">把车机屏幕上的二维码放进取景框。</p>
+      <textarea class="ze-cast-manual" id="cast-scan-manual" rows="3" placeholder="也可以把二维码内容粘贴到这里"></textarea>
+      <div class="ze-cast-actions">
+        <button class="ze-cast-btn primary" id="ze-cast-manual-ok" type="button">使用这段内容</button>
+      </div>
+    </div>
+  </dialog>
+  <!-- ==== ZEEHO_CAST_UI:HTML:END ==== -->
