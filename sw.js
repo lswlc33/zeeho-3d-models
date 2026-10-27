@@ -16,7 +16,7 @@
 // v4 起换缓存名强制清空一次；同时 index.html 内加了静态兜底文案，
 // 真出问题时用户至少看到「页面没能加载完成 + 重新加载」，而不是纯黑。
 
-const CACHE = 'zeeho-dashboard-v4';
+const CACHE = 'zeeho-dashboard-v5';
 const PRECACHE = [
   './',
   './index.html',
@@ -48,6 +48,15 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+function cacheableUrl(value) {
+  try {
+    const url = new URL(value, self.location.href);
+    return url.origin === self.location.origin && !url.search && !url.pathname.includes('/api/');
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -55,10 +64,8 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.includes('/api/')) return;
 
-  // 能不能进缓存：带 query 的不行（凭据/构建号都在 query 里，见文件头），
-  // 显式 no-store 的也不行（version.json 探针与 `?b=` 整页重载每次都换 URL，
-  // 缓存它们只会让 CACHE 无限涨，而且永远命中不到）。
-  const cacheable = url.search === '' && req.cache !== 'no-store';
+  // 请求与预热共用缓存边界，查询串不能经另一入口绕过凭据保护。
+  const cacheable = cacheableUrl(req.url) && req.cache !== 'no-store';
 
   e.respondWith(
     fetch(req)
@@ -71,18 +78,19 @@ self.addEventListener('fetch', (e) => {
         return res;
       })
       .catch(() =>
-        caches.match(req).then((hit) => {
-          if (hit) return hit;
-          // 导航请求断网时回落到页面本体；其它资源（js/css）回落到 HTML 反而会因 MIME 不对而报错。
-          // 兜底必须**永远返回一个 Response**：命中不到再 resolve 成 undefined 的话，
-          // respondWith(undefined) 会抛 TypeError，用户拿到的是浏览器原生错误页。
-          if (req.mode === 'navigate') {
-            return caches.match('./index.html').then((page) => page || new Response(
-              '<!doctype html><meta charset="utf-8"><h1>离线</h1><p>这一页还没被缓存过，联网打开一次就好。</p>',
-              { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-            ));
-          }
-          return Response.error();
+        caches.open(CACHE).then((c) => {
+          const match = cacheable ? c.match(req) : Promise.resolve(null);
+          return match.then((hit) => {
+            if (hit) return hit;
+            // 导航失败只回落本应用缓存，不能拿同源其它站点的页面或带凭据条目。
+            if (req.mode === 'navigate') {
+              return c.match('./index.html').then((page) => page || new Response(
+                '<!doctype html><meta charset="utf-8"><h1>离线</h1><p>这一页还没被缓存过，联网打开一次就好。</p>',
+                { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+              ));
+            }
+            return Response.error();
+          });
         }),
       ),
   );
@@ -93,10 +101,8 @@ self.addEventListener('fetch', (e) => {
 // 不补一下的话"装好之后第一次断网"会白屏（单文件产物没这问题，它的 js/css 全内联在 index.html 里）。
 self.addEventListener('message', (e) => {
   if (e.data?.type !== 'warm') return;
-  // 只认同源 URL：这条通道的承诺是"跨域一律不缓存"，别被塞进来的跨域地址破了例
-  const urls = (Array.isArray(e.data.urls) ? e.data.urls : []).filter((u) => {
-    try { return new URL(u, self.location.href).origin === self.location.origin; } catch { return false; }
-  });
+  const urls = [...new Set((Array.isArray(e.data.urls) ? e.data.urls : [])
+    .filter(cacheableUrl).map((u) => new URL(u, self.location.href).href))];
   if (!urls.length) return;
   e.waitUntil(
     caches.open(CACHE).then((c) => Promise.all(urls.map((u) => c.add(u).catch(() => {})))),

@@ -728,8 +728,8 @@ function buildHeaders(options) {
  * ------------------------------------------------------------------ */
 
 class ZeehoApiError extends Error {
-  constructor(message, { status = 0, code = '', body = '', url = '' } = {}) {
-    super(message);
+  constructor(message, { status = 0, code = '', body = '', url = '', cause } = {}) {
+    super(message, { cause });
     this.name = 'ZeehoApiError';
     this.status = status;
     this.code = code;
@@ -799,6 +799,7 @@ class ZeehoClient {
    * @param {object} [options.headers]
    * @param {object} [options.sign] 自定义签名参数（复用面板签名时传 {param, sign}）
    * @param {number} [options.timeout]
+   * @param {AbortSignal} [options.signal] 调用方取消，覆盖响应正文读取
    */
   async request({
     path,
@@ -811,6 +812,7 @@ class ZeehoClient {
     headers = {},
     sign = null,
     timeout = this.timeout,
+    signal,
   } = {}) {
     const upperMethod = String(method).toUpperCase();
     const url = this.url(path, query);
@@ -849,49 +851,69 @@ class ZeehoClient {
       finalHeaders.Authorization = `Bearer ${token}`;
     }
 
+    const abortReason = () => signal.reason ?? Object.assign(new Error('请求已取消'), { name: 'AbortError' });
+    if (signal?.aborted) throw abortReason();
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
     const startedAt = Date.now();
+    let timer;
+    let cancel;
     let response;
+    // 一个期限覆盖响应头、正文与结果收尾。只依赖 abort 会让不支持取消的 fetch 实现永久等待。
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new ZeehoApiError(`请求超时（${timeout}ms）`, { url });
+        reject(error);
+        controller?.abort(error);
+      }, timeout);
+      if (signal) {
+        cancel = () => {
+          const error = abortReason();
+          reject(error);
+          controller?.abort(error);
+        };
+        signal.addEventListener('abort', cancel, { once: true });
+      }
+    });
     try {
-      response = await this.fetchImpl(url, {
-        method: upperMethod,
-        headers: finalHeaders,
-        body: upperMethod === 'GET' || upperMethod === 'HEAD' ? undefined : bodyText || undefined,
-        signal: controller?.signal,
-      });
+      const pending = (async () => {
+        response = await this.fetchImpl(url, {
+          method: upperMethod,
+          headers: finalHeaders,
+          body: upperMethod === 'GET' || upperMethod === 'HEAD' ? undefined : bodyText || undefined,
+          signal: controller?.signal || signal,
+        });
+        const text = await response.text();
+        const elapsed = Date.now() - startedAt;
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; } catch { /* 401 网关返回 XML */ }
+        const result = {
+          status: response.status,
+          ok: response.ok,
+          url,
+          method: upperMethod,
+          headers: Object.fromEntries(response.headers.entries?.() || []),
+          text,
+          data: json,
+          code: json?.code || '',
+          message: json?.message || '',
+          elapsed,
+          requestHeaders: finalHeaders,
+        };
+        if (response.status === 401 || (json && String(json.code || '') === '401')) {
+          result.authFailed = true;
+        }
+        return result;
+      })();
+      return await Promise.race([pending, deadline]);
     } catch (error) {
-      if (timer) clearTimeout(timer);
-      const reason = error?.name === 'AbortError' ? `请求超时（${timeout}ms）` : `网络错误：${error?.message || error}`;
-      throw new ZeehoApiError(reason, { url });
+      // 调用方取消与底层 AbortError 保留原异常，不能误包装成正文读取失败或普通网络故障。
+      if (error instanceof ZeehoApiError || error?.name === 'AbortError' || signal?.aborted) throw error;
+      const reason = response ? '读取响应失败' : '网络错误';
+      throw new ZeehoApiError(`${reason}：${error?.message || error}`, { url, cause: error });
+    } finally {
+      clearTimeout(timer);
+      if (cancel) signal.removeEventListener('abort', cancel);
     }
-    if (timer) clearTimeout(timer);
-    let text;
-    try {
-      text = await response.text();
-    } catch (error) {
-      throw new ZeehoApiError(`读取响应失败：${error?.message || error}`, { url });
-    }
-    const elapsed = Date.now() - startedAt;
-    let json = null;
-    try { json = text ? JSON.parse(text) : null; } catch { /* 401 网关返回 XML */ }
-    const result = {
-      status: response.status,
-      ok: response.ok,
-      url,
-      method: upperMethod,
-      headers: Object.fromEntries(response.headers.entries?.() || []),
-      text,
-      data: json,
-      code: json?.code || '',
-      message: json?.message || '',
-      elapsed,
-      requestHeaders: finalHeaders,
-    };
-    if (response.status === 401 || (json && String(json.code || '') === '401')) {
-      result.authFailed = true;
-    }
-    return result;
   }
 
   /* --------------------------- 登录 / 账号 --------------------------- */
@@ -1139,8 +1161,8 @@ function pickVehicleSummary(home) {
   const data = home?.data ?? home ?? {};
   const soc = data.bmssoc === '' || data.bmssoc == null ? NaN : Number(data.bmssoc);
   const range = data.hmiRidableMile === '' || data.hmiRidableMile == null ? NaN : Number(data.hmiRidableMile);
-  const charging = data.whetherChargeState === true || data.whetherChargeState === 1
-    || ['1', 'true', 'TRUE'].includes(String(data.whetherChargeState));
+  // 和面板一致：只认服务端 chargeState=1，退役字段、功率、SOC、布尔值都不能猜充电。
+  const charging = data.chargeState === 1 || data.chargeState === '1';
   return {
     vin: data.vinNo || '',
     name: data.vehicleName || '',
@@ -1769,6 +1791,7 @@ const state = {
   values: {},
   last: null, // {url, method, headers, body, result, text}
   tab: 'json',
+  revealSensitive: false,
 };
 
 /* ---------------------------- 基础工具 ---------------------------- */
@@ -1820,34 +1843,42 @@ function safeHttpUrl(value) {
   return /^https?:\/\//i.test(url) ? url : '';
 }
 
+const SENSITIVE_KEYS = new Set([
+  'authorization', 'proxyauthorization', 'cookie', 'setcookie',
+  'token', 'accesstoken', 'refreshtoken', 'idtoken', 'authtoken', 'bearertoken', 'sessiontoken', 'securitytoken',
+  'authcode', 'password', 'pwd', 'phone', 'appsecret', 'clientsecret', 'apikey', 'xapikey',
+  'xaccesstoken', 'xrefreshtoken', 'xauthtoken', 'basic', 'basicauth',
+  'secret', 'encryptvalue',
+]);
+const SENSITIVE_URL_KEYS = new Set([
+  'sign', 'signature', 'expires', 'ossaccesskeyid', 'xamzcredential', 'xamzsignature', 'xamzsecuritytoken',
+]);
+const normalizedKey = (key) => String(key).replace(/[-_]/g, '').toLowerCase();
+
 function maskSensitiveUrl(value) {
-  const text = String(value || '');
-  try {
-    const url = new URL(text);
-    for (const key of [...url.searchParams.keys()]) {
-      if (/^(sign|signature|token|pwd|password|expires|ossaccesskeyid|security-token)$/i.test(key)) {
-        url.searchParams.set(key, '***');
-      }
-    }
-    return url.toString();
-  } catch {
-    return text.replace(/(^|[?&])(pwd|password|token|sign|signature|expires|ossaccesskeyid)=[^&]*/gi, '$1$2=***');
-  }
+  // 只改已知敏感 query 值，不重新序列化 URL：签名链接的编码、非敏感参数与片段都要原样保留。
+  return String(value || '').replace(/(^|[?&])([^?&#=\s]+)=([^&#\s]*)/g, (match, prefix, key) => {
+    let decoded = key;
+    try { decoded = decodeURIComponent(key); } catch { /* 畸形编码也按原键检查 */ }
+    const name = normalizedKey(decoded);
+    return SENSITIVE_KEYS.has(name) || SENSITIVE_URL_KEYS.has(name) ? `${prefix}${key}=***` : match;
+  });
 }
 
 function redactForDisplay(value) {
+  if (typeof value === 'string') return maskSensitiveUrl(value);
   if (value == null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(redactForDisplay);
   const out = {};
   for (const [key, child] of Object.entries(value)) {
-    if (key === 'encryptInfo' && child && typeof child === 'object') {
+    const name = normalizedKey(key);
+    if (name === 'encryptinfo' && child && typeof child === 'object') {
       out[key] = { present: true, keys: Object.keys(child) };
-    } else if (key === 'location' && child && typeof child === 'object') {
+    } else if (name === 'location' && child && typeof child === 'object') {
       out[key] = { present: true };
-    } else if (typeof child === 'string' && /(?:[?&](?:pwd|password|token|sign|signature|expires|ossaccesskeyid)=)/i.test(child)) {
-      out[key] = maskSensitiveUrl(child);
-    } else if (['authCode', 'password', 'phone'].includes(key) && typeof child === 'string') {
-      out[key] = '***';
+    } else if (SENSITIVE_KEYS.has(name) || name === 'encryptinfo' || name === 'location') {
+      // 明确的黑名单，不按 token/key/code 等子串猜：tokenInfo、token_type、业务 code、固件 sign 仍可查看。
+      out[key] = child == null || child === '' ? child : '***';
     } else {
       out[key] = redactForDisplay(child);
     }
@@ -1856,10 +1887,11 @@ function redactForDisplay(value) {
 }
 
 function redactedHeaders(headers) {
-  const copy = { ...(headers || {}) };
+  const copy = redactForDisplay(headers || {});
   for (const key of Object.keys(copy)) {
-    if (/^(authorization|proxy-authorization|cookie)$/i.test(key)) {
-      copy[key] = /^Basic\s/i.test(String(copy[key])) ? 'Basic <REDACTED>' : 'Bearer <REDACTED>';
+    if (/^(authorization|proxy-authorization)$/i.test(key)) {
+      const scheme = String(headers[key]).match(/^(Basic|Bearer)\s/i)?.[1];
+      copy[key] = scheme ? `${scheme} <REDACTED>` : '<REDACTED>';
     }
   }
   return copy;
@@ -2074,15 +2106,17 @@ function panelParams(values) {
   if (params.userId == null && params.uid) params.userId = params.uid;
   if (params.uid == null && state.uid) params.uid = state.uid;
   if (params.postId == null && params.articleId) params.postId = params.articleId;
-  if (params.month) {
-    params.month_dot = String(params.month).replace('-', '.');
-    params.month_dash = String(params.month).replace('.', '-');
+  // 面板 resolve 只读 ctx.date / ctx.month，派生的 date_dash/month_dash 键不会参与填充。
+  const date = params.date || params.startDateTime || params.startDate;
+  if (date) {
+    params.date = String(date).trim().slice(0, 10).replace(/-/g, '.');
+    if (!params.month) params.month = params.date.slice(0, 7);
   }
-  if (params.startDate) {
-    params.date_dash = String(params.startDate).replace(/-/g, '.');
-    params.month_dash = String(params.startDate).slice(0, 7).replace('-', '.');
+  if (params.month) params.month = String(params.month).trim().replace(/-/g, '.');
+  // 空输入不覆盖 endpoint 的默认分页；非空值由 API.resolve 的 query override 原样传递。
+  for (const key of ['page', 'pageSize']) {
+    if (params[key] == null || String(params[key]).trim() === '') delete params[key];
   }
-  if (params.startDateTime == null && params.startDate) params.startDateTime = params.startDate;
   return params;
 }
 
@@ -2182,16 +2216,34 @@ async function request({ endpoint, values, body, token }) {
   return { url, method, headers, body: bodyText, response, text, data, elapsed };
 }
 
-function curlFor({ url, method, headers, body }) {
-  const safeHeaders = redactedHeaders(headers);
-  const lines = [`curl -sS -X ${method} ${shellQuote(url)}`];
-  for (const [k, v] of Object.entries(safeHeaders)) lines.push(`  -H ${shellQuote(`${k}: ${v}`)}`);
-  if (body) {
-    let safeBody = body;
-    try { safeBody = JSON.stringify(redactForDisplay(JSON.parse(body))); } catch { /* 非 JSON 原样 */ }
-    lines.push(`  --data ${shellQuote(safeBody)}`);
+function requestForDisplay(result, reveal = false) {
+  let body = result.body || null;
+  if (body && !reveal) {
+    try { body = JSON.stringify(redactForDisplay(JSON.parse(body))); } catch { body = maskSensitiveUrl(body); }
   }
+  return {
+    url: reveal ? result.url : maskSensitiveUrl(result.url),
+    method: result.method,
+    headers: reveal ? result.headers : redactedHeaders(result.headers),
+    body,
+  };
+}
+
+function curlFor({ url, method, headers, body }) {
+  const lines = [`curl -sS -X ${method} ${shellQuote(url)}`];
+  for (const [k, v] of Object.entries(headers || {})) lines.push(`  -H ${shellQuote(`${k}: ${v}`)}`);
+  if (body) lines.push(`  --data ${shellQuote(body)}`);
   return lines.join(' \\\n');
+}
+
+function responseForDisplay(result, tab, reveal = false) {
+  // 显示与复制只能从同一条路径取文本；原始数据不改写，显式 reveal 后仍可完整查看/复制。
+  if (tab === 'request') return { text: JSON.stringify(requestForDisplay(result, reveal), null, 2), json: true };
+  if (tab === 'curl') return { text: curlFor(requestForDisplay(result, reveal)), json: false };
+  const data = reveal ? result.data : redactForDisplay(result.data);
+  return data != null
+    ? { text: JSON.stringify(data, null, 2), json: true }
+    : { text: reveal ? result.text : maskSensitiveUrl(result.text), json: false };
 }
 
 /* ---------------------------- 渲染：目录 ---------------------------- */
@@ -2312,7 +2364,7 @@ function selectEndpoint(id) {
 function renderResponse() {
   const box = $('resp-box');
   const last = state.last;
-  $('btn-reveal').classList.toggle('hidden', !last?.result?.data);
+  $('btn-reveal').classList.toggle('hidden', !last);
   $('btn-reveal').textContent = state.revealSensitive ? '隐藏原文' : '显示原文';
   if (!last) {
     box.innerHTML = '<div class="empty">执行一个接口后，这里显示响应。</div>';
@@ -2322,32 +2374,15 @@ function renderResponse() {
     return;
   }
   const { result, endpoint } = last;
-  const { response, data, text, elapsed } = result;
+  const { response, data, elapsed } = result;
   const ok = response.ok;
   $('r-status').textContent = `HTTP ${response.status}${data?.code ? ` · code ${data.code}` : ''}`;
   $('r-status').className = `pill ${ok ? 'status-ok' : 'status-bad'}`;
   $('r-meta').textContent = `${endpoint.label} · ${elapsed} ms${data?.message ? ` · ${data.message}` : ''}`;
 
-  if (state.tab === 'request') {
-    let requestBody = result.body || null;
-    if (requestBody && !state.revealSensitive) {
-      try { requestBody = JSON.stringify(redactForDisplay(JSON.parse(requestBody))); } catch { /* 非 JSON 原样 */ }
-    }
-    box.innerHTML = `<pre>${highlightJson(JSON.stringify({
-      url: result.url,
-      method: result.method,
-      headers: redactedHeaders(result.headers),
-      body: requestBody,
-    }, null, 2))}</pre>`;
-    return;
-  }
-  if (state.tab === 'curl') {
-    box.innerHTML = `<pre>${escapeHtml(curlFor(result))}</pre>`;
-    return;
-  }
-  const displayData = data && !state.revealSensitive ? redactForDisplay(data) : data;
-  const pretty = displayData ? JSON.stringify(displayData, null, 2) : text;
-  box.innerHTML = `<pre>${displayData ? highlightJson(pretty) : escapeHtml(pretty)}</pre>`;
+  const display = responseForDisplay(result, state.tab, state.revealSensitive);
+  box.innerHTML = `<pre>${display.json ? highlightJson(display.text) : escapeHtml(display.text)}</pre>`;
+  if (state.tab !== 'json') return;
   const fileUrl = safeHttpUrl(data?.data?.fileInfo?.fileUrl);
   if (fileUrl) {
     const bar = document.createElement('div');
@@ -2399,14 +2434,24 @@ function renderProjection(encryptInfo) {
     ['key', encryptInfo.key || ''],
     ['iv', encryptInfo.iv || ''],
   ];
-  $('projection-kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd class="mono masked" data-reveal>${escapeHtml(v || '—')}</dd>`).join('');
-  for (const node of document.querySelectorAll('[data-reveal]')) {
-    node.addEventListener('click', () => node.classList.toggle('show'));
+  const revealed = new Set();
+  // 投屏卡片也遵守所见即所复制：没点开的字段不把原值放进 DOM 或剪贴板。
+  const displayPayload = () => Object.fromEntries(rows.map(([k, v]) => [k, !v ? '—' : revealed.has(k) ? v : '***']));
+  $('projection-kv').innerHTML = Object.entries(displayPayload())
+    .map(([k, v], index) => `<dt>${k}</dt><dd class="mono masked" data-reveal="${index}">${escapeHtml(v)}</dd>`).join('');
+  for (const node of $('projection-kv').querySelectorAll('[data-reveal]')) {
+    const key = rows[Number(node.dataset.reveal)][0];
+    node.addEventListener('click', () => {
+      if (revealed.has(key)) revealed.delete(key); else revealed.add(key);
+      node.textContent = displayPayload()[key];
+      node.classList.toggle('show', revealed.has(key));
+    });
   }
   $('btn-copy-projection').onclick = async () => {
-    const payload = Object.fromEntries(rows);
-    await navigator.clipboard.writeText(JSON.stringify(payload));
-    toast('投屏资料已复制');
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(displayPayload()));
+      toast('投屏资料已复制');
+    } catch { toast('复制失败，请手动选择'); }
   };
 }
 
@@ -2668,11 +2713,7 @@ $('btn-reveal').addEventListener('click', () => {
 
 $('btn-copy').addEventListener('click', async () => {
   if (!state.last) return toast('还没有响应');
-  const { result, endpoint } = state.last;
-  let text;
-  if (state.tab === 'curl') text = curlFor(result);
-  else if (state.tab === 'request') text = JSON.stringify({ url: result.url, method: result.method, headers: result.headers, body: result.body || null }, null, 2);
-  else text = result.data ? JSON.stringify(result.data, null, 2) : result.text;
+  const { text } = responseForDisplay(state.last.result, state.tab, state.revealSensitive);
   try { await navigator.clipboard.writeText(text); toast('已复制'); } catch { toast('复制失败，请手动选择'); }
 });
 
@@ -2704,8 +2745,8 @@ $('call-form').addEventListener('submit', async (event) => {
     const result = await request({ endpoint, values, body, token: state.token });
     state.last = { result, endpoint };
     state.tab = 'json';
-  state.revealSensitive = false;
-  state.themeSupported = false;
+    state.revealSensitive = false;
+    state.themeSupported = false;
     for (const tab of document.querySelectorAll('.tab')) tab.setAttribute('aria-selected', String(tab.dataset.tab === 'json'));
     renderResponse();
     if (result.response.status === 401) setStatus('bad', 'token 已失效，请重新登录');
