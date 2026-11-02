@@ -15,8 +15,11 @@
 // 一旦 SW 回了一份过期的 index.html，或者网络中断时拿到半截，页面就没有任何内容可画。
 // v4 起换缓存名强制清空一次；同时 index.html 内加了静态兜底文案，
 // 真出问题时用户至少看到「页面没能加载完成 + 重新加载」，而不是纯黑。
+//
+// v5→v6（2026-11-02）：演示数据从主产物外置成 mock.json（按需加载），预缓存清单多了一项。
+// 必须换缓存名：v5 的缓存里没有 mock.json，不换的话老用户装上新 SW 后进演示模式会拿不到数据。
 
-const CACHE = 'zeeho-dashboard-v5';
+const CACHE = 'zeeho-dashboard-v6';
 const PRECACHE = [
   './',
   './index.html',
@@ -25,6 +28,9 @@ const PRECACHE = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
+  // 演示数据（2026-11-02 起外置、按需加载）：预缓存它，断网时演示模式照样开得起来。
+  // 安装时逐个 add 且各自 catch，所以旧产物没有这个文件也不会让整批预缓存失败。
+  './mock.json',
 ];
 
 self.addEventListener('install', (e) => {
