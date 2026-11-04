@@ -19,7 +19,7 @@
 // v5→v6（2026-11-02）：演示数据从主产物外置成 mock.json（按需加载），预缓存清单多了一项。
 // 必须换缓存名：v5 的缓存里没有 mock.json，不换的话老用户装上新 SW 后进演示模式会拿不到数据。
 
-const CACHE = 'zeeho-dashboard-v6';
+const CACHE = 'zeeho-dashboard-v7';
 const PRECACHE = [
   './',
   './index.html',
@@ -28,6 +28,8 @@ const PRECACHE = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
+  // 标签页图标（2026-11-04 换掉内联 SVG 闪电，改成与 App 同款的 PNG）
+  './icons/favicon-32.png',
   // 演示数据（2026-11-02 起外置、按需加载）：预缓存它，断网时演示模式照样开得起来。
   // 安装时逐个 add 且各自 catch，所以旧产物没有这个文件也不会让整批预缓存失败。
   './mock.json',
