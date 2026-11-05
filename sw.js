@@ -139,7 +139,7 @@ async function clientDigest(clientId) {
     tx.onabort = tx.onerror = () => reject(tx.error || new Error('client checkpoint unavailable'));
   });
 }
-async function boundedBytes(response, max) {
+async function boundedBytes(response, max, onProgress) {
   if (!response || response.status !== 200 || response.redirected || !['basic', 'default'].includes(response.type)) fail('HTTP status/type/redirect');
   const declared = Number(response.headers.get('Content-Length') || 0);
   if (!Number.isFinite(declared) || declared < 0 || declared > max || !response.body?.getReader) fail('response limit/body');
@@ -148,20 +148,34 @@ async function boundedBytes(response, max) {
     while (true) {
       const { done, value } = await reader.read(); if (done) break;
       count += value.length; if (count > max) fail('response limit'); chunks.push(value);
+      onProgress?.();
     }
   } finally { await reader.cancel().catch(() => {}); }
   const bytes = new Uint8Array(count); let at = 0;
   for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.length; }
   return bytes;
 }
+/**
+ * 取同源已签资产。
+ *
+ * 超时口径是**停滞**而不是总时长（2026-11-05 修）：旧实现给整次下载固定 15 秒，
+ * 而单文件产物 index.html 有 2.8MB —— 本机实测 15 秒只到 277KB，于是 SW 一接管
+ * 页面、又没有可用的已验快照时，导航就被 abort、按 `fail` 落到 unavailable()，
+ * 用户看到的就是「离线或发布校验失败」（和"点开下载下不了"是同一个报错的两处来源）。
+ * 现在只要还在收字节就一直等，只有连续 STALL_MS 没进展才当作网络卡死换路。
+ */
+const STALL_MS = 20000;
 async function network(path, max) {
   const url = new URL(path, ROOT);
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
+  const controller = new AbortController();
+  let timer = setTimeout(() => controller.abort(), STALL_MS);
+  const bump = () => { clearTimeout(timer); timer = setTimeout(() => controller.abort(), STALL_MS); };
   try {
     // 永远只取已知的同源干净 URL：导航的 token / query / Cookie 不交给发布资源服务器。
     const response = await fetch(url.href, { cache: 'no-store', credentials: 'omit', redirect: 'error', signal: controller.signal });
     if (!response || response.type !== 'basic' || (response.url && response.url !== url.href)) fail('network origin/type');
-    return { bytes: await boundedBytes(response, max), headers: response.headers };
+    bump();
+    return { bytes: await boundedBytes(response, max, bump), headers: response.headers };
   } finally { clearTimeout(timer); }
 }
 function restored(bytes, path, networkHeaders) {
