@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "build": "2",
+  "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
+  "minimumIOS": "15.4",
+  "architecture": "arm64",
+  "installer": "TrollStore",
+  "file": "dashboard-trollstore.ipa",
+  "size": 68788,
+  "sha256": "9ddebe5254081439b604e6907820307dc012dbd344f458b3407e7a25dd5b3d0c",
+  "sourceRepository": "https://github.com/lswlc33/dashboard",
+  "sourceCommit": "c45e946f97161420d3d24219ce22fef60c2f6877",
+  "buildRun": "https://github.com/lswlc33/dashboard/actions/runs/41999274278",
+  "panelURL": "https://lswlc33.github.io/zeeho-3d-models/",
+  "notes": "WKWebView 在线面板壳；Android 专属后台、投屏、BLE 与小组件未移植；未做 iOS 实机验收。"
+}
