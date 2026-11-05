@@ -1,16 +1,16 @@
 {
-  "version": "1.0.0",
-  "build": "2",
+  "version": "1.0.1",
+  "build": "4",
   "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
   "minimumIOS": "15.4",
   "architecture": "arm64",
   "installer": "TrollStore",
   "file": "dashboard-trollstore.ipa",
-  "size": 68788,
-  "sha256": "9ddebe5254081439b604e6907820307dc012dbd344f458b3407e7a25dd5b3d0c",
+  "size": 106522,
+  "sha256": "557d3e018ebf2d7cbd9e7756952ce806ed03ea54a862197aa93ff0bd70a179c5",
   "sourceRepository": "https://github.com/lswlc33/dashboard",
-  "sourceCommit": "c45e946f97161420d3d24219ce22fef60c2f6877",
-  "buildRun": "https://github.com/lswlc33/dashboard/actions/runs/41999274278",
+  "sourceCommit": "4674313aaed35eb76a11f71d406d4418defb8ae3",
   "panelURL": "https://lswlc33.github.io/zeeho-3d-models/",
-  "notes": "WKWebView 在线面板壳；Android 专属后台、投屏、BLE 与小组件未移植；未做 iOS 实机验收。"
+  "notes": "iOS 独立软件更新：检查版本、校验 IPA、通过分享菜单交给 TrollStore 安装。",
+  "buildRun": "https://github.com/lswlc33/dashboard/actions/runs/42001299649"
 }
