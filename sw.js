@@ -261,8 +261,32 @@ function requestedSequence(url) {
   if (!/^\d+$/.test(raw) || !integer(Number(raw), 1, Number.MAX_SAFE_INTEGER)) fail('release query');
   return Number(raw);
 }
+/**
+ * 已知签名的**非 HTML** 资产被当成文档直接打开（典型：点 apk / 图片 / json 链接）。
+ *
+ * 以前这里一律返回 503「离线或发布校验失败」，于是「下载 App」按钮点开同源 APK 链接
+ * 就永远下不到东西——链接没错，是 SW 把它当成一次文档导航接走了（2026-11-05 用户报障）。
+ * 放行是安全的：这些路径都在 PATHS 的固定清单里、返回前必过 size+hash 校验，
+ * 且 MIME 保证不是可执行 HTML（index.html 走上面的 navigate，永远单独处理）。
+ * 未知路径仍然拒绝——不能靠导航把任意 URL 变成可信内容。
+ */
+async function navigateAsset(req, url, path, clientId) {
+  if (req.method !== 'GET' || path === 'index.html') return unavailable();
+  const persist = cacheableUrl(url.href) && req.cache !== 'no-store';
+  try {
+    const release = await networkManifest();
+    return await freshAsset(release, path, persist, clientId);
+  } catch {
+    for (const release of await cachedManifests()) {
+      try { return await cachedAsset(release, path); } catch { /* 继续找可信字节。 */ }
+    }
+    return unavailable();
+  }
+}
 async function navigate(req, url, clientId) {
-  if (assetPath(url) !== 'index.html' || req.method !== 'GET') return unavailable();
+  const path = assetPath(url);
+  if (path && path !== 'index.html') return navigateAsset(req, url, path, clientId);
+  if (path !== 'index.html' || req.method !== 'GET') return unavailable();
   try {
     const release = await networkManifest();
     return await freshAsset(release, 'index.html', cacheableUrl(url.href) && req.cache !== 'no-store', clientId);
