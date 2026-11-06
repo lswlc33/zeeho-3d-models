@@ -1,0 +1,14 @@
+# Cloudflare 部署时排除的文件（留在 Git 仓库，只是不上传到 Pages/Workers）
+# Workers Static Assets 单文件上限 25 MiB，超限会导致整个部署失败。
+
+# 36MB 车模超过 25MiB 上限；它由 jsDelivr 直接提供，不经过本站点。
+models/miko-bust.glb
+
+# 构建工具自身的文件
+.git/
+.gitignore
+.assetsignore
+wrangler.jsonc
+wrangler.toml
+node_modules/
+_work/
