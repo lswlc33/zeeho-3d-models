@@ -5,6 +5,8 @@
 
 ## 内容
 
+iOS 巨魔安装包：[几何面板 IPA 与安装说明](app/ios/README.md)（需要已安装 TrollStore）。
+
 ```
 models/                 .glb 车模文件
 index.json              车模清单，客户端按清单读取列表和文件地址
