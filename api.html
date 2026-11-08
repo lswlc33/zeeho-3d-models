@@ -382,8 +382,8 @@
     <div id="own-fields" class="form-grid hidden">
       <div class="field"><label for="cfg-base">BASE</label><input id="cfg-base" placeholder="https://tapi.zeehoev.com"></div>
       <div class="field"><label for="cfg-appid">appId</label><input id="cfg-appid" placeholder="App 3.0.6 AppConfig"></div>
-      <div class="field"><label for="cfg-secret">appSecret</label><input id="cfg-secret" type="password" placeholder="不随仓库分发"></div>
-      <div class="field"><label for="cfg-basic">Basic</label><input id="cfg-basic" type="password" placeholder="Basic …（登录接口用）"></div>
+      <div class="field"><label for="cfg-secret">appSecret</label><input id="cfg-secret" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="不随仓库分发"></div>
+      <div class="field"><label for="cfg-basic">Basic</label><input id="cfg-basic" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Basic …（登录接口用）"></div>
       <div class="field" style="grid-column:1/-1">
         <label for="cfg-token">Bearer token</label>
         <input id="cfg-token" placeholder="面板登录后自动读取；也可从 App 抓包粘贴">
@@ -394,7 +394,7 @@
     <div class="form-grid">
       <div class="field" style="grid-column:1/-1">
         <label for="cfg-basic-global">登录 Basic</label>
-        <input id="cfg-basic-global" type="password" placeholder="登录接口需要；面板模式下自动从 ZEEHO_SIGN.APP_BASIC_AUTH 读取">
+        <input id="cfg-basic-global" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="登录接口需要；面板模式下自动从 ZEEHO_SIGN.APP_BASIC_AUTH 读取">
       </div>
     </div>
 
@@ -1206,7 +1206,6 @@ function pickVehicleSummary(home) {
   };
 }
 
-
 return { ZeehoClient, buildHeaders, pickVehicleSummary, rfc3986, DEFAULT_BASE };
 })();
 const { GROUPS, ENDPOINTS, fillPath, byId } = (() => {
@@ -1697,13 +1696,6 @@ const ENDPOINTS = [
     note: '写操作：删除账号下的自定义壁纸，未执行验证。',
   },
   {
-    id: 'wallpaper_update', group: 'wallpaper', label: '修改壁纸信息', method: 'PUT',
-    path: '/v1.0/app/cfmotoserverapp/vehicle/wallpaper/update/{id}',
-    params: [{ in: 'path', key: 'id', label: '壁纸 ID', example: '100000', required: true }],
-    body: { wallpaperName: '新壁纸名' }, auth: 'token', source: 'app306', danger: true,
-    note: '写操作：改壁纸名称/配置，未执行验证。',
-  },
-  {
     id: 'wallpaper_save', group: 'wallpaper', label: '上传自定义壁纸', method: 'POST',
     path: '/v1.0/app/cfmotoserverapp/vehicle/wallpaper/save',
     params: [], body: { wallpaperName: '我的壁纸' }, auth: 'token', source: 'app306', danger: true,
@@ -1739,11 +1731,6 @@ const ENDPOINTS = [
 
 ];
 
-/** 按分组取接口。 */
-function byGroup(groupId) {
-  return ENDPOINTS.filter((endpoint) => endpoint.group === groupId);
-}
-
 /** 按 id 取接口。 */
 function byId(id) {
   return ENDPOINTS.find((endpoint) => endpoint.id === id) || null;
@@ -1756,7 +1743,6 @@ function fillPath(path, params = {}) {
     return value === undefined || value === null || value === '' ? match : encodeURIComponent(value);
   });
 }
-
 
 return { GROUPS, ENDPOINTS, fillPath, byId };
 })();
