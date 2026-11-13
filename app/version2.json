@@ -1,7 +1,8 @@
 {
   "name": "几何面板 iOS 官方源",
   "subtitle": "几何面板 iOS 客户端与最新版本更新",
-  "description": "官方更新源仓库：https://github.com/lswlc33/zeeho-3d-models\n官方 iOS 源码仓库：https://github.com/lswlc33/zh-dashboard-ios-shell\n\n几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新和 iOS App 更新；小组件与实时活动按系统能力和授权开放。\n\n本 IPA 为 ad-hoc 构建，当前通过 TrollStore 侧载。采用 AltStore 源格式不代表已经验证 AltStore 重签安装；下载后请按设备支持的方式确认覆盖安装。",
+  "description": "几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新和 iOS App 更新",
+  "message": "本软件完全免费，请勿购买和付费。\n不要从网盘等风险渠道获取该软件。\n让你关注，通过网盘下载或者转存下载的 都是骗子，请举报!\n请关注抖音作者@奶龙",
   "iconURL": "https://zhb.xn--fiqz59cpva341l.top/app/icon-ios-1024.png",
   "website": "https://github.com/lswlc33/zeeho-3d-models",
   "apps": [
@@ -10,9 +11,12 @@
       "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
       "developerName": "lswlc33",
       "subtitle": "极核电动车车况与骑行数据面板",
-      "localizedDescription": "官方更新源仓库：https://github.com/lswlc33/zeeho-3d-models\n官方 iOS 源码仓库：https://github.com/lswlc33/zh-dashboard-ios-shell\n\n几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新和 iOS App 更新；小组件与实时活动按系统能力和授权开放。\n\n本 IPA 为 ad-hoc 构建，当前通过 TrollStore 侧载。采用 AltStore 源格式不代表已经验证 AltStore 重签安装；下载后请按设备支持的方式确认覆盖安装。",
+      "localizedDescription": "几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新和 iOS App 更新",
       "iconURL": "https://zhb.xn--fiqz59cpva341l.top/app/icon-ios-1024.png",
       "category": "utilities",
+      "version": "1.1.2",
+      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=fb4fb72e64917b3923778d7e48308c828442e7b005b712a2be439c91ce0d4942",
+      "size": 3535466,
       "versions": [
         {
           "version": "1.1.2",
