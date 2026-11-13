@@ -15,22 +15,25 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.1.1",
-          "buildVersion": "48",
-          "date": "2026-11-12T17:05:27Z",
+          "version": "1.1.2",
+          "buildVersion": "49",
+          "date": "2026-11-13T05:44:58Z",
           "localizedDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
-          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=51ce36ae7d5234b9af5087f0d2e37ad79ff1306d13021b3c3c838a3a83bb2fb0",
-          "size": 2638359,
+          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=fb4fb72e64917b3923778d7e48308c828442e7b005b712a2be439c91ce0d4942",
+          "size": 3535466,
           "minOSVersion": "15.4"
         }
       ],
       "appPermissions": {
         "entitlements": [
+          "com.apple.developer.networking.HotspotConfiguration",
+          "com.apple.developer.networking.wifi-info",
           "com.apple.security.application-groups"
         ],
         "privacy": {
-          "NSBluetoothAlwaysUsageDescription": "用于你主动连接车辆、使用感应钥匙或读取车辆蓝牙状态。",
+          "NSBluetoothAlwaysUsageDescription": "仅在你确认连接后扫描或连接蓝牙设备，按你的操作读写已选择的设备特征。",
           "NSCameraUsageDescription": "仅在你点击相机扫码或拍摄上传时使用摄像头，不会在启动时开启。",
+          "NSLocalNetworkUsageDescription": "仅在你确认后连接指定的局域网设备，发送所选文件或屏幕画面，并检查连接状态。",
           "NSLocationAlwaysAndWhenInUseUsageDescription": "仅在你明确开启骑行记录后，允许切到后台继续记录路线；结束记录后停止获取位置。",
           "NSLocationWhenInUseUsageDescription": "仅在你开启骑行记录时获取位置，用于绘制路线和记录距离。",
           "NSMicrophoneUsageDescription": "仅在你点击现场录音后使用麦克风，录制你的专属车辆音效。",
