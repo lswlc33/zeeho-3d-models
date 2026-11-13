@@ -1,0 +1,6 @@
+{
+  "ver": 1,
+  "updated": "2026-11-13",
+  "note": "静态车辆立绘预设清单：key 暂用车型标识（vehicleType），官方命名规则待用户问卷反馈后补齐；file 相对 models/pic/ 目录",
+  "items": []
+}
