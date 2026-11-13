@@ -10,7 +10,7 @@
   "website": "https://github.com/lswlc33/zeeho-3d-models",
   "apps": [
     {
-      "name": "几何面板",
+      "name": "Jeeho Panel",
       "type": "1",
       "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
       "developerName": "lswlc33",
@@ -18,21 +18,21 @@
       "localizedDescription": "几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新与 iOS App 版本提示",
       "iconURL": "https://zhb.xn--fiqz59cpva341l.top/app/icon-ios-1024.png",
       "category": "utilities",
-      "version": "1.1.5",
-      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=36e0f3377ba1aaa27e69a59bedd0c09b9fe7745ccf4b987665e0e4a022304007",
-      "size": 3532006,
-      "versionDate": "2026-11-13T16:03:51+00:00",
+      "version": "1.1.6",
+      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=6769579e58f442fde842ec1b8f9b99ccbd2b953a3f739d2c940f4de97eae08bc",
+      "size": 3541675,
+      "versionDate": "2026-11-13T17:40:12+00:00",
       "versionDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
       "lock": "0",
       "isLanZouCloud": "0",
       "versions": [
         {
-          "version": "1.1.5",
-          "buildVersion": "52",
-          "date": "2026-11-13T16:03:51Z",
+          "version": "1.1.6",
+          "buildVersion": "53",
+          "date": "2026-11-13T17:40:12Z",
           "localizedDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
-          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=36e0f3377ba1aaa27e69a59bedd0c09b9fe7745ccf4b987665e0e4a022304007",
-          "size": 3532006,
+          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=6769579e58f442fde842ec1b8f9b99ccbd2b953a3f739d2c940f4de97eae08bc",
+          "size": 3541675,
           "minOSVersion": "15.4"
         }
       ],
@@ -49,6 +49,7 @@
           "NSLocationAlwaysAndWhenInUseUsageDescription": "仅在你明确开启骑行记录后，允许切到后台继续记录路线；结束记录后停止获取位置。",
           "NSLocationWhenInUseUsageDescription": "仅在你开启骑行记录时获取位置，用于绘制路线和记录距离。",
           "NSMicrophoneUsageDescription": "仅在你点击现场录音后使用麦克风，录制你的专属车辆音效。",
+          "NSMotionUsageDescription": "仅在孪生仪表页面根据手机倾斜与晃动让仪表轻微摆动；不会记录或上传运动数据。",
           "NSPhotoLibraryAddUsageDescription": "仅在你点击保存图片后，将面板生成的图片添加到照片；不会读取已有照片。",
           "NSPhotoLibraryUsageDescription": "仅在你选择图片上传时使用照片选择器，不会后台读取或上传已有照片。"
         }
