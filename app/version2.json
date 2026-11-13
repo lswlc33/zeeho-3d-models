@@ -14,17 +14,17 @@
       "localizedDescription": "几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新和 iOS App 更新",
       "iconURL": "https://zhb.xn--fiqz59cpva341l.top/app/icon-ios-1024.png",
       "category": "utilities",
-      "version": "1.1.2",
-      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=fb4fb72e64917b3923778d7e48308c828442e7b005b712a2be439c91ce0d4942",
-      "size": 3535466,
+      "version": "1.1.3",
+      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=d1ac5d9aefc7bf129977a96290c3c4a206ec9932cfaa9355283511f53e1abfe3",
+      "size": 3535546,
       "versions": [
         {
-          "version": "1.1.2",
-          "buildVersion": "49",
-          "date": "2026-11-13T05:44:58Z",
+          "version": "1.1.3",
+          "buildVersion": "50",
+          "date": "2026-11-13T08:08:41Z",
           "localizedDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
-          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=fb4fb72e64917b3923778d7e48308c828442e7b005b712a2be439c91ce0d4942",
-          "size": 3535466,
+          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=d1ac5d9aefc7bf129977a96290c3c4a206ec9932cfaa9355283511f53e1abfe3",
+          "size": 3535546,
           "minOSVersion": "15.4"
         }
       ],
