@@ -611,7 +611,7 @@ window.PREVIEW = Object.freeze({
 <meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
 <meta name="description" content="脱离极核 App 的车辆面板：车况、骑行记录与设置">
 
-<meta name="build" content="2026-11-14 16:42:00">
+<meta name="build" content="2026-11-14 19:48:23">
 <title>极核面板</title>
 
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -17384,7 +17384,8 @@ window.APP = (() => {
   // 15.34：审计修复批——调试台发送不再自关页面、未知分辨率壁纸编辑可用、
   //        车辆样式切换不再丢自定义文件、iOS 云锁补齐桥上下文。
   // 15.35：车模完全侧视平视 + 旋转记忆开关 + 首页刷新不重置角度 + 去首帧黑条。
-  const APP_VER = '15.35';
+  // 15.36：3D 展台双击进虚拟仪表、旋转记忆可靠落档、屏蔽单击/双机原生行为。
+  const APP_VER = '15.36';
 
   // 跨模块的可变内部状态（原来散在 app.js IIFE 里的那些 let）。
   // 模块间无法共享闭包变量，统一放这里；谁会写，在各自字段上注释点名。
@@ -19645,10 +19646,18 @@ window.APP = (() => {
   function gestureHandler(el, activate = () => open('twin')) {
     let pointer = null, previous = null, blocked = false;
     const pointers = new Set();
+    // document 的 capture 会早于手势元素上的 down 触发：同一根手指的 pointerdown
+    // 到达这里时 el 的 down 还没把它记进 pointers。用"当前/最近一次已按下的 id"来区分，
+    // 不能只看 pointers 集合，否则单次点击会被误判成第二根手指 → blocked 吃掉双击。
+    let activeDownId = null;
     const otherDown = e => {
-      if (!pointers.has(e.pointerId)) { pointers.add(e.pointerId); blocked = true; reset(); }
+      if (e.pointerId === activeDownId || pointers.has(e.pointerId)) return;
+      pointers.add(e.pointerId); blocked = true; reset();
     };
-    const outsideUp = e => { if (pointers.has(e.pointerId)) cancel(e); };
+    // 同一根手指的 pointerup 冒泡到 document 时也会触发；若落点仍在手势元素内，
+    // 就放行给元素自己的 up 处理，不能让"外部抬起"的 cancel 先清掉 previous——
+    // 否则两次短按永远凑不成双击。真正落在外部的抬起（target 不在 el 内）仍清 pending。
+    const outsideUp = e => { if (pointers.has(e.pointerId) && !el.contains?.(e.target)) cancel(e); };
     const removeGlobal = () => {
       document.removeEventListener('pointerdown', otherDown);
       document.removeEventListener('pointerup', outsideUp);
@@ -19661,6 +19670,7 @@ window.APP = (() => {
       if (!pointers.size) removeGlobal();
     };
     const down = e => {
+      activeDownId = e.pointerId;
       pointers.add(e.pointerId);
       document.addEventListener('pointerdown', otherDown);
       document.addEventListener('pointerup', outsideUp);
@@ -19704,6 +19714,32 @@ window.APP = (() => {
       el.classList.add('inductive-hero'); el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0');
       el.setAttribute('aria-label', '双击打开孪生仪表'); el.setAttribute('draggable', 'false');
       if (!gestures.has(el)) gestures.set(el, gestureHandler(el, () => { if (window.PLATFORM.preview() || available('twin')) open('twin'); }));
+    });
+    // 3D 展台同样支持双击进仪表：手势绑在 model-viewer 上（兜底立绘会盖在它上面，
+    // 兜底自己的 img 已在上面绑定，ready 前双击落在 img、ready 后落在 model-viewer）。
+    // gestureHandler 的 12px 位移阈值天然过滤拖转——转模型必超 12px，不计双击。
+    root?.querySelectorAll('model-viewer.hero-3d').forEach(el => {
+      if (!el.closest('.hero-stage')) return;
+      const unbind = () => {
+        const stage = el.closest('.hero-stage');
+        stage?.querySelectorAll('.vs-model-fallback img.hero-pic, .vs-model-fallback svg.fallback').forEach(inner => {
+          gestures.get(inner)?.(); gestures.delete(inner);
+          inner.classList.remove('inductive-hero');
+          inner.removeAttribute('role'); inner.removeAttribute('tabindex'); inner.removeAttribute('aria-label');
+        });
+      };
+      if (!window.PLATFORM.preview() && !available('twin')) {
+        gestures.get(el)?.(); gestures.delete(el);
+        el.classList.remove('inductive-hero');
+        el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('aria-label');
+        return;
+      }
+      el.classList.add('inductive-hero'); el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-label', '双击打开孪生仪表（拖动可旋转模型）');
+      if (!gestures.has(el)) gestures.set(el, gestureHandler(el, () => { if (window.PLATFORM.preview() || available('twin')) open('twin'); }));
+      // 模型就绪后兜底被藏起，里面的 img 手势要撤掉，避免一层两份手势打架。
+      if (el.classList?.contains?.('vs-model-ready')) unbind();
+      else el.addEventListener('load', unbind, { once: true });
     });
   }
   // 服务存活与 document 生命周期分开：后台只停 UI 轮询/分离，不送 stop/endGps。
@@ -38776,6 +38812,16 @@ if (window.LAZY_FEATURE.register(window.APP, 'audio', () => {
       // 记住旋转：用户拖出来的 camera-change 写回档案（开关关着时不写）。
       // 资源 id 相同的重绘（轮询刷新）不改 src，bindOrbit 不重复挂。
       binding.events['camera-change'] = () => { if (valid() && binding.state === 'ready') rememberOrbit(viewer.dataset?.vsVin || viewer.getAttribute('data-vs-vin') || '', viewer.getCameraOrbit?.() || viewer.getAttribute('camera-orbit')); };
+      // 兜底：pointerup 时若相机与上次记录不同且此刻不在拖转中，同样落档。
+      // model-viewer 的 camera-change 依赖渲染帧（rAF），个别内核上丢失；双击手势的短按
+      // 位移 ≤12px 不会超过死区，不会误写。取值用**属性**而不是 getCameraOrbit()——
+      // getter 在合成/低帧率环境下可能滞后于属性（实测 150deg 属性已变、getter 仍 0rad）。
+      // 门用 viewer.loaded 而不是 binding.state：binding 只在 afterRender 重建时刷新，
+      // 与"模型此刻能不能转"无关。
+      binding.events.pointerup = () => {
+        if (!valid() || viewer.loaded !== true) return;
+        rememberOrbit(viewer.dataset?.vsVin || viewer.getAttribute('data-vs-vin') || '', viewer.getAttribute('camera-orbit') || '');
+      };
       viewers.set(viewer, binding);
       for (const [name, listener] of Object.entries(binding.events)) viewer.addEventListener(name, listener);
       if (viewer.dataset) viewer.dataset.vsVin = currentVehicle().vin || '';
@@ -38851,7 +38897,7 @@ if (window.LAZY_FEATURE.register(window.APP, 'audio', () => {
   const urlFor = channel => { const { vin, home } = currentVehicle(), p = presentation(vin, home); return p.channel === channel ? p.url : ''; };
   A.vehicleStyle = { init, open, refresh, presentation, afterRender, applyFor, revision, activeChannel, heroPicOverride, urlFor,
     importFile, ensureList, setChannel, setKind, pickPreset, setColor, resetColors, retry: retryResource,
-    selection: vin => copy(modeOf(vin || currentVehicle().vin)), slots, setOrbitMemory };
+    selection: vin => copy(modeOf(vin || currentVehicle().vin)), slots, setOrbitMemory, _rememberOrbit: rememberOrbit };
   init();
 })();
 
@@ -44098,7 +44144,9 @@ let lastChgState = null;
     // 记住旋转：档案角度直接写进初始 camera-orbit——整块 innerHTML 重建后新节点开场就是
     // 上次的角度，不靠 load 事件再转一次（那会有可见的甩头）。开关关着 vsModel.orbit 缺失，落回默认侧视。
     const vsOrbitAttr = vsModel?.orbit ? ` camera-orbit="${esc(vsModel.orbit.theta)}deg ${esc(vsModel.orbit.phi)}deg 2.6m"` : ' camera-orbit="0deg 90deg 2.6m"';
-    const vsViewerAttrs = `camera-controls touch-action="pan-y" interaction-prompt="none" shadow-intensity="1" exposure="1"${vsOrbitAttr} camera-target="0m auto auto" min-camera-orbit="-90deg 0deg auto" max-camera-orbit="90deg 180deg auto" interpolation-decay="200"`;
+    // disable-tap 关掉单击/双击的原生重置视角与点选反馈；disable-zoom/pan 关掉双指缩放/平移。
+    // 只留 camera-controls 的"拖动旋转"给用户观看模型；双击由 A.inductiveUi 手势接管开仪表。
+    const vsViewerAttrs = `camera-controls touch-action="pan-y" interaction-prompt="none" shadow-intensity="1" exposure="1"${vsOrbitAttr} camera-target="0m auto auto" min-camera-orbit="-90deg 0deg auto" max-camera-orbit="90deg 180deg auto" interpolation-decay="200" disable-tap disable-zoom disable-pan`;
     const vehiclePart = vs3dUrl
       ? `<model-viewer class="hero-3d${heroAnim ? ' hero-in' : ''}" src="${esc(vs3dUrl)}" data-vs-model="${esc(vsModel.id || '')}" data-vs-vin="${esc(h.vin || S.vin || '')}" alt="${esc(h.name)} 三维车辆" ${vsViewerAttrs} loading="eager" reveal="auto">${vsFallback}</model-viewer>${vsStatus}${tireBubbles}`
       : `${vehicleArt}${tireBubbles}`;
