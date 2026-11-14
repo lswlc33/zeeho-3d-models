@@ -10,7 +10,7 @@
   "website": "https://github.com/lswlc33/zeeho-3d-models",
   "apps": [
     {
-      "name": "Jeeho Panel",
+      "name": "极核面板（测试版）",
       "type": "1",
       "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
       "developerName": "lswlc33",
