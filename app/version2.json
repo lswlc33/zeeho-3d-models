@@ -10,7 +10,7 @@
   "website": "https://github.com/lswlc33/zeeho-3d-models",
   "apps": [
     {
-      "name": "极核面板（测试版）",
+      "name": "Jeeho Panel",
       "type": "1",
       "bundleIdentifier": "io.github.lswlc33.dashboard.ios",
       "developerName": "lswlc33",
@@ -18,21 +18,21 @@
       "localizedDescription": "几何面板是独立的极核电动车数据面板，提供车况、电量、骑行记录和已适配车辆设置。iOS 客户端使用 WKWebView 与原生桥，支持账号管理、面板资源更新与 iOS App 版本提示",
       "iconURL": "https://zhb.xn--fiqz59cpva341l.top/app/icon-ios-1024.png",
       "category": "utilities",
-      "version": "1.1.8",
-      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=22406dabdc521c094e81a2a3ab214b0b482a6581c00fa32bc75a6943faddff0d",
-      "size": 3548061,
-      "versionDate": "2026-11-14T05:34:12+00:00",
+      "version": "1.1.9",
+      "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=a1bade4c036dab8a1b2141c8cc9195e74bc4141284bb7918dcd46174b4c2e660",
+      "size": 3559934,
+      "versionDate": "2026-11-14T12:16:55+00:00",
       "versionDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
       "lock": "0",
       "isLanZouCloud": "0",
       "versions": [
         {
-          "version": "1.1.8",
-          "buildVersion": "55",
-          "date": "2026-11-14T05:34:12Z",
+          "version": "1.1.9",
+          "buildVersion": "56",
+          "date": "2026-11-14T12:16:55Z",
           "localizedDescription": "解决了一些已知问题。\n\n目前软件处于快速更新迭代中，请及时更新并反馈问题",
-          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=22406dabdc521c094e81a2a3ab214b0b482a6581c00fa32bc75a6943faddff0d",
-          "size": 3548061,
+          "downloadURL": "https://zhb.xn--fiqz59cpva341l.top/app/zeehowebnext.ipa?sha256=a1bade4c036dab8a1b2141c8cc9195e74bc4141284bb7918dcd46174b4c2e660",
+          "size": 3559934,
           "minOSVersion": "15.4"
         }
       ],
