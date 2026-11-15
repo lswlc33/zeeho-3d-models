@@ -9,6 +9,7 @@
       "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
       "size": 6226708,
       "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623144600.glb",
       "note": "AE4 MAX2+ 车模，银灰配色"
     },
     {
@@ -17,6 +18,7 @@
       "file": "AE3-Pro-ZH1300DT-6.glb",
       "size": 7069348,
       "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787569458862.glb",
       "note": "AE3 Pro 车模，白色配色"
     },
     {
@@ -33,7 +35,7 @@
       "file": "gugugaga.glb",
       "size": 9657100,
       "ver": 1,
-      "note": "第三方模型 Sketchfab「Gugugaga」(planktonfun, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
+      "note": "咕咕嘎嘎企鹅装模型"
     },
     {
       "id": "deepseek-fumo",
@@ -41,7 +43,7 @@
       "file": "deepseek-fumo.glb",
       "size": 1227456,
       "ver": 1,
-      "note": "第三方模型 Sketchfab「Deepseek Fumo」(xunbile, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
+      "note": "DeepSeek 女仆装玩偶模型"
     },
     {
       "id": "miko-bust",
@@ -49,7 +51,7 @@
       "file": "miko-bust.glb",
       "size": 36739620,
       "ver": 1,
-      "note": "图像转 3D 的巫女角色半身像，已按 App 相机调好朝向与居中；非官方车模。36MB 超过 jsDelivr 20MB 限制，仅 GitHub Pages / 代理线路可用"
+      "note": "巫女半身角色模型"
     }
   ]
 }
