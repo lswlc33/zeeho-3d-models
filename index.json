@@ -1,8 +1,24 @@
 {
-  "ver": 2,
-  "updated": "2026-11-13",
+  "ver": 3,
+  "updated": "2026-11-15",
   "note": "旧版车模清单（ver 1 的 models[].file 是相对仓库根的路径）。2026-11-13 起模型移入 models/pic3d/，新代码请读 models/pic3d.json；本清单保留并把 file 更新为新路径，兼容仍读此清单的旧客户端",
   "models": [
+    {
+      "id": "ae4max2plus-zh3500dt-2a",
+      "name": "AE4 MAX2+ ZH3500DT-2A",
+      "file": "pic3d/AE4-MAX2plus-ZH3500DT-2A.glb",
+      "size": 6226708,
+      "ver": 1,
+      "note": "官方 AE4 MAX2+ 车模（202611 问卷新抓版本：比旧版多 A-Paint-DDY 车漆与石灰绿金属件，与同型号立绘配色一致）"
+    },
+    {
+      "id": "ae3pro-zh1300dt-6",
+      "name": "AE3 Pro ZH1300DT-6",
+      "file": "pic3d/AE3-Pro-ZH1300DT-6.glb",
+      "size": 7069348,
+      "ver": 1,
+      "note": "官方 AE3 Pro 车模（白色车身 + 石灰绿装饰件，与同型号立绘配色一致）"
+    },
     {
       "id": "ae4max2",
       "name": "AE4 MAX2+",
