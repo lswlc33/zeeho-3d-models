@@ -1,36 +1,36 @@
 {
-  "ver": 3,
+  "ver": 4,
   "updated": "2026-11-15",
-  "note": "旧版车模清单（ver 1 的 models[].file 是相对仓库根的路径）。2026-11-13 起模型移入 models/pic3d/，新代码请读 models/pic3d.json；本清单保留并把 file 更新为新路径，兼容仍读此清单的旧客户端",
+  "note": "旧版车模清单；file 为 models/pic3d/ 下的文件名。新代码请读 models/pic3d.json，本清单仅为兼容仍读此清单的旧客户端",
   "models": [
     {
       "id": "ae4max2plus-zh3500dt-2a",
       "name": "AE4 MAX2+ ZH3500DT-2A",
-      "file": "pic3d/AE4-MAX2plus-ZH3500DT-2A.glb",
+      "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
       "size": 6226708,
       "ver": 1,
-      "note": "官方 AE4 MAX2+ 车模（202611 问卷新抓版本：比旧版多 A-Paint-DDY 车漆与石灰绿金属件，与同型号立绘配色一致）"
+      "note": "AE4 MAX2+ 车模，银灰配色"
     },
     {
       "id": "ae3pro-zh1300dt-6",
       "name": "AE3 Pro ZH1300DT-6",
-      "file": "pic3d/AE3-Pro-ZH1300DT-6.glb",
+      "file": "AE3-Pro-ZH1300DT-6.glb",
       "size": 7069348,
       "ver": 1,
-      "note": "官方 AE3 Pro 车模（白色车身 + 石灰绿装饰件，与同型号立绘配色一致）"
+      "note": "AE3 Pro 车模，白色配色"
     },
     {
       "id": "ae4max2",
-      "name": "AE4 MAX2+",
-      "file": "pic3d/AE4-MAX2plus.glb",
+      "name": "AE4 MAX2+（旧版）",
+      "file": "AE4-MAX2plus.glb",
       "size": 6226468,
       "ver": 1,
-      "note": "官方 AE4 MAX2+ 原版车模（深灰/铜色喷涂前请先清空配色方）"
+      "note": "AE4 MAX2+ 旧版车模"
     },
     {
       "id": "gugugaga",
       "name": "咕咕嘎嘎（企鹅装）",
-      "file": "pic3d/gugugaga.glb",
+      "file": "gugugaga.glb",
       "size": 9657100,
       "ver": 1,
       "note": "第三方模型 Sketchfab「Gugugaga」(planktonfun, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
@@ -38,7 +38,7 @@
     {
       "id": "deepseek-fumo",
       "name": "DeepSeek 玩偶（女仆装）",
-      "file": "pic3d/deepseek-fumo.glb",
+      "file": "deepseek-fumo.glb",
       "size": 1227456,
       "ver": 1,
       "note": "第三方模型 Sketchfab「Deepseek Fumo」(xunbile, CC-BY-4.0) 适配版：已正对镜头、居中；非官方车模"
@@ -46,7 +46,7 @@
     {
       "id": "miko-bust",
       "name": "巫女立绘（半身）",
-      "file": "pic3d/miko-bust.glb",
+      "file": "miko-bust.glb",
       "size": 36739620,
       "ver": 1,
       "note": "图像转 3D 的巫女角色半身像，已按 App 相机调好朝向与居中；非官方车模。36MB 超过 jsDelivr 20MB 限制，仅 GitHub Pages / 代理线路可用"
