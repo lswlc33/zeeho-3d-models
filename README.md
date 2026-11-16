@@ -33,7 +33,6 @@ icons/                   图标资源
 
 - 咕咕嘎嘎（企鹅装）：Sketchfab「Gugugaga」，planktonfun，CC-BY-4.0。
 - DeepSeek 玩偶（女仆装）：Sketchfab「Deepseek Fumo」，xunbile，CC-BY-4.0。
-- 巫女立绘（半身）：图像转 3D 角色模型。
 
 
 提交推送后，jsDelivr 通常会在 15 分钟内刷新。

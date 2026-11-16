@@ -1,6 +1,6 @@
 {
-  "ver": 2,
-  "updated": "2026-11-15",
+  "ver": 3,
+  "updated": "2026-11-16",
   "note": "3D 车模清单；file 相对 models/pic3d/ 目录，命名「车型-整车型号」",
   "items": [
     {
@@ -44,14 +44,6 @@
       "size": 1227456,
       "ver": 1,
       "note": "DeepSeek 女仆装玩偶模型"
-    },
-    {
-      "id": "miko-bust",
-      "name": "巫女立绘（半身）",
-      "file": "miko-bust.glb",
-      "size": 36739620,
-      "ver": 1,
-      "note": "巫女半身角色模型"
     }
   ]
 }
