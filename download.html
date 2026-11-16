@@ -6,7 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
-<meta name="build" content="2026-11-16 12:43:48">
+<meta name="build" content="2026-11-16 13:20:58">
 <meta name="description" content="下载几何面板：Android 直接安装 APK，iOS 通过自签工具添加软件源安装。">
 <title>几何面板 · 下载</title>
 <link rel="icon" href="icons/favicon-32.png">
@@ -178,7 +178,15 @@
   [['signer-dialog', signerDialog], ['source-dialog', sourceDialog], ['ios-line-dialog', iosLineDialog]].forEach(function (pair) {
     document.getElementById(pair[0]).addEventListener('close', function () { blurDialogFocus(pair[1]); });
   });
-  picker.addEventListener('click', function () { sourceDialog.showModal(); calmDialogFocus(sourceDialog); });
+  function openDialog(dialog) {
+    if (typeof dialog.showModal !== 'function') return;
+    dialog.showModal(); calmDialogFocus(dialog);
+  }
+  // 旧浏览器缺少 modal 能力时保留默认下载和复制，隐藏无法使用的弹窗入口。
+  picker.hidden = typeof sourceDialog.showModal !== 'function';
+  document.getElementById('add-source').hidden = typeof signerDialog.showModal !== 'function';
+  document.getElementById('choose-ios-line').hidden = typeof iosLineDialog.showModal !== 'function';
+  picker.addEventListener('click', function () { openDialog(sourceDialog); });
   // 点击线路立即生效并收起；点空白处关闭
   sourceDialog.addEventListener('click', function (event) {
     if (event.target === sourceDialog) { sourceDialog.close(); return; }
@@ -195,12 +203,12 @@
     copy.disabled = true;
     copyText(apkSources[key].url, function (ok) { copy.disabled = false; });
   });
-  document.getElementById('add-source').addEventListener('click', function () { signerDialog.showModal(); calmDialogFocus(signerDialog); });
+  document.getElementById('add-source').addEventListener('click', function () { openDialog(signerDialog); });
   document.getElementById('copy-source').addEventListener('click', function () {
     copy.disabled = true;
     copyText(currentSourceUrl(), function (ok) { copy.disabled = false; });
   });
-  document.getElementById('choose-ios-line').addEventListener('click', function () { iosLineDialog.showModal(); calmDialogFocus(iosLineDialog); });
+  document.getElementById('choose-ios-line').addEventListener('click', function () { openDialog(iosLineDialog); });
   iosLineDialog.addEventListener('click', function (event) {
     if (event.target === iosLineDialog) { iosLineDialog.close(); return; }
     var item = event.target.closest ? event.target.closest('[data-ios-line]') : null;
