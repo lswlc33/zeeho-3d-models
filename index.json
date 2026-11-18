@@ -1,35 +1,8 @@
 {
-  "ver": 7,
+  "ver": 8,
   "updated": "2026-11-18",
   "note": "旧版车模清单；file 为 models/pic3d/ 下的文件名。新代码请读 models/pic3d.json，本清单仅为兼容仍读此清单的旧客户端",
   "models": [
-    {
-      "id": "ae4max2plus-zh3500dt-2a",
-      "name": "AE4 MAX2+ ZH3500DT-2A",
-      "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
-      "size": 6226708,
-      "ver": 1,
-      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623144600.glb",
-      "note": "AE4 MAX2+ 车模，银灰配色"
-    },
-    {
-      "id": "ae4max2plus-zh3500dt-2-silver",
-      "name": "AE4 MAX2+ ZH3500DT-2（银灰）",
-      "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
-      "size": 6226708,
-      "ver": 1,
-      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623176907.glb",
-      "note": "问卷里 ZH3500DT-2 的银灰车，官方文件与 ZH3500DT-2A 字节完全一致，共用同一份 glb"
-    },
-    {
-      "id": "ae4max2plus-zh3500dt-2-gray",
-      "name": "AE4 MAX2+ ZH3500DT-2（灰）",
-      "file": "AE4-MAX2plus-ZH3500DT-2-gray.glb",
-      "size": 6236644,
-      "ver": 1,
-      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623161599.glb",
-      "note": "AE4 MAX2+ 灰色配色，已去充电线部件"
-    },
     {
       "id": "ae3pro-zh1300dt-6",
       "name": "AE3 Pro ZH1300DT-6",
@@ -37,7 +10,33 @@
       "size": 7069348,
       "ver": 1,
       "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787569458862.glb",
-      "note": "AE3 Pro 车模，白色配色"
+      "note": "AE3 Pro 白色"
+    },
+    {
+      "id": "ae4max2plus-zh3500dt-2-gray",
+      "name": "AE4 MAX2+ ZH3500DT-2",
+      "file": "AE4-MAX2plus-ZH3500DT-2-gray.glb",
+      "size": 6236644,
+      "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623161599.glb",
+      "note": "AE4 MAX2+ 灰色"
+    },
+    {
+      "id": "ae4max2plus-zh3500dt-2a",
+      "name": "AE4 MAX2+ ZH3500DT-2A",
+      "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
+      "size": 6226708,
+      "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623144600.glb",
+      "note": "AE4 MAX2+ 银灰"
+    },
+    {
+      "id": "ae4max2",
+      "name": "AE4 MAX2+（旧版）",
+      "file": "AE4-MAX2plus.glb",
+      "size": 6226468,
+      "ver": 1,
+      "note": "AE4 MAX2+ 紫色"
     },
     {
       "id": "ae8",
@@ -46,15 +45,7 @@
       "size": 12922740,
       "ver": 1,
       "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1784517447000.glb",
-      "note": "AE8 官方车模，已去充电线部件"
-    },
-    {
-      "id": "ae4max2",
-      "name": "AE4 MAX2+（旧版）",
-      "file": "AE4-MAX2plus.glb",
-      "size": 6226468,
-      "ver": 1,
-      "note": "AE4 MAX2+ 旧版车模"
+      "note": "AE8 银白"
     },
     {
       "id": "gugugaga",
@@ -62,7 +53,7 @@
       "file": "gugugaga.glb",
       "size": 9657100,
       "ver": 1,
-      "note": "咕咕嘎嘎企鹅装模型"
+      "note": "第三方 企鹅装"
     },
     {
       "id": "deepseek-fumo",
@@ -70,7 +61,7 @@
       "file": "deepseek-fumo.glb",
       "size": 1227456,
       "ver": 1,
-      "note": "DeepSeek 女仆装玩偶模型"
+      "note": "第三方 女仆装"
     }
   ]
 }

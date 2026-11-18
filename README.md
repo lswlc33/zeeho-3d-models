@@ -21,15 +21,19 @@ icons/                   图标资源
 空格转连字符（URL 里不用编码），配色只在同型号有多个配色时加，颜色是看图识别的、不是官方配色名。
 文件名只用字母数字和 `. _ -`，前端清单加载器会拒掉其它字符。
 
+**清单顺序**：官方车模在前（按 `AE` 后面的数字升序），第三方模型在后。`note` 只写车型与颜色，不写处理过程。
+
 ## 添加车模
 
 1. 车模放进 `models/pic3d/`，静态立绘放进 `models/pic/`，按上面的命名规则取名；
 2. 官方车模入库前先去掉充电线部件：`python ../../tools/3d-model/strip_roots.py in.glb out.glb`
    （摘 `C-Plug`/`C-Plug2`/`C-LightPoint` 三个根节点，与面板运行时行为一致）；
-3. 在 `pic3d.json` / `pic.json` 增加对应条目，填写文件名、字节数和版本号；官方源链接放 `source`，仓库副本为回退；
-4. 单个文件必须小于 **20MB**（jsDelivr 对 GitHub 源文件的限制，超限仅 GitHub Pages / 代理线路可用）；
-5. 立绘先裁掉全透明边再入库（面板按 `object-fit: contain` 缩放，留白会白白缩小车体）；
-6. 第三方模型的作者和许可证写入本 README「第三方模型致谢」，`note` 只描述模型。
+3. **车身根节点必须叫 `ZEEHO`**（面板 `vehicle-style.js` 的 `vehicleBody()` 靠它认车身、出换色槽位）。
+   官方文件根节点若是别的名字（如 AE8 的 `FA85`），先 `python ../../tools/3d-model/rename_node.py in.glb out.glb --rename FA85=ZEEHO`；
+4. 在 `pic3d.json` / `pic.json` 增加对应条目，填写文件名、字节数和版本号；官方源链接放 `source`，仓库副本为回退；
+5. 单个文件必须小于 **20MB**（jsDelivr 对 GitHub 源文件的限制，超限仅 GitHub Pages / 代理线路可用）；
+6. 立绘先裁掉全透明边再入库（面板按 `object-fit: contain` 缩放，留白会白白缩小车体）；
+7. 第三方模型的作者和许可证写入本 README「第三方模型致谢」，`note` 只描述模型。
 
 ## 第三方模型致谢
 
