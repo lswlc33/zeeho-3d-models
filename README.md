@@ -30,7 +30,10 @@ icons/                   图标资源
    （摘 `C-Plug`/`C-Plug2`/`C-LightPoint` 三个根节点，与面板运行时行为一致）；
 3. **车身根节点必须叫 `ZEEHO`**（面板 `vehicle-style.js` 的 `vehicleBody()` 靠它认车身、出换色槽位）。
    官方文件根节点若是别的名字（如 AE8 的 `FA85`），先 `python ../../tools/3d-model/rename_node.py in.glb out.glb --rename FA85=ZEEHO`；
-4. 在 `pic3d.json` / `pic.json` 增加对应条目，填写文件名、字节数和版本号；官方源链接放 `source`，仓库副本为回退；
+4. 在 `pic3d.json` / `pic.json` 增加对应条目，填写文件名、字节数和版本号；
+   **官方地址放 `origin`，不要放 `source`**：`source` 是客户端「优先直连下载」的字段，
+   官方原件是未处理的原料（根节点名不对、带充电线），放进去会盖掉仓库里的成品副本。
+   `origin` 只是出处备注，面板与模块都不读它；
 5. 单个文件必须小于 **20MB**（jsDelivr 对 GitHub 源文件的限制，超限仅 GitHub Pages / 代理线路可用）；
 6. 立绘先裁掉全透明边再入库（面板按 `object-fit: contain` 缩放，留白会白白缩小车体）；
 7. 第三方模型的作者和许可证写入本 README「第三方模型致谢」，`note` 只描述模型。
