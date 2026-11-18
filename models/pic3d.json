@@ -1,5 +1,5 @@
 {
-  "ver": 4,
+  "ver": 5,
   "updated": "2026-11-18",
   "note": "3D 车模清单；file 相对 models/pic3d/ 目录，命名「车型-整车型号」",
   "items": [
@@ -11,6 +11,24 @@
       "ver": 1,
       "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623144600.glb",
       "note": "AE4 MAX2+ 车模，银灰配色"
+    },
+    {
+      "id": "ae4max2plus-zh3500dt-2-silver",
+      "name": "AE4 MAX2+ ZH3500DT-2（银灰）",
+      "file": "AE4-MAX2plus-ZH3500DT-2A.glb",
+      "size": 6226708,
+      "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623176907.glb",
+      "note": "问卷里 ZH3500DT-2 的银灰车，官方文件与 ZH3500DT-2A 字节完全一致，共用同一份 glb"
+    },
+    {
+      "id": "ae4max2plus-zh3500dt-2-gray",
+      "name": "AE4 MAX2+ ZH3500DT-2（灰）",
+      "file": "AE4-MAX2plus-ZH3500DT-2-gray.glb",
+      "size": 6236644,
+      "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623161599.glb",
+      "note": "AE4 MAX2+ 灰色配色，已去充电线部件"
     },
     {
       "id": "ae3pro-zh1300dt-6",
@@ -25,10 +43,10 @@
       "id": "ae8",
       "name": "AE8",
       "file": "AE8.glb",
-      "size": 12922748,
+      "size": 12922740,
       "ver": 1,
       "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1784517447000.glb",
-      "note": "AE8 官方车模"
+      "note": "AE8 官方车模，已去充电线部件"
     },
     {
       "id": "ae4max2",
