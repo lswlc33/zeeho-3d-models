@@ -1,6 +1,6 @@
 {
-  "ver": 5,
-  "updated": "2026-11-16",
+  "ver": 6,
+  "updated": "2026-11-18",
   "note": "旧版车模清单；file 为 models/pic3d/ 下的文件名。新代码请读 models/pic3d.json，本清单仅为兼容仍读此清单的旧客户端",
   "models": [
     {
@@ -20,6 +20,15 @@
       "ver": 1,
       "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787569458862.glb",
       "note": "AE3 Pro 车模，白色配色"
+    },
+    {
+      "id": "ae8",
+      "name": "AE8",
+      "file": "AE8.glb",
+      "size": 12922748,
+      "ver": 1,
+      "source": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1784517447000.glb",
+      "note": "AE8 官方车模"
     },
     {
       "id": "ae4max2",
