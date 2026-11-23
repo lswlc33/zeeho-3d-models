@@ -1,6 +1,6 @@
 {
-  "ver": 6,
-  "updated": "2026-11-18",
+  "ver": 7,
+  "updated": "2026-11-23",
   "note": "静态车辆立绘清单；file 相对 models/pic/ 目录。官方车模在前（按 AE 数字升序），第三方在后",
   "items": [
     {
@@ -22,6 +22,15 @@
       "note": "AE4 Max MY25 白色"
     },
     {
+      "id": "ae4max-my25-zh1600dt-e-black",
+      "name": "AE4 Max MY25 ZH1600DT-E（黑）",
+      "file": "AE4-Max-MY25-ZH1600DT-E-black.png",
+      "size": 246225,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1759142333331.png",
+      "note": "AE4 Max MY25 黑色"
+    },
+    {
       "id": "ae4max2plus-zh3500dt-2a-silver",
       "name": "AE4 MAX2+ ZH3500DT-2A（银灰）",
       "file": "AE4-MAX2plus-ZH3500DT-2A-silver.png",
@@ -31,6 +40,15 @@
       "note": "AE4 MAX2+ 银灰"
     },
     {
+      "id": "ae4max2plus-zh3500dt-2-black",
+      "name": "AE4 MAX2+ ZH3500DT-2（黑）",
+      "file": "AE4-MAX2plus-ZH3500DT-2-black.png",
+      "size": 355149,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1776241600409.png",
+      "note": "AE4 MAX2+ 黑色"
+    },
+    {
       "id": "ae4pro-my25-zh1600dt-c-black",
       "name": "AE4 Pro MY25 ZH1600DT-C（黑）",
       "file": "AE4-Pro-MY25-ZH1600DT-C-black.png",
@@ -38,6 +56,24 @@
       "ver": 1,
       "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1762324711677.png",
       "note": "AE4 Pro MY25 黑色"
+    },
+    {
+      "id": "ae4iproplus-tdv0302z-silver",
+      "name": "AE4i Pro+ TDV0302Z（银白）",
+      "file": "AE4i-Proplus-TDV0302Z-silver.png",
+      "size": 275211,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1787203031170.png",
+      "note": "AE4i Pro+ 银白"
+    },
+    {
+      "id": "ae5i-tdq0200z-silver",
+      "name": "AE5i TDQ0200Z（银灰）",
+      "file": "AE5i-TDQ0200Z-silver.png",
+      "size": 261266,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758171595608.png",
+      "note": "AE5i 银灰"
     },
     {
       "id": "ae5ipro-tdq0201z-silver",
@@ -67,6 +103,15 @@
       "note": "AE5i Pro 黑色"
     },
     {
+      "id": "ae6-zh2500dt-a-silver-lime",
+      "name": "AE6 ZH2500DT-A（银白/荧光绿）",
+      "file": "AE6-ZH2500DT-A-silver-lime.png",
+      "size": 265773,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1765958589500.png",
+      "note": "AE6 银白+荧光绿点缀"
+    },
+    {
       "id": "ae8",
       "name": "AE8",
       "file": "AE8.png",
@@ -74,6 +119,24 @@
       "ver": 1,
       "origin": "https://cfmoto.oss-cn-hangzhou.aliyuncs.com/uploads/zeeho-client-pc/2022/12/12/1670829637996299680.png",
       "note": "AE8 银白"
+    },
+    {
+      "id": "ae8-zh5000dt-gray",
+      "name": "AE8 ZH5000DT（灰）",
+      "file": "AE8-ZH5000DT-gray.png",
+      "size": 333421,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758785883040.png",
+      "note": "AE8 灰色"
+    },
+    {
+      "id": "ae8-zh5000dt-silver-lime",
+      "name": "AE8 ZH5000DT（银白/荧光绿）",
+      "file": "AE8-ZH5000DT-silver-lime.png",
+      "size": 327218,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/media/1758785766710.png",
+      "note": "AE8 银白+荧光绿拉花"
     }
   ]
 }

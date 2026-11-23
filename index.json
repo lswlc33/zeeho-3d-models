@@ -1,6 +1,6 @@
 {
-  "ver": 8,
-  "updated": "2026-11-18",
+  "ver": 9,
+  "updated": "2026-11-23",
   "note": "旧版车模清单；file 为 models/pic3d/ 下的文件名。新代码请读 models/pic3d.json，本清单仅为兼容仍读此清单的旧客户端",
   "models": [
     {
@@ -20,6 +20,15 @@
       "ver": 1,
       "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623161599.glb",
       "note": "AE4 MAX2+ 灰色"
+    },
+    {
+      "id": "ae4max2plus-zh3500dt-2-black",
+      "name": "AE4 MAX2+ ZH3500DT-2（黑）",
+      "file": "AE4-MAX2plus-ZH3500DT-2-black.glb",
+      "size": 6246188,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787623152893.glb",
+      "note": "AE4 MAX2+ 黑色"
     },
     {
       "id": "ae4max2plus-zh3500dt-2a",
