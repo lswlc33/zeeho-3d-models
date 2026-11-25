@@ -1,8 +1,17 @@
 {
-  "ver": 7,
-  "updated": "2026-11-23",
+  "ver": 8,
+  "updated": "2026-11-25",
   "note": "3D 车模清单；file 相对 models/pic3d/ 目录。官方车模在前（按 AE 数字升序），第三方在后",
   "items": [
+    {
+      "id": "ae2pro-zh1600dt-4",
+      "name": "AE2 Pro ZH1600DT-4",
+      "file": "AE2-Pro-ZH1600DT-4.glb",
+      "size": 8322980,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1791770794583.glb",
+      "note": "AE2 Pro 银灰"
+    },
     {
       "id": "ae3pro-zh1300dt-6",
       "name": "AE3 Pro ZH1300DT-6",
@@ -46,6 +55,15 @@
       "size": 6226468,
       "ver": 1,
       "note": "AE4 MAX2+ 紫色"
+    },
+    {
+      "id": "ae6pro-zh4000dt-2a",
+      "name": "AE6 Pro ZH4000DT-2A",
+      "file": "AE6-Pro-ZH4000DT-2A.glb",
+      "size": 11037300,
+      "ver": 1,
+      "origin": "https://oss-cfmoto.zeehoev.com/uploads/zeeho-client-pc/model3d/1787565623260.glb",
+      "note": "AE6 Pro 银灰"
     },
     {
       "id": "ae8",
